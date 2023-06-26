@@ -51,7 +51,6 @@ type S3LogIntegration struct {
 	S3Prefix *string `graphql:"s3Prefix"`
 	// Used to map prefixes to log types
 	S3PrefixLogTypes []S3PrefixLogTypes `graphql:"s3PrefixLogTypes"`
-	IsPantherManaged bool               `graphql:"isPantherManaged"`
 }
 
 // Enum representation of Log Stream types
@@ -69,9 +68,9 @@ type S3PrefixLogTypesInput struct {
 
 type S3PrefixLogTypes struct {
 	// S3 Prefixes to exclude
-	ExcludedPrefixes []string `json:"excludedPrefixes"`
+	ExcludedPrefixes []string `graphql:"excludedPrefixes"`
 	// Log types to map to prefix
-	LogTypes []string `json:"logTypes"`
+	LogTypes []string `graphql:"logTypes"`
 	// S3 Prefix to map to log types
-	Prefix string `json:"prefix"`
+	Prefix string `graphql:"prefix"`
 }

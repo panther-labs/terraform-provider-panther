@@ -13,7 +13,7 @@ type AuthorizedHTTPClient struct {
 func NewAuthorizedHTTPClient(token string) *AuthorizedHTTPClient {
 	return &AuthorizedHTTPClient{
 		Client: http.Client{
-			Timeout: 3 * time.Second,
+			Timeout: 5 * time.Second,
 		},
 		token: token,
 	}
