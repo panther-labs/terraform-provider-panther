@@ -6,7 +6,9 @@ import (
 
 type Client interface {
 	CreateS3Source(ctx context.Context, input CreateS3SourceInput) (CreateS3SourceOutput, error)
+	UpdateS3Source(ctx context.Context, input UpdateS3SourceInput) (UpdateS3SourceOutput, error)
 	GetS3Source(ctx context.Context, id string) (*S3LogIntegration, error)
+	DeleteSource(ctx context.Context, input DeleteSourceInput) (DeleteSourceOutput, error)
 }
 
 // Input for the createS3LogSource mutation
@@ -24,6 +26,32 @@ type CreateS3SourceInput struct {
 // Output for the createS3LogSource mutation
 type CreateS3SourceOutput struct {
 	LogSource *S3LogIntegration `graphql:"logSource"`
+}
+
+// Input for the updateS3Source mutation
+type UpdateS3SourceInput struct {
+	ID                         string                  `json:"id"`
+	KmsKey                     string                  `json:"kmsKey"`
+	Label                      string                  `json:"label"`
+	LogProcessingRole          string                  `json:"logProcessingRole"`
+	LogStreamType              string                  `json:"logStreamType"`
+	ManagedBucketNotifications bool                    `json:"managedBucketNotifications"`
+	S3PrefixLogTypes           []S3PrefixLogTypesInput `json:"s3PrefixLogTypes"`
+}
+
+// Output for the updateS3LogSource mutation
+type UpdateS3SourceOutput struct {
+	LogSource *S3LogIntegration `graphql:"logSource"`
+}
+
+// Input for the deleteSource mutation
+type DeleteSourceInput struct {
+	ID string `json:"id"`
+}
+
+// Output for the deleteSource mutation
+type DeleteSourceOutput struct {
+	ID string `json:"id"`
 }
 
 // Represents an S3 Log Source Integration

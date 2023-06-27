@@ -231,13 +231,22 @@ func (r *S3SourceResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	// If applicable, this is a great opportunity to initialize any necessary
-	// provider client data and make a call using it.
-	// httpResp, err := r.client.Do(httpReq)
-	// if err != nil {
-	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update example, got error: %s", err))
-	//     return
-	// }
+	_, err := r.client.UpdateS3Source(ctx, client.UpdateS3SourceInput{
+		ID:                         data.Id.ValueString(),
+		KmsKey:                     data.KMSKeyARN.ValueString(),
+		Label:                      data.Name.ValueString(),
+		LogProcessingRole:          data.LogProcessingRoleARN.ValueString(),
+		LogStreamType:              data.LogStreamType.ValueString(),
+		ManagedBucketNotifications: data.IsManagedBucketNotificationsEnabled.ValueBool(),
+		S3PrefixLogTypes:           PrefixLogTypesToInput(data.PrefixLogTypes),
+	})
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error updating S3 Source",
+			"Could not update S3 Source, unexpected error: "+err.Error(),
+		)
+		return
+	}
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -253,13 +262,14 @@ func (r *S3SourceResource) Delete(ctx context.Context, req resource.DeleteReques
 		return
 	}
 
-	// If applicable, this is a great opportunity to initialize any necessary
-	// provider client data and make a call using it.
-	// httpResp, err := r.client.Do(httpReq)
-	// if err != nil {
-	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete example, got error: %s", err))
-	//     return
-	// }
+	_, err := r.client.DeleteSource(ctx, client.DeleteSourceInput{ID: data.Id.ValueString()})
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error Deleting S3 Source",
+			"Could not delete S3 Source, unexpected error: "+err.Error(),
+		)
+		return
+	}
 }
 
 func (r *S3SourceResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
