@@ -2,6 +2,7 @@ package panther
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hasura/go-graphql-client"
 	"terraform-provider-panther/internal/client"
@@ -27,11 +28,27 @@ func (c *Client) CreateS3Source(ctx context.Context, source client.CreateS3Sourc
 			client.CreateS3SourceOutput
 		} `graphql:"createS3Source(input: $input)"`
 	}
-	err := c.WithDebug(true).Mutate(ctx, &m, map[string]interface{}{
+	err := c.Mutate(ctx, &m, map[string]interface{}{
 		"input": source,
 	}, graphql.OperationName("CreateS3Source"))
 	if err != nil {
-		return client.CreateS3SourceOutput{}, err
+		return client.CreateS3SourceOutput{}, fmt.Errorf("GraphQL mutation failed: %v", err)
 	}
 	return m.CreateS3Source.CreateS3SourceOutput, nil
+}
+
+func (c *Client) GetS3Source(ctx context.Context, id string) (*client.S3LogIntegration, error) {
+	var q struct {
+		Source struct {
+			S3LogIntegration client.S3LogIntegration `graphql:"... on S3LogIntegration"`
+		} `graphql:"source(id: $id)"`
+	}
+
+	err := c.WithDebug(true).Query(ctx, &q, map[string]interface{}{
+		"id": graphql.ID(id),
+	}, graphql.OperationName("Source"))
+	if err != nil {
+		return nil, fmt.Errorf("GraphQL mutation failed: %v", err)
+	}
+	return &q.Source.S3LogIntegration, nil
 }

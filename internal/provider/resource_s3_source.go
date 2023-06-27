@@ -137,7 +137,7 @@ func (r *S3SourceResource) Configure(ctx context.Context, req resource.Configure
 		return
 	}
 
-	client, ok := req.ProviderData.(client.Client)
+	c, ok := req.ProviderData.(client.Client)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -148,7 +148,7 @@ func (r *S3SourceResource) Configure(ctx context.Context, req resource.Configure
 		return
 	}
 
-	r.client = client
+	r.client = c
 }
 
 func (r *S3SourceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -167,7 +167,7 @@ func (r *S3SourceResource) Create(ctx context.Context, req resource.CreateReques
 		KmsKey:                     data.KMSKeyARN.ValueString(),
 		Label:                      data.Name.ValueString(),
 		LogProcessingRole:          data.LogProcessingRoleARN.ValueString(),
-		LogStreamType:              client.LogStreamType(data.LogStreamType.ValueString()),
+		LogStreamType:              data.LogStreamType.ValueString(),
 		ManagedBucketNotifications: data.IsManagedBucketNotificationsEnabled.ValueBool(),
 		S3Bucket:                   data.BucketName.ValueString(),
 		S3PrefixLogTypes:           PrefixLogTypesToInput(data.PrefixLogTypes),
@@ -199,13 +199,23 @@ func (r *S3SourceResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	// If applicable, this is a great opportunity to initialize any necessary
-	// provider client data and make a call using it.
-	// httpResp, err := r.client.Do(httpReq)
-	// if err != nil {
-	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read example, got error: %s", err))
-	//     return
-	// }
+	source, err := r.client.GetS3Source(ctx, data.Id.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading S3 Source",
+			"Could not read S3 Source, unexpected error: "+err.Error(),
+		)
+		return
+	}
+	data.Id = types.StringValue(source.IntegrationID)
+	data.AWSAccountID = types.StringValue(source.AwsAccountID)
+	data.KMSKeyARN = types.StringPointerValue(source.KmsKey)
+	data.Name = types.StringValue(source.IntegrationLabel)
+	data.LogProcessingRoleARN = types.StringPointerValue(source.LogProcessingRole)
+	data.LogStreamType = types.StringPointerValue(source.LogStreamType)
+	data.IsManagedBucketNotificationsEnabled = types.BoolValue(source.ManagedBucketNotifications)
+	data.BucketName = types.StringValue(source.S3Bucket)
+	data.PrefixLogTypes = PrefixLogTypesToModel(source.S3PrefixLogTypes)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -271,6 +281,27 @@ func PrefixLogTypesToInput(prefixLogTypes []PrefixLogTypesModel) []client.S3Pref
 			client.S3PrefixLogTypesInput{
 				ExcludedPrefixes: excluded,
 				Prefix:           p.Prefix.ValueString(),
+				LogTypes:         logTypes,
+			})
+	}
+	return result
+}
+
+// convert Panther client output to terraform model
+func PrefixLogTypesToModel(prefixLogTypes []client.S3PrefixLogTypes) []PrefixLogTypesModel {
+	result := []PrefixLogTypesModel{}
+	for _, p := range prefixLogTypes {
+		var excluded, logTypes []types.String
+		for _, v := range p.ExcludedPrefixes {
+			excluded = append(excluded, types.StringValue(v))
+		}
+		for _, v := range p.LogTypes {
+			logTypes = append(excluded, types.StringValue(v))
+		}
+		result = append(result,
+			PrefixLogTypesModel{
+				ExcludedPrefixes: excluded,
+				Prefix:           types.StringValue(p.Prefix),
 				LogTypes:         logTypes,
 			})
 	}

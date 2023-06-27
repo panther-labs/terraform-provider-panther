@@ -5,7 +5,8 @@ import (
 )
 
 type Client interface {
-	CreateS3Source(context.Context, CreateS3SourceInput) (CreateS3SourceOutput, error)
+	CreateS3Source(ctx context.Context, input CreateS3SourceInput) (CreateS3SourceOutput, error)
+	GetS3Source(ctx context.Context, id string) (*S3LogIntegration, error)
 }
 
 // Input for the createS3LogSource mutation
@@ -14,7 +15,7 @@ type CreateS3SourceInput struct {
 	KmsKey                     string                  `json:"kmsKey"`
 	Label                      string                  `json:"label"`
 	LogProcessingRole          string                  `json:"logProcessingRole"`
-	LogStreamType              LogStreamType           `json:"logStreamType"`
+	LogStreamType              string                  `json:"logStreamType"`
 	ManagedBucketNotifications bool                    `json:"managedBucketNotifications"`
 	S3Bucket                   string                  `json:"s3Bucket"`
 	S3PrefixLogTypes           []S3PrefixLogTypesInput `json:"s3PrefixLogTypes"`
@@ -42,7 +43,7 @@ type S3LogIntegration struct {
 	// The AWS Role used to access the S3 Bucket
 	LogProcessingRole *string `graphql:"logProcessingRole"`
 	// The format of the log files being ingested
-	LogStreamType *LogStreamType `graphql:"logStreamType"`
+	LogStreamType *string `graphql:"logStreamType"`
 	// True if bucket notifications are being managed by Panther
 	ManagedBucketNotifications bool `json:"managedBucketNotifications"`
 	// The S3 Bucket name being ingested
@@ -52,9 +53,6 @@ type S3LogIntegration struct {
 	// Used to map prefixes to log types
 	S3PrefixLogTypes []S3PrefixLogTypes `graphql:"s3PrefixLogTypes"`
 }
-
-// Enum representation of Log Stream types
-type LogStreamType string
 
 // Mapping of S3 prefixes to log types
 type S3PrefixLogTypesInput struct {
