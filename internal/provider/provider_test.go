@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"terraform-provider-panther/internal/client"
-	"terraform-provider-panther/internal/client/clientfakes"
 )
 
 const (
@@ -26,9 +25,9 @@ const (
 // acceptance testing. The factory function will be invoked for every Terraform
 // CLI command executed to create a provider server to which the CLI can
 // reattach.
-func newTestAccProtoV6ProviderFactories(mockClient clientfakes.FakeClient) map[string]func() (tfprotov6.ProviderServer, error) {
+func newTestAccProtoV6ProviderFactories(mockClient client.Client) map[string]func() (tfprotov6.ProviderServer, error) {
 	return map[string]func() (tfprotov6.ProviderServer, error){
-		"panther": providerserver.NewProtocol6WithError(NewMock(&mockClient)()),
+		"panther": providerserver.NewProtocol6WithError(NewMock(mockClient)()),
 	}
 }
 

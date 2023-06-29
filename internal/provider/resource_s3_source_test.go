@@ -13,30 +13,9 @@ import (
 )
 
 func TestS3SourceResource(t *testing.T) {
-	mockClient := clientfakes.FakeClient{}
-	logStreamType := "Lines"
-	logProcessingRole := "arn:aws:iam::111122223333:role/TestRole"
-	originalSource := client.S3LogIntegration{
-		AwsAccountID:               "111122223333",
-		IntegrationLabel:           "test-source",
-		IntegrationID:              "test-id",
-		LogStreamType:              &logStreamType,
-		ManagedBucketNotifications: true,
-		S3Bucket:                   "test_bucket",
-		LogProcessingRole:          &logProcessingRole,
-	}
-	updatedSource := originalSource
-	updatedSource.IntegrationLabel = "test-source-updated"
-	mockClient.CreateS3SourceReturns(client.CreateS3SourceOutput{
-		LogSource: &originalSource,
-	}, nil)
-	mockClient.UpdateS3SourceReturns(client.UpdateS3SourceOutput{
-		LogSource: &updatedSource,
-	}, nil)
-	mockClient.GetS3SourceReturnsOnCall(0, &originalSource, nil)
-	mockClient.GetS3SourceReturnsOnCall(1, &originalSource, nil)
-	mockClient.GetS3SourceReturnsOnCall(2, &updatedSource, nil)
-	mockClient.GetS3SourceReturnsOnCall(3, &updatedSource, nil)
+	// set up panther graphQL client mocks
+	mockClient := initMockClient()
+	// run tests
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: newTestAccProtoV6ProviderFactories(mockClient),
 		Steps: []resource.TestStep{
@@ -50,6 +29,7 @@ func TestS3SourceResource(t *testing.T) {
 					resource.TestCheckResourceAttr("panther_s3_source.test", "log_stream_type", "Lines"),
 					resource.TestCheckResourceAttr("panther_s3_source.test", "is_managed_bucket_notifications_enabled", "true"),
 					resource.TestCheckResourceAttr("panther_s3_source.test", "bucket_name", "test_bucket"),
+					resource.TestCheckResourceAttr("panther_s3_source.test", "kms_key_arn", "key"),
 				),
 			},
 			// ImportState testing
@@ -70,6 +50,36 @@ func TestS3SourceResource(t *testing.T) {
 	})
 }
 
+func initMockClient() client.Client {
+	mockClient := clientfakes.FakeClient{}
+	logStreamType := "Lines"
+	logProcessingRole := "arn:aws:iam::111122223333:role/TestRole"
+	kmsKey := "key"
+	originalSource := client.S3LogIntegration{
+		AwsAccountID:               "111122223333",
+		IntegrationLabel:           "test-source",
+		IntegrationID:              "test-id",
+		LogStreamType:              &logStreamType,
+		ManagedBucketNotifications: true,
+		S3Bucket:                   "test_bucket",
+		LogProcessingRole:          &logProcessingRole,
+		KmsKey:                     &kmsKey,
+	}
+	updatedSource := originalSource
+	updatedSource.IntegrationLabel = "test-source-updated"
+	mockClient.CreateS3SourceReturns(client.CreateS3SourceOutput{
+		LogSource: &originalSource,
+	}, nil)
+	mockClient.UpdateS3SourceReturns(client.UpdateS3SourceOutput{
+		LogSource: &updatedSource,
+	}, nil)
+	mockClient.GetS3SourceReturnsOnCall(0, &originalSource, nil)
+	mockClient.GetS3SourceReturnsOnCall(1, &originalSource, nil)
+	mockClient.GetS3SourceReturnsOnCall(2, &updatedSource, nil)
+	mockClient.GetS3SourceReturnsOnCall(3, &updatedSource, nil)
+	return &mockClient
+}
+
 func testS3SourceResourceConfig(name string) string {
 	return fmt.Sprintf(`
 resource "panther_s3_source" "test" {
@@ -78,8 +88,8 @@ resource "panther_s3_source" "test" {
   log_processing_role_arn = "arn:aws:iam::111122223333:role/TestRole"
   log_stream_type = "Lines"
   is_managed_bucket_notifications_enabled = true
-#  kms_key = "test"
   bucket_name = "test_bucket"
+  kms_key_arn = "key"
   prefix_log_types = []
 }
 `, name)
