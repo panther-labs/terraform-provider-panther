@@ -16,64 +16,27 @@ func TestS3SourceResource(t *testing.T) {
 	mockClient := clientfakes.FakeClient{}
 	logStreamType := "Lines"
 	logProcessingRole := "arn:aws:iam::111122223333:role/TestRole"
+	originalSource := client.S3LogIntegration{
+		AwsAccountID:               "111122223333",
+		IntegrationLabel:           "test-source",
+		IntegrationID:              "test-id",
+		LogStreamType:              &logStreamType,
+		ManagedBucketNotifications: true,
+		S3Bucket:                   "test_bucket",
+		LogProcessingRole:          &logProcessingRole,
+	}
+	updatedSource := originalSource
+	updatedSource.IntegrationLabel = "test-source-updated"
 	mockClient.CreateS3SourceReturns(client.CreateS3SourceOutput{
-		LogSource: &client.S3LogIntegration{
-			AwsAccountID:               "111122223333",
-			IntegrationLabel:           "test-source",
-			IntegrationID:              "test-id",
-			LogStreamType:              &logStreamType,
-			ManagedBucketNotifications: true,
-			S3Bucket:                   "test_bucket",
-			LogProcessingRole:          &logProcessingRole,
-		},
+		LogSource: &originalSource,
 	}, nil)
 	mockClient.UpdateS3SourceReturns(client.UpdateS3SourceOutput{
-		LogSource: &client.S3LogIntegration{
-			AwsAccountID:               "111122223333",
-			IntegrationLabel:           "test-source-updated",
-			IntegrationID:              "test-id",
-			LogStreamType:              &logStreamType,
-			ManagedBucketNotifications: true,
-			S3Bucket:                   "test_bucket",
-			LogProcessingRole:          &logProcessingRole,
-		},
+		LogSource: &updatedSource,
 	}, nil)
-	mockClient.GetS3SourceReturnsOnCall(0, &client.S3LogIntegration{
-		AwsAccountID:               "111122223333",
-		IntegrationLabel:           "test-source",
-		IntegrationID:              "test-id",
-		LogStreamType:              &logStreamType,
-		ManagedBucketNotifications: true,
-		S3Bucket:                   "test_bucket",
-		LogProcessingRole:          &logProcessingRole,
-	}, nil)
-	mockClient.GetS3SourceReturnsOnCall(1, &client.S3LogIntegration{
-		AwsAccountID:               "111122223333",
-		IntegrationLabel:           "test-source",
-		IntegrationID:              "test-id",
-		LogStreamType:              &logStreamType,
-		ManagedBucketNotifications: true,
-		S3Bucket:                   "test_bucket",
-		LogProcessingRole:          &logProcessingRole,
-	}, nil)
-	mockClient.GetS3SourceReturnsOnCall(2, &client.S3LogIntegration{
-		AwsAccountID:               "111122223333",
-		IntegrationLabel:           "test-source-updated",
-		IntegrationID:              "test-id",
-		LogStreamType:              &logStreamType,
-		ManagedBucketNotifications: true,
-		S3Bucket:                   "test_bucket",
-		LogProcessingRole:          &logProcessingRole,
-	}, nil)
-	mockClient.GetS3SourceReturnsOnCall(3, &client.S3LogIntegration{
-		AwsAccountID:               "111122223333",
-		IntegrationLabel:           "test-source-updated",
-		IntegrationID:              "test-id",
-		LogStreamType:              &logStreamType,
-		ManagedBucketNotifications: true,
-		S3Bucket:                   "test_bucket",
-		LogProcessingRole:          &logProcessingRole,
-	}, nil)
+	mockClient.GetS3SourceReturnsOnCall(0, &originalSource, nil)
+	mockClient.GetS3SourceReturnsOnCall(1, &originalSource, nil)
+	mockClient.GetS3SourceReturnsOnCall(2, &updatedSource, nil)
+	mockClient.GetS3SourceReturnsOnCall(3, &updatedSource, nil)
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: newTestAccProtoV6ProviderFactories(mockClient),
 		Steps: []resource.TestStep{
