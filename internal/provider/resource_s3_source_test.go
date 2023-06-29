@@ -8,38 +8,98 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"terraform-provider-panther/internal/client"
+	"terraform-provider-panther/internal/client/clientfakes"
 )
 
-func TestAccExampleResource(t *testing.T) {
+func TestS3SourceResource(t *testing.T) {
+	mockClient := clientfakes.FakeClient{}
+	logStreamType := "Lines"
+	logProcessingRole := "arn:aws:iam::111122223333:role/TestRole"
+	mockClient.CreateS3SourceReturns(client.CreateS3SourceOutput{
+		LogSource: &client.S3LogIntegration{
+			AwsAccountID:               "111122223333",
+			IntegrationLabel:           "test-source",
+			IntegrationID:              "test-id",
+			LogStreamType:              &logStreamType,
+			ManagedBucketNotifications: true,
+			S3Bucket:                   "test_bucket",
+			LogProcessingRole:          &logProcessingRole,
+		},
+	}, nil)
+	mockClient.UpdateS3SourceReturns(client.UpdateS3SourceOutput{
+		LogSource: &client.S3LogIntegration{
+			AwsAccountID:               "111122223333",
+			IntegrationLabel:           "test-source-updated",
+			IntegrationID:              "test-id",
+			LogStreamType:              &logStreamType,
+			ManagedBucketNotifications: true,
+			S3Bucket:                   "test_bucket",
+			LogProcessingRole:          &logProcessingRole,
+		},
+	}, nil)
+	mockClient.GetS3SourceReturnsOnCall(0, &client.S3LogIntegration{
+		AwsAccountID:               "111122223333",
+		IntegrationLabel:           "test-source",
+		IntegrationID:              "test-id",
+		LogStreamType:              &logStreamType,
+		ManagedBucketNotifications: true,
+		S3Bucket:                   "test_bucket",
+		LogProcessingRole:          &logProcessingRole,
+	}, nil)
+	mockClient.GetS3SourceReturnsOnCall(1, &client.S3LogIntegration{
+		AwsAccountID:               "111122223333",
+		IntegrationLabel:           "test-source",
+		IntegrationID:              "test-id",
+		LogStreamType:              &logStreamType,
+		ManagedBucketNotifications: true,
+		S3Bucket:                   "test_bucket",
+		LogProcessingRole:          &logProcessingRole,
+	}, nil)
+	mockClient.GetS3SourceReturnsOnCall(2, &client.S3LogIntegration{
+		AwsAccountID:               "111122223333",
+		IntegrationLabel:           "test-source-updated",
+		IntegrationID:              "test-id",
+		LogStreamType:              &logStreamType,
+		ManagedBucketNotifications: true,
+		S3Bucket:                   "test_bucket",
+		LogProcessingRole:          &logProcessingRole,
+	}, nil)
+	mockClient.GetS3SourceReturnsOnCall(3, &client.S3LogIntegration{
+		AwsAccountID:               "111122223333",
+		IntegrationLabel:           "test-source-updated",
+		IntegrationID:              "test-id",
+		LogStreamType:              &logStreamType,
+		ManagedBucketNotifications: true,
+		S3Bucket:                   "test_bucket",
+		LogProcessingRole:          &logProcessingRole,
+	}, nil)
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		ProtoV6ProviderFactories: newTestAccProtoV6ProviderFactories(mockClient),
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccExampleResourceConfig("one"),
+				Config: providerConfig + testS3SourceResourceConfig("test-source"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("scaffolding_example.test", "configurable_attribute", "one"),
-					resource.TestCheckResourceAttr("scaffolding_example.test", "defaulted", "example value when not configured"),
-					resource.TestCheckResourceAttr("scaffolding_example.test", "id", "example-id"),
+					resource.TestCheckResourceAttr("panther_s3_source.test", "aws_account_id", "111122223333"),
+					resource.TestCheckResourceAttr("panther_s3_source.test", "name", "test-source"),
+					resource.TestCheckResourceAttr("panther_s3_source.test", "log_processing_role_arn", "arn:aws:iam::111122223333:role/TestRole"),
+					resource.TestCheckResourceAttr("panther_s3_source.test", "log_stream_type", "Lines"),
+					resource.TestCheckResourceAttr("panther_s3_source.test", "is_managed_bucket_notifications_enabled", "true"),
+					resource.TestCheckResourceAttr("panther_s3_source.test", "bucket_name", "test_bucket"),
 				),
 			},
 			// ImportState testing
 			{
-				ResourceName:      "scaffolding_example.test",
+				ResourceName:      "panther_s3_source.test",
 				ImportState:       true,
 				ImportStateVerify: true,
-				// This is not normally necessary, but is here because this
-				// example code does not have an actual upstream service.
-				// Once the Read method is able to refresh information from
-				// the upstream service, this can be removed.
-				ImportStateVerifyIgnore: []string{"configurable_attribute", "defaulted"},
 			},
 			// Update and Read testing
 			{
-				Config: testAccExampleResourceConfig("two"),
+				Config: providerConfig + testS3SourceResourceConfig("test-source-updated"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("scaffolding_example.test", "configurable_attribute", "two"),
+					resource.TestCheckResourceAttr("panther_s3_source.test", "name", "test-source-updated"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -47,10 +107,17 @@ func TestAccExampleResource(t *testing.T) {
 	})
 }
 
-func testAccExampleResourceConfig(configurableAttribute string) string {
+func testS3SourceResourceConfig(name string) string {
 	return fmt.Sprintf(`
-resource "scaffolding_example" "test" {
-  configurable_attribute = %[1]q
+resource "panther_s3_source" "test" {
+  aws_account_id = "111122223333"
+  name = "%v"
+  log_processing_role_arn = "arn:aws:iam::111122223333:role/TestRole"
+  log_stream_type = "Lines"
+  is_managed_bucket_notifications_enabled = true
+#  kms_key = "test"
+  bucket_name = "test_bucket"
+  prefix_log_types = []
 }
-`, configurableAttribute)
+`, name)
 }

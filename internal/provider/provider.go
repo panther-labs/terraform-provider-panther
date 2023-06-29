@@ -7,6 +7,7 @@ import (
 	"context"
 	"os"
 
+	"terraform-provider-panther/internal/client"
 	"terraform-provider-panther/internal/client/panther"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -26,6 +27,9 @@ type PantherProvider struct {
 	// provider is built and ran locally, and "test" when running acceptance
 	// testing.
 	version string
+
+	// for testing purposes
+	clientOverride client.Client
 }
 
 // PantherProviderModel describes the provider data model.
@@ -111,7 +115,11 @@ func (p *PantherProvider) Configure(ctx context.Context, req provider.ConfigureR
 		return
 	}
 
-	resp.ResourceData = panther.NewClient(url, token)
+	if p.clientOverride != nil {
+		resp.ResourceData = p.clientOverride
+	} else {
+		resp.ResourceData = panther.NewClient(url, token)
+	}
 }
 
 func (p *PantherProvider) Resources(ctx context.Context) []func() resource.Resource {

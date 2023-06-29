@@ -116,7 +116,7 @@ func (r *S3SourceResource) Schema(ctx context.Context, req resource.SchemaReques
 						},
 					},
 				},
-				Optional: true,
+				Required: true,
 			},
 			"id": schema.StringAttribute{
 				Computed:            true,
