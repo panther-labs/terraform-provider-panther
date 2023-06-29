@@ -28,7 +28,7 @@ type PantherProvider struct {
 	// testing.
 	version string
 
-	// for testing purposes
+	// override graphQL client for testing purposes
 	clientOverride client.Client
 }
 
@@ -47,13 +47,13 @@ func (p *PantherProvider) Schema(ctx context.Context, req provider.SchemaRequest
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"url": schema.StringAttribute{
-				MarkdownDescription: "URL of the GraphQl API",
-				Optional:            true,
+				Description: "The GraphQL API URL for the target Panther instance.",
+				Optional:    true,
 			},
 			"token": schema.StringAttribute{
-				MarkdownDescription: "API Token",
-				Optional:            true,
-				Sensitive:           true,
+				Description: "The API token for the Panther GraphQL API.",
+				Optional:    true,
+				Sensitive:   true,
 			},
 		},
 	}
@@ -71,16 +71,16 @@ func (p *PantherProvider) Configure(ctx context.Context, req provider.ConfigureR
 	if data.Url.IsUnknown() {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("url"),
-			"Unknown Panther API URL",
-			"TODO",
+			"API URL Invalid",
+			"The Panther GraphQL API URL is invalid.",
 		)
 	}
 
 	if data.Token.IsUnknown() {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("url"),
-			"Unknown Panther API Token",
-			"TODO",
+			"API Token Invalid",
+			"The API Token for Panther GraphQL API is invalid.",
 		)
 	}
 
@@ -99,7 +99,7 @@ func (p *PantherProvider) Configure(ctx context.Context, req provider.ConfigureR
 		resp.Diagnostics.AddAttributeError(
 			path.Root("url"),
 			"Missing Panther API URL",
-			"TODO",
+			"Panther GraphQL API URL must be provided.",
 		)
 	}
 
@@ -107,7 +107,7 @@ func (p *PantherProvider) Configure(ctx context.Context, req provider.ConfigureR
 		resp.Diagnostics.AddAttributeError(
 			path.Root("token"),
 			"Missing Panther API Token",
-			"TODO",
+			"Panther GraphQL API Token must be provided.",
 		)
 	}
 

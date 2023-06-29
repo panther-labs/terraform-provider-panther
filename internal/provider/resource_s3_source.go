@@ -63,56 +63,56 @@ func (r *S3SourceResource) Schema(ctx context.Context, req resource.SchemaReques
 
 		Attributes: map[string]schema.Attribute{
 			"aws_account_id": schema.StringAttribute{
-				MarkdownDescription: "Example configurable attribute",
-				Required:            true,
-				PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
+				Description:   "The ID of the AWS Account where the S3 Bucket is located.",
+				Required:      true,
+				PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()},
 			},
 			"kms_key_arn": schema.StringAttribute{
-				MarkdownDescription: "Example configurable attribute",
-				Optional:            true,
+				Description: "The KMS key ARN used to access the S3 Bucket.",
+				Optional:    true,
 			},
 			"name": schema.StringAttribute{
-				MarkdownDescription: "Example configurable attribute",
-				Required:            true,
+				Description: "The display name of the S3 Log Source integration.",
+				Required:    true,
 			},
 			"log_processing_role_arn": schema.StringAttribute{
-				MarkdownDescription: "Example configurable attribute",
-				Required:            true,
+				Description: "The AWS Role used to access the S3 Bucket.",
+				Required:    true,
 			},
 			// TODO oneof validation
 			// https://github.com/hashicorp/terraform-plugin-framework-validators/blob/main/stringvalidator/one_of.go
 			"log_stream_type": schema.StringAttribute{
-				MarkdownDescription: "Example configurable attribute",
-				Required:            true,
+				Description: "The format of the log files being ingested.",
+				Required:    true,
 			},
 			"is_managed_bucket_notifications_enabled": schema.BoolAttribute{
-				MarkdownDescription: "Example configurable attribute",
-				Optional:            true,
-				Computed:            true,
-				Default:             booldefault.StaticBool(true),
+				Description: "True if bucket notifications are being managed by Panther.",
+				Optional:    true,
+				Computed:    true,
+				Default:     booldefault.StaticBool(true),
 			},
 			"bucket_name": schema.StringAttribute{
-				MarkdownDescription: "Example configurable attribute",
-				Required:            true,
-				PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
+				Description:   "The name of the S3 Bucket where logs will be ingested from.",
+				Required:      true,
+				PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()},
 			},
 			"prefix_log_types": schema.ListNestedAttribute{
-				MarkdownDescription: "Example configurable attribute",
+				Description: "The configured mapping of prefixes to log types.",
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"excluded_prefixes": schema.ListAttribute{
-							ElementType:         types.StringType,
-							Required:            true,
-							MarkdownDescription: "",
+							ElementType: types.StringType,
+							Required:    true,
+							Description: "S3 Prefixes to be excluded from log type mapping.",
 						},
 						"log_types": schema.ListAttribute{
-							ElementType:         types.StringType,
-							Required:            true,
-							MarkdownDescription: "",
+							ElementType: types.StringType,
+							Required:    true,
+							Description: "List of log types that map to the S3 Prefix.",
 						},
 						"prefix": schema.StringAttribute{
-							Required:            true,
-							MarkdownDescription: "",
+							Required:    true,
+							Description: "S3 Prefix to map Log Types to.",
 						},
 					},
 				},
