@@ -170,7 +170,7 @@ func (r *S3SourceResource) Create(ctx context.Context, req resource.CreateReques
 		LogStreamType:              data.LogStreamType.ValueString(),
 		ManagedBucketNotifications: data.IsManagedBucketNotificationsEnabled.ValueBool(),
 		S3Bucket:                   data.BucketName.ValueString(),
-		S3PrefixLogTypes:           PrefixLogTypesToInput(data.PrefixLogTypes),
+		S3PrefixLogTypes:           prefixLogTypesToInput(data.PrefixLogTypes),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -215,7 +215,7 @@ func (r *S3SourceResource) Read(ctx context.Context, req resource.ReadRequest, r
 	data.LogStreamType = types.StringPointerValue(source.LogStreamType)
 	data.IsManagedBucketNotificationsEnabled = types.BoolValue(source.ManagedBucketNotifications)
 	data.BucketName = types.StringValue(source.S3Bucket)
-	data.PrefixLogTypes = PrefixLogTypesToModel(source.S3PrefixLogTypes)
+	data.PrefixLogTypes = prefixLogTypesToModel(source.S3PrefixLogTypes)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -238,7 +238,7 @@ func (r *S3SourceResource) Update(ctx context.Context, req resource.UpdateReques
 		LogProcessingRole:          data.LogProcessingRoleARN.ValueString(),
 		LogStreamType:              data.LogStreamType.ValueString(),
 		ManagedBucketNotifications: data.IsManagedBucketNotificationsEnabled.ValueBool(),
-		S3PrefixLogTypes:           PrefixLogTypesToInput(data.PrefixLogTypes),
+		S3PrefixLogTypes:           prefixLogTypesToInput(data.PrefixLogTypes),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -277,7 +277,7 @@ func (r *S3SourceResource) ImportState(ctx context.Context, req resource.ImportS
 }
 
 // convert terraform model to Panther client input
-func PrefixLogTypesToInput(prefixLogTypes []PrefixLogTypesModel) []client.S3PrefixLogTypesInput {
+func prefixLogTypesToInput(prefixLogTypes []PrefixLogTypesModel) []client.S3PrefixLogTypesInput {
 	result := []client.S3PrefixLogTypesInput{}
 	for _, p := range prefixLogTypes {
 		var excluded, logTypes []string
@@ -298,7 +298,7 @@ func PrefixLogTypesToInput(prefixLogTypes []PrefixLogTypesModel) []client.S3Pref
 }
 
 // convert Panther client output to terraform model
-func PrefixLogTypesToModel(prefixLogTypes []client.S3PrefixLogTypes) []PrefixLogTypesModel {
+func prefixLogTypesToModel(prefixLogTypes []client.S3PrefixLogTypes) []PrefixLogTypesModel {
 	result := []PrefixLogTypesModel{}
 	for _, p := range prefixLogTypes {
 		var excluded, logTypes []types.String
