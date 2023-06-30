@@ -7,12 +7,14 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"terraform-provider-panther/internal/client"
@@ -79,11 +81,12 @@ func (r *S3SourceResource) Schema(ctx context.Context, req resource.SchemaReques
 				Description: "The AWS Role used to access the S3 Bucket.",
 				Required:    true,
 			},
-			// TODO oneof validation
-			// https://github.com/hashicorp/terraform-plugin-framework-validators/blob/main/stringvalidator/one_of.go
 			"log_stream_type": schema.StringAttribute{
 				Description: "The format of the log files being ingested.",
 				Required:    true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("Lines", "JSON", "JsonArray", "CloudWatchLogs"),
+				},
 			},
 			"is_managed_bucket_notifications_enabled": schema.BoolAttribute{
 				Description: "True if bucket notifications are being managed by Panther.",
