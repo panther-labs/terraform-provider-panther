@@ -7,17 +7,15 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/stretchr/testify/assert"
 	"terraform-provider-panther/internal/client"
-	"terraform-provider-panther/internal/client/clientfakes"
 )
 
 func TestS3SourceResource(t *testing.T) {
-	// set up panther graphQL client mocks
-	mockClient := initMockClient()
-	// run tests
 	resource.Test(t, resource.TestCase{
-		ProtoV6ProviderFactories: newTestAccProtoV6ProviderFactories(mockClient),
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
@@ -29,10 +27,10 @@ func TestS3SourceResource(t *testing.T) {
 					resource.TestCheckResourceAttr("panther_s3_source.test", "log_stream_type", "Lines"),
 					resource.TestCheckResourceAttr("panther_s3_source.test", "is_managed_bucket_notifications_enabled", "true"),
 					resource.TestCheckResourceAttr("panther_s3_source.test", "bucket_name", "test_bucket"),
-					resource.TestCheckResourceAttr("panther_s3_source.test", "kms_key_arn", "key"),
-					resource.TestCheckResourceAttr("panther_s3_source.test", "prefix_log_types.0.prefix", "prefix"),
-					resource.TestCheckResourceAttr("panther_s3_source.test", "prefix_log_types.0.excluded_prefixes.0", "excluded-prefix"),
-					resource.TestCheckResourceAttr("panther_s3_source.test", "prefix_log_types.0.log_types.0", "AWS.Audit"),
+					resource.TestCheckResourceAttr("panther_s3_source.test", "kms_key_arn", "arn:aws:kms:us-east-1:111122223333:key/testing"),
+					resource.TestCheckResourceAttr("panther_s3_source.test", "prefix_log_types.0.prefix", "test/prefix"),
+					resource.TestCheckResourceAttr("panther_s3_source.test", "prefix_log_types.0.excluded_prefixes.0", "test/prefix/excluded"),
+					resource.TestCheckResourceAttr("panther_s3_source.test", "prefix_log_types.0.log_types.0", "AWS.CloudTrail"),
 				),
 			},
 			// ImportState testing
@@ -53,39 +51,54 @@ func TestS3SourceResource(t *testing.T) {
 	})
 }
 
-func initMockClient() client.Client {
-	mockClient := clientfakes.FakeClient{}
-	logStreamType := "Lines"
-	logProcessingRole := "arn:aws:iam::111122223333:role/TestRole"
-	kmsKey := "key"
-	originalSource := client.S3LogIntegration{
-		AwsAccountID:               "111122223333",
-		IntegrationLabel:           "test-source",
-		IntegrationID:              "test-id",
-		LogStreamType:              &logStreamType,
-		ManagedBucketNotifications: true,
-		S3Bucket:                   "test_bucket",
-		LogProcessingRole:          &logProcessingRole,
-		KmsKey:                     &kmsKey,
-		S3PrefixLogTypes: []client.S3PrefixLogTypes{{
-			Prefix:           "prefix",
-			LogTypes:         []string{"AWS.Audit"},
-			ExcludedPrefixes: []string{"excluded-prefix"},
-		}},
-	}
-	updatedSource := originalSource
-	updatedSource.IntegrationLabel = "test-source-updated"
-	mockClient.CreateS3SourceReturns(client.CreateS3SourceOutput{
-		LogSource: &originalSource,
-	}, nil)
-	mockClient.UpdateS3SourceReturns(client.UpdateS3SourceOutput{
-		LogSource: &updatedSource,
-	}, nil)
-	mockClient.GetS3SourceReturnsOnCall(0, &originalSource, nil)
-	mockClient.GetS3SourceReturnsOnCall(1, &originalSource, nil)
-	mockClient.GetS3SourceReturnsOnCall(2, &updatedSource, nil)
-	mockClient.GetS3SourceReturnsOnCall(3, &updatedSource, nil)
-	return &mockClient
+func TestPrefixLogTypesToInput(t *testing.T) {
+	prefixLogTypes := []PrefixLogTypesModel{{
+		ExcludedPrefixes: []types.String{
+			types.StringValue("test/prefix/excluded"),
+			types.StringValue("test/prefix/excluded2")},
+		LogTypes: []types.String{
+			types.StringValue("AWS.CloudTrail"),
+			types.StringValue("AWS.ALB")},
+		Prefix: types.StringValue("test/prefix"),
+	}}
+	input := prefixLogTypesToInput(prefixLogTypes)
+	assert.Len(t, input, 1)
+
+	// excluded prefixes
+	assert.Len(t, input[0].ExcludedPrefixes, 2)
+	assert.Contains(t, input[0].ExcludedPrefixes, "test/prefix/excluded")
+	assert.Contains(t, input[0].ExcludedPrefixes, "test/prefix/excluded2")
+
+	// log types
+	assert.Len(t, input[0].LogTypes, 2)
+	assert.Contains(t, input[0].LogTypes, "AWS.CloudTrail")
+	assert.Contains(t, input[0].LogTypes, "AWS.ALB")
+
+	// prefix
+	assert.Equal(t, "test/prefix", input[0].Prefix)
+}
+
+func TestPrefixLogTypesToModel(t *testing.T) {
+	prefixLogTypes := []client.S3PrefixLogTypes{{
+		ExcludedPrefixes: []string{"test/prefix/excluded", "test/prefix/excluded2"},
+		LogTypes:         []string{"AWS.CloudTrail", "AWS.ALB"},
+		Prefix:           "test/prefix",
+	}}
+	input := prefixLogTypesToModel(prefixLogTypes)
+	assert.Len(t, input, 1)
+
+	// excluded prefixes
+	assert.Len(t, input[0].ExcludedPrefixes, 2)
+	assert.Contains(t, input[0].ExcludedPrefixes, types.StringValue("test/prefix/excluded"))
+	assert.Contains(t, input[0].ExcludedPrefixes, types.StringValue("test/prefix/excluded2"))
+
+	// log types
+	assert.Len(t, input[0].LogTypes, 2)
+	assert.Contains(t, input[0].LogTypes, types.StringValue("AWS.CloudTrail"))
+	assert.Contains(t, input[0].LogTypes, types.StringValue("AWS.ALB"))
+
+	// prefix
+	assert.Equal(t, types.StringValue("test/prefix"), input[0].Prefix)
 }
 
 func testS3SourceResourceConfig(name string) string {
@@ -97,11 +110,11 @@ resource "panther_s3_source" "test" {
   log_stream_type = "Lines"
   is_managed_bucket_notifications_enabled = true
   bucket_name = "test_bucket"
-  kms_key_arn = "key"
+  kms_key_arn = "arn:aws:kms:us-east-1:111122223333:key/testing"
   prefix_log_types = [{
-    excluded_prefixes = ["excluded-prefix"]
-    log_types         = ["AWS.Audit"]
-    prefix            = "prefix"
+    excluded_prefixes = ["test/prefix/excluded"]
+    log_types         = ["AWS.CloudTrail"]
+    prefix            = "test/prefix"
   }]
 }
 `, name)
