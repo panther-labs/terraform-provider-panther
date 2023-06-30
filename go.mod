@@ -5,11 +5,12 @@ go 1.19
 require (
 	github.com/hashicorp/terraform-plugin-docs v0.15.0
 	github.com/hashicorp/terraform-plugin-framework v1.3.1
+	github.com/hashicorp/terraform-plugin-framework-validators v0.10.0
 	github.com/hashicorp/terraform-plugin-go v0.16.0
 	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-testing v1.3.0
 	github.com/hasura/go-graphql-client v0.9.3
-	golang.org/x/oauth2 v0.7.0
+	github.com/maxbrunsfeld/counterfeiter/v6 v6.6.2
 )
 
 require (
@@ -50,7 +51,6 @@ require (
 	github.com/klauspost/compress v1.10.3 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
-	github.com/maxbrunsfeld/counterfeiter/v6 v6.6.2 // indirect
 	github.com/mitchellh/cli v1.1.5 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-testing-interface v1.14.1 // indirect
