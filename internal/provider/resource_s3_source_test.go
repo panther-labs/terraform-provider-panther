@@ -30,6 +30,9 @@ func TestS3SourceResource(t *testing.T) {
 					resource.TestCheckResourceAttr("panther_s3_source.test", "is_managed_bucket_notifications_enabled", "true"),
 					resource.TestCheckResourceAttr("panther_s3_source.test", "bucket_name", "test_bucket"),
 					resource.TestCheckResourceAttr("panther_s3_source.test", "kms_key_arn", "key"),
+					resource.TestCheckResourceAttr("panther_s3_source.test", "prefix_log_types.0.prefix", "prefix"),
+					resource.TestCheckResourceAttr("panther_s3_source.test", "prefix_log_types.0.excluded_prefixes.0", "excluded-prefix"),
+					resource.TestCheckResourceAttr("panther_s3_source.test", "prefix_log_types.0.log_types.0", "AWS.Audit"),
 				),
 			},
 			// ImportState testing
@@ -64,6 +67,11 @@ func initMockClient() client.Client {
 		S3Bucket:                   "test_bucket",
 		LogProcessingRole:          &logProcessingRole,
 		KmsKey:                     &kmsKey,
+		S3PrefixLogTypes: []client.S3PrefixLogTypes{{
+			Prefix:           "prefix",
+			LogTypes:         []string{"AWS.Audit"},
+			ExcludedPrefixes: []string{"excluded-prefix"},
+		}},
 	}
 	updatedSource := originalSource
 	updatedSource.IntegrationLabel = "test-source-updated"
@@ -90,7 +98,11 @@ resource "panther_s3_source" "test" {
   is_managed_bucket_notifications_enabled = true
   bucket_name = "test_bucket"
   kms_key_arn = "key"
-  prefix_log_types = []
+  prefix_log_types = [{
+    excluded_prefixes = ["excluded-prefix"]
+    log_types         = ["AWS.Audit"]
+    prefix            = "prefix"
+  }]
 }
 `, name)
 }

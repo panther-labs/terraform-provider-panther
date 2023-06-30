@@ -285,7 +285,7 @@ func PrefixLogTypesToInput(prefixLogTypes []PrefixLogTypesModel) []client.S3Pref
 			excluded = append(excluded, v.ValueString())
 		}
 		for _, v := range p.LogTypes {
-			logTypes = append(excluded, v.ValueString())
+			logTypes = append(logTypes, v.ValueString())
 		}
 		result = append(result,
 			client.S3PrefixLogTypesInput{
@@ -306,7 +306,7 @@ func PrefixLogTypesToModel(prefixLogTypes []client.S3PrefixLogTypes) []PrefixLog
 			excluded = append(excluded, types.StringValue(v))
 		}
 		for _, v := range p.LogTypes {
-			logTypes = append(excluded, types.StringValue(v))
+			logTypes = append(logTypes, types.StringValue(v))
 		}
 		result = append(result,
 			PrefixLogTypesModel{
