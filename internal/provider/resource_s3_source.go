@@ -37,15 +37,15 @@ type S3SourceResource struct {
 
 // ExampleResourceModel describes the resource data model.
 type S3SourceResourceModel struct {
-	AWSAccountID                        types.String          `tfsdk:"aws_account_id"`
-	KMSKeyARN                           types.String          `tfsdk:"kms_key_arn"`
-	Name                                types.String          `tfsdk:"name"`
-	LogProcessingRoleARN                types.String          `tfsdk:"log_processing_role_arn"`
-	LogStreamType                       types.String          `tfsdk:"log_stream_type"`
-	IsManagedBucketNotificationsEnabled types.Bool            `tfsdk:"is_managed_bucket_notifications_enabled"`
-	BucketName                          types.String          `tfsdk:"bucket_name"`
-	PrefixLogTypes                      []PrefixLogTypesModel `tfsdk:"prefix_log_types"`
-	Id                                  types.String          `tfsdk:"id"`
+	AWSAccountID                             types.String          `tfsdk:"aws_account_id"`
+	KMSKeyARN                                types.String          `tfsdk:"kms_key_arn"`
+	Name                                     types.String          `tfsdk:"name"`
+	LogProcessingRoleARN                     types.String          `tfsdk:"log_processing_role_arn"`
+	LogStreamType                            types.String          `tfsdk:"log_stream_type"`
+	PantherManagedBucketNotificationsEnabled types.Bool            `tfsdk:"panther_managed_bucket_notifications_enabled"`
+	BucketName                               types.String          `tfsdk:"bucket_name"`
+	PrefixLogTypes                           []PrefixLogTypesModel `tfsdk:"prefix_log_types"`
+	Id                                       types.String          `tfsdk:"id"`
 }
 
 type PrefixLogTypesModel struct {
@@ -88,7 +88,7 @@ func (r *S3SourceResource) Schema(ctx context.Context, req resource.SchemaReques
 					stringvalidator.OneOf("Lines", "JSON", "JsonArray", "CloudWatchLogs"),
 				},
 			},
-			"is_managed_bucket_notifications_enabled": schema.BoolAttribute{
+			"panther_managed_bucket_notifications_enabled": schema.BoolAttribute{
 				MarkdownDescription: `True if bucket notifications are being managed by Panther.  __This will cause Panther to create additional infrastructure in your AWS account.__ \
 To manage the notification-related infrastructure through terraform, refer to [this example](https://github.com/panther-labs/panther-auxiliary/tree/main/terraform/panther_log_processing_notifications).`,
 				Optional: true,
@@ -172,7 +172,7 @@ func (r *S3SourceResource) Create(ctx context.Context, req resource.CreateReques
 		Label:                      data.Name.ValueString(),
 		LogProcessingRole:          data.LogProcessingRoleARN.ValueString(),
 		LogStreamType:              data.LogStreamType.ValueString(),
-		ManagedBucketNotifications: data.IsManagedBucketNotificationsEnabled.ValueBool(),
+		ManagedBucketNotifications: data.PantherManagedBucketNotificationsEnabled.ValueBool(),
 		S3Bucket:                   data.BucketName.ValueString(),
 		S3PrefixLogTypes:           prefixLogTypesToInput(data.PrefixLogTypes),
 	})
@@ -217,7 +217,7 @@ func (r *S3SourceResource) Read(ctx context.Context, req resource.ReadRequest, r
 	data.Name = types.StringValue(source.IntegrationLabel)
 	data.LogProcessingRoleARN = types.StringPointerValue(source.LogProcessingRole)
 	data.LogStreamType = types.StringPointerValue(source.LogStreamType)
-	data.IsManagedBucketNotificationsEnabled = types.BoolValue(source.ManagedBucketNotifications)
+	data.PantherManagedBucketNotificationsEnabled = types.BoolValue(source.ManagedBucketNotifications)
 	data.BucketName = types.StringValue(source.S3Bucket)
 	data.PrefixLogTypes = prefixLogTypesToModel(source.S3PrefixLogTypes)
 
@@ -241,7 +241,7 @@ func (r *S3SourceResource) Update(ctx context.Context, req resource.UpdateReques
 		Label:                      data.Name.ValueString(),
 		LogProcessingRole:          data.LogProcessingRoleARN.ValueString(),
 		LogStreamType:              data.LogStreamType.ValueString(),
-		ManagedBucketNotifications: data.IsManagedBucketNotificationsEnabled.ValueBool(),
+		ManagedBucketNotifications: data.PantherManagedBucketNotificationsEnabled.ValueBool(),
 		S3PrefixLogTypes:           prefixLogTypesToInput(data.PrefixLogTypes),
 	})
 	if err != nil {
