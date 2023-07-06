@@ -44,7 +44,8 @@ resource "panther_s3_source" "test_source" {
 
 ### Optional
 
-- `is_managed_bucket_notifications_enabled` (Boolean) True if bucket notifications are being managed by Panther.
+- `is_managed_bucket_notifications_enabled` (Boolean) True if bucket notifications are being managed by Panther.  __This will cause Panther to create additional infrastructure in your AWS account.__ \
+To manage the notification-related infrastructure through terraform, refer to [this example](https://github.com/panther-labs/panther-auxiliary/tree/main/terraform/panther_log_processing_notifications).
 - `kms_key_arn` (String) The KMS key ARN used to access the S3 Bucket.
 
 ### Read-Only

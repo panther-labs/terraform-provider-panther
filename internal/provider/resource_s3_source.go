@@ -89,10 +89,11 @@ func (r *S3SourceResource) Schema(ctx context.Context, req resource.SchemaReques
 				},
 			},
 			"is_managed_bucket_notifications_enabled": schema.BoolAttribute{
-				Description: "True if bucket notifications are being managed by Panther.",
-				Optional:    true,
-				Computed:    true,
-				Default:     booldefault.StaticBool(true),
+				MarkdownDescription: `True if bucket notifications are being managed by Panther.  __This will cause Panther to create additional infrastructure in your AWS account.__ \
+To manage the notification-related infrastructure through terraform, refer to [this example](https://github.com/panther-labs/panther-auxiliary/tree/main/terraform/panther_log_processing_notifications).`,
+				Optional: true,
+				Computed: true,
+				Default:  booldefault.StaticBool(true),
 			},
 			"bucket_name": schema.StringAttribute{
 				Description:   "The name of the S3 Bucket where logs will be ingested from.",
