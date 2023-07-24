@@ -28,7 +28,7 @@ func (c *Client) CreateS3Source(ctx context.Context, input client.CreateS3Source
 			client.CreateS3SourceOutput
 		} `graphql:"createS3Source(input: $input)"`
 	}
-	err := c.Mutate(ctx, &m, map[string]interface{}{
+	err := c.WithDebug(true).Mutate(ctx, &m, map[string]interface{}{
 		"input": input,
 	}, graphql.OperationName("CreateS3Source"))
 	if err != nil {
