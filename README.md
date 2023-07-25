@@ -33,9 +33,9 @@ go get github.com/author/dependency
 go mod tidy
 ```
 
-## Using the provider
+## Usage
 
-See the examples directory
+Use the examples directory as a guide for setting up the provider.
 
 ## Developing the Provider
 
@@ -47,7 +47,7 @@ To generate or update documentation, run `go generate`.
 
 In order to run the full suite of Acceptance tests, run `make testacc`.
 
-*Note:* Acceptance tests create real resources, and often cost money to run.
+*Note:* Acceptance tests create real resources and may cost money to run.
 
 ```shell
 PANTHER_API_URL=<Panther GraphQL URL> \
