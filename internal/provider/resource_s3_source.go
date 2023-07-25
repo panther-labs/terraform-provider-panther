@@ -284,7 +284,8 @@ func (r *S3SourceResource) ImportState(ctx context.Context, req resource.ImportS
 func prefixLogTypesToInput(prefixLogTypes []PrefixLogTypesModel) []client.S3PrefixLogTypesInput {
 	result := []client.S3PrefixLogTypesInput{}
 	for _, p := range prefixLogTypes {
-		var excluded, logTypes []string
+		excluded := []string{}
+		logTypes := []string{}
 		for _, v := range p.ExcludedPrefixes {
 			excluded = append(excluded, v.ValueString())
 		}
