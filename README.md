@@ -33,9 +33,9 @@ go get github.com/author/dependency
 go mod tidy
 ```
 
-## Using the provider
+## Usage
 
-See the examples directory
+Use the examples directory as a guide for setting up the provider.
 
 ## Developing the Provider
 
