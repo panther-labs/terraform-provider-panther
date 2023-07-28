@@ -1,5 +1,18 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+/*
+Copyright 2023 Panther Labs, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package provider
 
@@ -284,7 +297,8 @@ func (r *S3SourceResource) ImportState(ctx context.Context, req resource.ImportS
 func prefixLogTypesToInput(prefixLogTypes []PrefixLogTypesModel) []client.S3PrefixLogTypesInput {
 	result := []client.S3PrefixLogTypesInput{}
 	for _, p := range prefixLogTypes {
-		var excluded, logTypes []string
+		excluded := []string{}
+		logTypes := []string{}
 		for _, v := range p.ExcludedPrefixes {
 			excluded = append(excluded, v.ValueString())
 		}
@@ -305,7 +319,8 @@ func prefixLogTypesToInput(prefixLogTypes []PrefixLogTypesModel) []client.S3Pref
 func prefixLogTypesToModel(prefixLogTypes []client.S3PrefixLogTypes) []PrefixLogTypesModel {
 	result := []PrefixLogTypesModel{}
 	for _, p := range prefixLogTypes {
-		var excluded, logTypes []types.String
+		excluded := []types.String{}
+		logTypes := []types.String{}
 		for _, v := range p.ExcludedPrefixes {
 			excluded = append(excluded, types.StringValue(v))
 		}
