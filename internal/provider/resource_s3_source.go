@@ -19,6 +19,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -89,6 +90,12 @@ func (r *S3SourceResource) Schema(ctx context.Context, req resource.SchemaReques
 			"name": schema.StringAttribute{
 				Description: "The display name of the S3 Log Source integration.",
 				Required:    true,
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(
+						regexp.MustCompile("^[0-9a-zA-Z- ]+$"),
+						"must only include alphanumeric characters, dashes and spaces",
+					),
+				},
 			},
 			"log_processing_role_arn": schema.StringAttribute{
 				Description: "The AWS Role used to access the S3 Bucket.",
