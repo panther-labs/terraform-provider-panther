@@ -95,6 +95,7 @@ func (r *S3SourceResource) Schema(ctx context.Context, req resource.SchemaReques
 						regexp.MustCompile("^[0-9a-zA-Z- ]+$"),
 						"must only include alphanumeric characters, dashes and spaces",
 					),
+					stringvalidator.LengthAtMost(32),
 				},
 			},
 			"log_processing_role_arn": schema.StringAttribute{
