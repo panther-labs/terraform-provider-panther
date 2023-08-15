@@ -83,7 +83,7 @@ type S3LogIntegration struct {
 	// True if the Log Source can be modified
 	IsEditable bool `graphql:"isEditable"`
 	// KMS key used to access the S3 Bucket
-	KmsKey *string `graphql:"kmsKey"`
+	KmsKey string `graphql:"kmsKey"`
 	// The AWS Role used to access the S3 Bucket
 	LogProcessingRole *string `graphql:"logProcessingRole"`
 	// The format of the log files being ingested

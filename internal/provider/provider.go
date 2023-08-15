@@ -70,7 +70,6 @@ func (p *PantherProvider) Schema(ctx context.Context, req provider.SchemaRequest
 
 func (p *PantherProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
 	var data PantherProviderModel
-
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 
 	if resp.Diagnostics.HasError() {
