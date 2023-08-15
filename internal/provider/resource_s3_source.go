@@ -27,6 +27,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -86,6 +87,8 @@ func (r *S3SourceResource) Schema(ctx context.Context, req resource.SchemaReques
 			"kms_key_arn": schema.StringAttribute{
 				Description: "The KMS key ARN used to access the S3 Bucket.",
 				Optional:    true,
+				Computed:    true,
+				Default:     stringdefault.StaticString(""),
 			},
 			"name": schema.StringAttribute{
 				Description: "The display name of the S3 Log Source integration.",
@@ -232,9 +235,10 @@ func (r *S3SourceResource) Read(ctx context.Context, req resource.ReadRequest, r
 		)
 		return
 	}
+
 	data.Id = types.StringValue(source.IntegrationID)
 	data.AWSAccountID = types.StringValue(source.AwsAccountID)
-	data.KMSKeyARN = types.StringPointerValue(source.KmsKey)
+	data.KMSKeyARN = types.StringValue(source.KmsKey)
 	data.Name = types.StringValue(source.IntegrationLabel)
 	data.LogProcessingRoleARN = types.StringPointerValue(source.LogProcessingRole)
 	data.LogStreamType = types.StringPointerValue(source.LogStreamType)
