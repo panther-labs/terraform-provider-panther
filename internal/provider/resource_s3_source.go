@@ -109,7 +109,7 @@ func (r *S3SourceResource) Schema(ctx context.Context, req resource.SchemaReques
 				Description: "The format of the log files being ingested.",
 				Required:    true,
 				Validators: []validator.String{
-					stringvalidator.OneOf("Lines", "JSON", "JsonArray", "CloudWatchLogs"),
+					stringvalidator.OneOf("Auto", "Lines", "JSON", "JsonArray", "CloudWatchLogs"),
 				},
 			},
 			"panther_managed_bucket_notifications_enabled": schema.BoolAttribute{
