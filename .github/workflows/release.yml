@@ -17,6 +17,9 @@ jobs:
   goreleaser:
     runs-on: ubuntu-latest
     steps:
+      - uses: step-security/harden-runner@f086349bfa2bd1361f7909c78558e816508cdc10 # v2.8.0
+        with:
+          egress-policy: audit
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
           # Allow goreleaser to access older tag information.
