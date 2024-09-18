@@ -71,9 +71,12 @@ Then you can normally run terraform commands to create the resources, like
 ```shell
 terraform plan -var="var1=value1" -var="var2=value2" ...
 ```
-or by adding variables to a temporary `.tfvars` file.
+or by adding variables to a temporary `.tfvars` file and running:
+```shell
+terraform plan -var-file="your-file.tfvars"
+```
 As this will create actual resources in your dev environment, make sure to run 
 ```shell
-terraform destroy
+terraform destroy ...
 ```
 when you are done with testing, so no lingering resources are left.
