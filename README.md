@@ -54,3 +54,26 @@ PANTHER_API_URL=<Panther GraphQL URL> \
 PANTHER_API_TOKEN=<Panther GraphQL API Token> \
 make testacc
 ```
+
+There are also complete examples under the `examples` directory. If you want to try out the provider as you are building
+it, you can add a `.terraformrc` file in your home dir which contains the following:
+```hcl
+provider_installation {
+  dev_overrides {
+    "panther-labs/panther" = "{PATH}"
+  }
+  direct {}
+}
+```
+where `PATH` is the path that your go binaries are. This will either be your `GOBIN` var if it's set, or `{GOPATH}/bin`.
+
+Then you can normally run terraform commands to create the resources, like
+```shell
+terraform plan -var="var1=value1" -var="var2=value2" ...
+```
+or by adding variables to a temporary `.tfvars` file.
+As this will create actual resources in your dev environment, make sure to run 
+```shell
+terraform destroy
+```
+when you are done with testing, so no lingering resources are left.
