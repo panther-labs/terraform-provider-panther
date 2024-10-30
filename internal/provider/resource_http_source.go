@@ -37,21 +37,21 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var (
-	_ resource.Resource                = &S3SourceResource{}
-	_ resource.ResourceWithImportState = &S3SourceResource{}
-	_ resource.ResourceWithConfigure   = &S3SourceResource{}
+	_ resource.Resource                = &HTTPSourceResource{}
+	_ resource.ResourceWithImportState = &HTTPSourceResource{}
+	_ resource.ResourceWithConfigure   = &HTTPSourceResource{}
 )
 
-func NewS3SourceResource() resource.Resource {
-	return &S3SourceResource{}
+func NewHTTPSourceResource() resource.Resource {
+	return &HTTPSourceResource{}
 }
 
-type S3SourceResource struct {
+type HTTPSourceResource struct {
 	client client.Client
 }
 
-// S3SourceResourceModel ExampleResourceModel describes the resource data model.
-type S3SourceResourceModel struct {
+// HTTPSourceResourceModel describes the resource data model.
+type HTTPSourceResourceModel struct {
 	AWSAccountID                             types.String          `tfsdk:"aws_account_id"`
 	KMSKeyARN                                types.String          `tfsdk:"kms_key_arn"`
 	Name                                     types.String          `tfsdk:"name"`
@@ -63,17 +63,11 @@ type S3SourceResourceModel struct {
 	Id                                       types.String          `tfsdk:"id"`
 }
 
-type PrefixLogTypesModel struct {
-	ExcludedPrefixes []types.String `tfsdk:"excluded_prefixes"`
-	LogTypes         []types.String `tfsdk:"log_types"`
-	Prefix           types.String   `tfsdk:"prefix"`
+func (r *HTTPSourceResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_http_source"
 }
 
-func (r *S3SourceResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_s3_source"
-}
-
-func (r *S3SourceResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *HTTPSourceResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
 		MarkdownDescription: "Represents an S3 Log Source in Panther",
@@ -159,7 +153,7 @@ To manage the notification-related infrastructure through terraform, refer to [t
 	}
 }
 
-func (r *S3SourceResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *HTTPSourceResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -179,8 +173,8 @@ func (r *S3SourceResource) Configure(_ context.Context, req resource.ConfigureRe
 	r.client = c
 }
 
-func (r *S3SourceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data *S3SourceResourceModel
+func (r *HTTPSourceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data *HTTPSourceResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -217,8 +211,8 @@ func (r *S3SourceResource) Create(ctx context.Context, req resource.CreateReques
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *S3SourceResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data *S3SourceResourceModel
+func (r *HTTPSourceResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data *HTTPSourceResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -250,8 +244,8 @@ func (r *S3SourceResource) Read(ctx context.Context, req resource.ReadRequest, r
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *S3SourceResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data *S3SourceResourceModel
+func (r *HTTPSourceResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data *HTTPSourceResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -281,8 +275,8 @@ func (r *S3SourceResource) Update(ctx context.Context, req resource.UpdateReques
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *S3SourceResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data *S3SourceResourceModel
+func (r *HTTPSourceResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data *HTTPSourceResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -301,50 +295,6 @@ func (r *S3SourceResource) Delete(ctx context.Context, req resource.DeleteReques
 	}
 }
 
-func (r *S3SourceResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *HTTPSourceResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
-}
-
-// convert terraform model to Panther client input
-func prefixLogTypesToInput(prefixLogTypes []PrefixLogTypesModel) []client.S3PrefixLogTypesInput {
-	var result []client.S3PrefixLogTypesInput
-	for _, p := range prefixLogTypes {
-		excluded := []string{}
-		logTypes := []string{}
-		for _, v := range p.ExcludedPrefixes {
-			excluded = append(excluded, v.ValueString())
-		}
-		for _, v := range p.LogTypes {
-			logTypes = append(logTypes, v.ValueString())
-		}
-		result = append(result,
-			client.S3PrefixLogTypesInput{
-				ExcludedPrefixes: excluded,
-				Prefix:           p.Prefix.ValueString(),
-				LogTypes:         logTypes,
-			})
-	}
-	return result
-}
-
-// convert Panther client output to terraform model
-func prefixLogTypesToModel(prefixLogTypes []client.S3PrefixLogTypes) []PrefixLogTypesModel {
-	var result []PrefixLogTypesModel
-	for _, p := range prefixLogTypes {
-		var excluded []types.String
-		var logTypes []types.String
-		for _, v := range p.ExcludedPrefixes {
-			excluded = append(excluded, types.StringValue(v))
-		}
-		for _, v := range p.LogTypes {
-			logTypes = append(logTypes, types.StringValue(v))
-		}
-		result = append(result,
-			PrefixLogTypesModel{
-				ExcludedPrefixes: excluded,
-				Prefix:           types.StringValue(p.Prefix),
-				LogTypes:         logTypes,
-			})
-	}
-	return result
 }

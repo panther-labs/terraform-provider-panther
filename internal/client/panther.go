@@ -27,7 +27,7 @@ type Client interface {
 	DeleteSource(ctx context.Context, input DeleteSourceInput) (DeleteSourceOutput, error)
 }
 
-// Input for the createS3LogSource mutation
+// CreateS3SourceInput Input for the createS3LogSource mutation
 type CreateS3SourceInput struct {
 	AwsAccountID               string                  `json:"awsAccountId"`
 	KmsKey                     string                  `json:"kmsKey"`
@@ -39,12 +39,12 @@ type CreateS3SourceInput struct {
 	S3PrefixLogTypes           []S3PrefixLogTypesInput `json:"s3PrefixLogTypes"`
 }
 
-// Output for the createS3LogSource mutation
+// CreateS3SourceOutput output for the createS3LogSource mutation
 type CreateS3SourceOutput struct {
 	LogSource *S3LogIntegration `graphql:"logSource"`
 }
 
-// Input for the updateS3Source mutation
+// UpdateS3SourceInput input for the updateS3Source mutation
 type UpdateS3SourceInput struct {
 	ID                         string                  `json:"id"`
 	KmsKey                     string                  `json:"kmsKey"`
@@ -55,22 +55,22 @@ type UpdateS3SourceInput struct {
 	S3PrefixLogTypes           []S3PrefixLogTypesInput `json:"s3PrefixLogTypes"`
 }
 
-// Output for the updateS3LogSource mutation
+// UpdateS3SourceOutput output for the updateS3LogSource mutation
 type UpdateS3SourceOutput struct {
 	LogSource *S3LogIntegration `graphql:"logSource"`
 }
 
-// Input for the deleteSource mutation
+// DeleteSourceInput input for the deleteSource mutation
 type DeleteSourceInput struct {
 	ID string `json:"id"`
 }
 
-// Output for the deleteSource mutation
+// DeleteSourceOutput output for the deleteSource mutation
 type DeleteSourceOutput struct {
 	ID string `json:"id"`
 }
 
-// Represents an S3 Log Source Integration
+// S3LogIntegration Represents an S3 Log Source Integration
 type S3LogIntegration struct {
 	// The ID of the AWS Account where the S3 Bucket is located
 	AwsAccountID string `graphql:"awsAccountId"`
@@ -98,7 +98,7 @@ type S3LogIntegration struct {
 	S3PrefixLogTypes []S3PrefixLogTypes `graphql:"s3PrefixLogTypes"`
 }
 
-// Mapping of S3 prefixes to log types
+// S3PrefixLogTypesInput Mapping of S3 prefixes to log types
 type S3PrefixLogTypesInput struct {
 	// S3 Prefixes to exclude
 	ExcludedPrefixes []string `json:"excludedPrefixes"`
