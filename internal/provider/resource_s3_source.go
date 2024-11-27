@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"terraform-provider-panther/internal/client/panther"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -37,9 +38,9 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var (
-	_ resource.Resource                = &S3SourceResource{}
-	_ resource.ResourceWithImportState = &S3SourceResource{}
-	_ resource.ResourceWithConfigure   = &S3SourceResource{}
+	_ resource.Resource                = (*S3SourceResource)(nil)
+	_ resource.ResourceWithImportState = (*S3SourceResource)(nil)
+	_ resource.ResourceWithConfigure   = (*S3SourceResource)(nil)
 )
 
 func NewS3SourceResource() resource.Resource {
@@ -47,10 +48,10 @@ func NewS3SourceResource() resource.Resource {
 }
 
 type S3SourceResource struct {
-	client client.Client
+	client client.GraphQLClient
 }
 
-// S3SourceResourceModel ExampleResourceModel describes the resource data model.
+// S3SourceResourceModel describes the resource data model.
 type S3SourceResourceModel struct {
 	AWSAccountID                             types.String          `tfsdk:"aws_account_id"`
 	KMSKeyARN                                types.String          `tfsdk:"kms_key_arn"`
@@ -165,18 +166,19 @@ func (r *S3SourceResource) Configure(_ context.Context, req resource.ConfigureRe
 		return
 	}
 
-	c, ok := req.ProviderData.(client.Client)
+	c, ok := req.ProviderData.(*panther.APIClient)
 
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected client.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *panther.APIClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
 	}
+	// todo add nil check
 
-	r.client = c
+	r.client = c.GraphQLClient
 }
 
 func (r *S3SourceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

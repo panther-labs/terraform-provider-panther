@@ -123,13 +123,17 @@ func (p *PantherProvider) Configure(ctx context.Context, req provider.ConfigureR
 		return
 	}
 
-	resp.ResourceData = panther.NewClient(url, token)
+	graphClient := panther.NewGraphQLClient(url, token)
+	restClient := panther.NewRestClient(url, token)
+
+	resp.ResourceData = panther.NewAPIClient(graphClient, restClient)
 
 }
 
 func (p *PantherProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewS3SourceResource,
+		NewHttpsourceResource,
 	}
 }
 

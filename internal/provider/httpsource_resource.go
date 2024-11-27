@@ -2,6 +2,9 @@ package provider
 
 import (
 	"context"
+	"fmt"
+	"terraform-provider-panther/internal/client"
+	"terraform-provider-panther/internal/client/panther"
 	"terraform-provider-panther/internal/provider/resource_httpsource"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -18,7 +21,7 @@ func NewHttpsourceResource() resource.Resource {
 }
 
 type httpsourceResource struct {
-	//client client.RestClient
+	client client.RestClient
 }
 
 func (r *httpsourceResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -32,61 +35,56 @@ func (r *httpsourceResource) Schema(ctx context.Context, req resource.SchemaRequ
 func (r *httpsourceResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
-		resp.Diagnostics.AddError(
-			"No provider data http", "",
-		)
 		return
 	}
 
-	//c, ok := req.ProviderData.(*panther.APIClient)
+	c, ok := req.ProviderData.(*panther.APIClient)
 
-	//if !ok {
-	//	resp.Diagnostics.AddError(
-	//		"Unexpected Resource Configure Type",
-	//		fmt.Sprintf("Expected *panther.APIClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-	//	)
-	//
-	//	return
-	//}
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *panther.APIClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+
+		return
+	}
 
 	// todo add nil check
 
-	//r.client = c.RestClient
+	r.client = c.RestClient
 }
 
 func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data resource_httpsource.HttpsourceModel
-
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	/*
-		// Create API call logic
-		httpSource, err := r.client.CreateHttpSource(ctx, client.CreateHttpSourceInput{
-			// fill all the fields from the data model
-			IntegrationLabel:    data.IntegrationLabel.ValueString(),
-			LogStreamType:       data.LogStreamType.ValueString(),
-			LogTypes:            convertLogTypes(ctx, data.LogTypes),
-			SecurityAlg:         data.SecurityAlg.ValueString(),
-			SecurityHeaderKey:   data.SecurityHeaderKey.ValueString(),
-			SecurityPassword:    data.SecurityPassword.ValueString(),
-			SecuritySecretValue: data.SecuritySecretValue.ValueString(),
-			SecurityType:        data.SecurityType.ValueString(),
-			SecurityUsername:    data.SecurityUsername.ValueString(),
-		})
-		if err != nil {
-			resp.Diagnostics.AddError(
-				"Error creating HTTP Source",
-				"Could not create HTTP Source, unexpected error: "+err.Error(),
-			)
-			return
-		}
-		// Example data value setting
-		data.Id = httpSource.Id
-	*/
+	// Create API call logic
+	httpSource, err := r.client.CreateHttpSource(ctx, client.CreateHttpSourceInput{
+		// fill all the fields from the data model
+		IntegrationLabel:    data.IntegrationLabel.ValueString(),
+		LogStreamType:       data.LogStreamType.ValueString(),
+		LogTypes:            convertLogTypes(ctx, data.LogTypes),
+		SecurityAlg:         data.SecurityAlg.ValueString(),
+		SecurityHeaderKey:   data.SecurityHeaderKey.ValueString(),
+		SecurityPassword:    data.SecurityPassword.ValueString(),
+		SecuritySecretValue: data.SecuritySecretValue.ValueString(),
+		SecurityType:        data.SecurityType.ValueString(),
+		SecurityUsername:    data.SecurityUsername.ValueString(),
+	})
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error creating HTTP Source",
+			"Could not create HTTP Source, unexpected error: "+err.Error(),
+		)
+		return
+	}
+	// Example data value setting
+	data.IntegrationId = types.StringValue(httpSource.IntegrationId)
+	data.Id = types.StringValue(httpSource.IntegrationId)
+
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -100,19 +98,19 @@ func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest,
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	/*
-		// Read API call logic
-		httpSource, err := r.client.GetHttpSource(ctx, data.Id.ValueString())
-		if err != nil {
-			resp.Diagnostics.AddError(
-				"Error reading HTTP Source",
-				"Could not read HTTP Source, unexpected error: "+err.Error(),
-			)
-			return
-		}
-		// Example data value setting
-		data.Id = httpSource.Id
-	*/
+
+	// Read API call logic
+	httpSource, err := r.client.GetHttpSource(ctx, data.Id.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading HTTP Source",
+			"Could not read HTTP Source, unexpected error: "+err.Error(),
+		)
+		return
+	}
+	// Example data value setting
+	data.Id = types.StringValue(httpSource.IntegrationId)
+
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -165,18 +163,17 @@ func (r *httpsourceResource) Delete(ctx context.Context, req resource.DeleteRequ
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	/*
-		// Delete API call logic
-		err := r.client.DeleteHttpSource(ctx, data.Id.ValueString())
-		if err != nil {
-			resp.Diagnostics.AddError(
-				"Error deleting HTTP Source",
-				"Could not delete HTTP Source, unexpected error: "+err.Error(),
-			)
-			return
-		}
 
-	*/
+	// Delete API call logic
+	err := r.client.DeleteHttpSource(ctx, data.Id.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error deleting HTTP Source",
+			"Could not delete HTTP Source, unexpected error: "+err.Error(),
+		)
+		return
+	}
+
 }
 
 func convertLogTypes(ctx context.Context, logTypes types.List) []string {
