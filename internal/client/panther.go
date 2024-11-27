@@ -18,7 +18,6 @@ package client
 
 import (
 	"context"
-	"terraform-provider-panther/internal/provider/resource_httpsource"
 )
 
 type GraphQLClient interface {
@@ -30,7 +29,7 @@ type GraphQLClient interface {
 
 type RestClient interface {
 	CreateHttpSource(ctx context.Context, input CreateHttpSourceInput) (*HttpSource, error)
-	UpdateHttpSource(ctx context.Context, input UpdateHttpSourceInput) (*resource_httpsource.HttpsourceModel, error)
+	UpdateHttpSource(ctx context.Context, input UpdateHttpSourceInput) (*HttpSource, error)
 	GetHttpSource(ctx context.Context, id string) (*HttpSource, error)
 	DeleteHttpSource(ctx context.Context, id string) error
 }

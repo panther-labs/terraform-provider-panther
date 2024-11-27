@@ -26,7 +26,6 @@ import (
 	"io"
 	"net/http"
 	"terraform-provider-panther/internal/client"
-	"terraform-provider-panther/internal/provider/resource_httpsource"
 	"time"
 )
 
@@ -128,8 +127,11 @@ func (c RestClient) CreateHttpSource(ctx context.Context, input client.CreateHtt
 	return response, nil
 }
 
-func (c RestClient) UpdateHttpSource(ctx context.Context, input client.UpdateHttpSourceInput) (*resource_httpsource.HttpsourceModel, error) {
+func (c RestClient) UpdateHttpSource(ctx context.Context, input client.UpdateHttpSourceInput) (*client.HttpSource, error) {
 	reqURL := fmt.Sprintf("%s/%s", c.url, input.Id)
+	tflog.Warn(ctx, "req: ", map[string]interface{}{
+		"body": input.Id,
+	})
 	jsonData, err := json.Marshal(input)
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling data: %w", err)
@@ -158,7 +160,7 @@ func (c RestClient) UpdateHttpSource(ctx context.Context, input client.UpdateHtt
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	var response *resource_httpsource.HttpsourceModel
+	var response *client.HttpSource
 	if err = json.Unmarshal(body, &response); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response body: %w", err)
 	}
@@ -219,16 +221,6 @@ func (c RestClient) DeleteHttpSource(ctx context.Context, id string) error {
 			msg = err.Error()
 		}
 		return fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, msg)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	var response *resource_httpsource.HttpsourceModel
-	if err = json.Unmarshal(body, &response); err != nil {
-		return fmt.Errorf("failed to unmarshal response body: %w", err)
 	}
 
 	return nil

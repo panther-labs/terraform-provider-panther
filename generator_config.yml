@@ -14,3 +14,7 @@ resources:
     delete:
       path: /log-sources/http/{id}
       method: DELETE
+    schema:
+      attributes:
+        aliases:
+          id: integrationId

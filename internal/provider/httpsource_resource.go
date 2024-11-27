@@ -62,6 +62,7 @@ func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 	// Create API call logic
+	// fixme change inputs
 	httpSource, err := r.client.CreateHttpSource(ctx, client.CreateHttpSourceInput{
 		// fill all the fields from the data model
 		IntegrationLabel:    data.IntegrationLabel.ValueString(),
@@ -83,7 +84,6 @@ func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequ
 	}
 	// Example data value setting
 	data.IntegrationId = types.StringValue(httpSource.IntegrationId)
-	data.Id = types.StringValue(httpSource.IntegrationId)
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -100,7 +100,7 @@ func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest,
 	}
 
 	// Read API call logic
-	httpSource, err := r.client.GetHttpSource(ctx, data.Id.ValueString())
+	httpSource, err := r.client.GetHttpSource(ctx, data.IntegrationId.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading HTTP Source",
@@ -109,7 +109,7 @@ func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest,
 		return
 	}
 	// Example data value setting
-	data.Id = types.StringValue(httpSource.IntegrationId)
+	data.IntegrationId = types.StringValue(httpSource.IntegrationId)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -124,37 +124,37 @@ func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequ
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	/*
-		// Update API call logic
-		httpSource, err := r.client.UpdateHttpSource(ctx, client.UpdateHttpSourceInput{
-			// fill all the fields from the data model
-			IntegrationLabel:    data.IntegrationLabel.ValueString(),
-			LogStreamType:       data.LogStreamType.ValueString(),
-			LogTypes:            convertLogTypes(ctx, data.LogTypes),
-			SecurityAlg:         data.SecurityAlg.ValueString(),
-			SecurityHeaderKey:   data.SecurityHeaderKey.ValueString(),
-			SecurityPassword:    data.SecurityPassword.ValueString(),
-			SecuritySecretValue: data.SecuritySecretValue.ValueString(),
-			SecurityType:        data.SecurityType.ValueString(),
-			SecurityUsername:    data.SecurityUsername.ValueString(),
-		})
-		if err != nil {
-			resp.Diagnostics.AddError(
-				"Error updating HTTP Source",
-				"Could not update HTTP Source, unexpected error: "+err.Error(),
-			)
-			return
-		}
-		// Example data value setting
-		// fixme not there for s3
-		data.Id = httpSource.Id
-	*/
+
+	// Update API call logic
+	httpSource, err := r.client.UpdateHttpSource(ctx, client.UpdateHttpSourceInput{
+		// fill all the fields from the data model
+		Id:                  data.IntegrationId.ValueString(),
+		IntegrationLabel:    data.IntegrationLabel.ValueString(),
+		LogStreamType:       data.LogStreamType.ValueString(),
+		LogTypes:            convertLogTypes(ctx, data.LogTypes),
+		SecurityAlg:         data.SecurityAlg.ValueString(),
+		SecurityHeaderKey:   data.SecurityHeaderKey.ValueString(),
+		SecurityPassword:    data.SecurityPassword.ValueString(),
+		SecuritySecretValue: data.SecuritySecretValue.ValueString(),
+		SecurityType:        data.SecurityType.ValueString(),
+		SecurityUsername:    data.SecurityUsername.ValueString(),
+	})
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error updating HTTP Source",
+			"Could not update HTTP Source, unexpected error: "+err.Error(),
+		)
+		return
+	}
+	// Example data value setting
+	// fixme not there for s3
+	data.IntegrationId = types.StringValue(httpSource.IntegrationId)
+
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
 func (r *httpsourceResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	// fixme model has both id and integrationid
 	var data resource_httpsource.HttpsourceModel
 
 	// Read Terraform prior state data into the model
@@ -165,7 +165,7 @@ func (r *httpsourceResource) Delete(ctx context.Context, req resource.DeleteRequ
 	}
 
 	// Delete API call logic
-	err := r.client.DeleteHttpSource(ctx, data.Id.ValueString())
+	err := r.client.DeleteHttpSource(ctx, data.IntegrationId.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error deleting HTTP Source",
