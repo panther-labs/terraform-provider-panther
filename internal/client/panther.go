@@ -155,15 +155,15 @@ type UpdateHttpSourceInput struct {
 	// todo use a model struct?
 	Id string `json:"id"`
 	//HttpSource resource_httpsource.HttpsourceModel
-	IntegrationLabel    string   `json:"integration_label"`
-	LogStreamType       string   `json:"log_stream_type"`
-	LogTypes            []string `json:"log_types"`
-	SecurityAlg         string   `json:"security_alg"`
-	SecurityHeaderKey   string   `json:"security_header_key"`
-	SecurityPassword    string   `json:"security_password"`
-	SecuritySecretValue string   `json:"security_secret_value"`
-	SecurityType        string   `json:"security_type"`
-	SecurityUsername    string   `json:"security_username"`
+	IntegrationLabel    string
+	LogStreamType       string
+	LogTypes            []string
+	SecurityAlg         string
+	SecurityHeaderKey   string
+	SecurityPassword    string
+	SecuritySecretValue string
+	SecurityType        string
+	SecurityUsername    string
 }
 
 type HttpErrorResponse struct {
