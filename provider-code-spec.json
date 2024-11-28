@@ -103,13 +103,6 @@
 							"computed_optional_required": "computed",
 							"description": "The id of the data model"
 						}
-					},
-					{
-						"name": "id",
-						"string": {
-							"computed_optional_required": "computed_optional",
-							"description": "ID of the http source to fetch"
-						}
 					}
 				]
 			}

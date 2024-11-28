@@ -20,7 +20,7 @@ variable "log_stream_type" {
 
 variable "log_types" {
   description = "List of log types for the HTTP source."
-  type        = list(string)
+  type = list(string)
 }
 
 variable "security_type" {
@@ -36,6 +36,7 @@ variable "security_header_key" {
 variable "security_secret_value" {
   description = "Secret value."
   type        = string
+  sensitive   = true
 }
 
 variable "security_username" {
@@ -46,6 +47,7 @@ variable "security_username" {
 variable "security_password" {
   description = "Password for security purposes."
   type        = string
+  sensitive   = true
 }
 
 variable "security_alg" {
