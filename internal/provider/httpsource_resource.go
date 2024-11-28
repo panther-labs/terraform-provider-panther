@@ -85,8 +85,8 @@ func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 	// Example data value setting
-	//data.Id = types.StringValue(httpSource.IntegrationId)
-	data.IntegrationId = types.StringValue(httpSource.IntegrationId)
+	data.Id = types.StringValue(httpSource.IntegrationId)
+	//data.IntegrationId = types.StringValue(httpSource.IntegrationId)
 	//data.
 
 	// Save data into Terraform state
@@ -104,7 +104,7 @@ func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest,
 	}
 
 	// Read API call logic
-	httpSource, err := r.client.GetHttpSource(ctx, data.IntegrationId.ValueString())
+	httpSource, err := r.client.GetHttpSource(ctx, data.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading HTTP Source",
@@ -113,9 +113,9 @@ func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest,
 		return
 	}
 	// Example data value setting
-	//data.Id = types.StringValue(httpSource.IntegrationId)
+	data.Id = types.StringValue(httpSource.IntegrationId)
 	// todo overwrite data with state
-	data.IntegrationId = types.StringValue(httpSource.IntegrationId)
+	//data.IntegrationId = types.StringValue(httpSource.IntegrationId)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -124,7 +124,7 @@ func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest,
 func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data resource_httpsource.HttpsourceModel
 	var id types.String
-	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("integration_id"), &id)...)
+	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &id)...)
 	tflog.Warn(ctx, "data: ", map[string]interface{}{
 		"id": id.ValueString(),
 	})
@@ -159,7 +159,8 @@ func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequ
 	}
 	// Example data value setting
 	// fixme not there for s3
-	data.IntegrationId = types.StringValue(httpSource.IntegrationId)
+	data.Id = types.StringValue(httpSource.IntegrationId)
+	//data.IntegrationId = types.StringValue(httpSource.IntegrationId)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -176,7 +177,7 @@ func (r *httpsourceResource) Delete(ctx context.Context, req resource.DeleteRequ
 	}
 
 	// Delete API call logic
-	err := r.client.DeleteHttpSource(ctx, data.IntegrationId.ValueString())
+	err := r.client.DeleteHttpSource(ctx, data.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error deleting HTTP Source",

@@ -14,10 +14,11 @@ import (
 func HttpsourceResourceSchema(ctx context.Context) schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"integration_id": schema.StringAttribute{
+			"id": schema.StringAttribute{
+				Optional:            true,
 				Computed:            true,
-				Description:         "The id of the data model",
-				MarkdownDescription: "The id of the data model",
+				Description:         "ID of the http source to fetch",
+				MarkdownDescription: "ID of the http source to fetch",
 			},
 			"integration_label": schema.StringAttribute{
 				Required:            true,
@@ -93,7 +94,7 @@ func HttpsourceResourceSchema(ctx context.Context) schema.Schema {
 }
 
 type HttpsourceModel struct {
-	IntegrationId       types.String `tfsdk:"integration_id"`
+	Id                  types.String `tfsdk:"id"`
 	IntegrationLabel    types.String `tfsdk:"integration_label"`
 	LogStreamType       types.String `tfsdk:"log_stream_type"`
 	LogTypes            types.List   `tfsdk:"log_types"`
