@@ -17,4 +17,4 @@ resources:
     schema:
       attributes:
         aliases:
-          id: integrationId
+          integrationId: id

@@ -86,9 +86,9 @@ func NewAPIClient(graphClient *GraphQLClient, restClient *RestClient) *APIClient
 
 func (c RestClient) CreateHttpSource(ctx context.Context, input client.CreateHttpSourceInput) (*client.HttpSource, error) {
 	jsonData, err := json.Marshal(input)
-	tflog.Warn(ctx, "req: ", map[string]interface{}{
-		"body": string(jsonData),
-	})
+	//tflog.Warn(ctx, "req: ", map[string]interface{}{
+	//	"body": string(jsonData),
+	//})
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling data: %w", err)
 	}
@@ -129,9 +129,9 @@ func (c RestClient) CreateHttpSource(ctx context.Context, input client.CreateHtt
 
 func (c RestClient) UpdateHttpSource(ctx context.Context, input client.UpdateHttpSourceInput) (*client.HttpSource, error) {
 	reqURL := fmt.Sprintf("%s/%s", c.url, input.Id)
-	tflog.Warn(ctx, "req: ", map[string]interface{}{
-		"body": input.Id,
-	})
+	//tflog.Warn(ctx, "req: ", map[string]interface{}{
+	//	"input id": input.Id,
+	//})
 	jsonData, err := json.Marshal(input)
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling data: %w", err)

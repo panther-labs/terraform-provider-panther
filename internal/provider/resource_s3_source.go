@@ -254,7 +254,6 @@ func (r *S3SourceResource) Read(ctx context.Context, req resource.ReadRequest, r
 
 func (r *S3SourceResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data *S3SourceResourceModel
-
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 

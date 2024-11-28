@@ -3,6 +3,8 @@ package provider
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"terraform-provider-panther/internal/client"
 	"terraform-provider-panther/internal/client/panther"
 	"terraform-provider-panther/internal/provider/resource_httpsource"
@@ -83,6 +85,7 @@ func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 	// Example data value setting
+	data.Id = types.StringValue(httpSource.IntegrationId)
 	data.IntegrationId = types.StringValue(httpSource.IntegrationId)
 
 	// Save data into Terraform state
@@ -109,7 +112,7 @@ func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest,
 		return
 	}
 	// Example data value setting
-	data.IntegrationId = types.StringValue(httpSource.IntegrationId)
+	data.Id = types.StringValue(httpSource.IntegrationId)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -117,6 +120,11 @@ func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest,
 
 func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data resource_httpsource.HttpsourceModel
+	var id types.String
+	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &id)...)
+	tflog.Warn(ctx, "data: ", map[string]interface{}{
+		"id": id.ValueString(),
+	})
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -128,7 +136,7 @@ func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequ
 	// Update API call logic
 	httpSource, err := r.client.UpdateHttpSource(ctx, client.UpdateHttpSourceInput{
 		// fill all the fields from the data model
-		Id:                  data.IntegrationId.ValueString(),
+		Id:                  id.ValueString(),
 		IntegrationLabel:    data.IntegrationLabel.ValueString(),
 		LogStreamType:       data.LogStreamType.ValueString(),
 		LogTypes:            convertLogTypes(ctx, data.LogTypes),
@@ -149,6 +157,7 @@ func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequ
 	// Example data value setting
 	// fixme not there for s3
 	data.IntegrationId = types.StringValue(httpSource.IntegrationId)
+	data.Id = types.StringValue(httpSource.IntegrationId)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
