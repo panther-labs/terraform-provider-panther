@@ -18,16 +18,24 @@ package client
 
 import (
 	"context"
+	"terraform-provider-panther/internal/provider/resource_httpsource"
 )
 
-type Client interface {
+type GraphQLClient interface {
 	CreateS3Source(ctx context.Context, input CreateS3SourceInput) (CreateS3SourceOutput, error)
 	UpdateS3Source(ctx context.Context, input UpdateS3SourceInput) (UpdateS3SourceOutput, error)
 	GetS3Source(ctx context.Context, id string) (*S3LogIntegration, error)
 	DeleteSource(ctx context.Context, input DeleteSourceInput) (DeleteSourceOutput, error)
 }
 
-// Input for the createS3LogSource mutation
+type RestClient interface {
+	CreateHttpSource(ctx context.Context, input CreateHttpSourceInput) (*resource_httpsource.HttpsourceModel, error)
+	UpdateHttpSource(ctx context.Context, input UpdateHttpSourceInput) (*resource_httpsource.HttpsourceModel, error)
+	GetHttpSource(ctx context.Context, id string) (*resource_httpsource.HttpsourceModel, error)
+	DeleteHttpSource(ctx context.Context, id string) error
+}
+
+// CreateS3SourceInput Input for the createS3LogSource mutation
 type CreateS3SourceInput struct {
 	AwsAccountID               string                  `json:"awsAccountId"`
 	KmsKey                     string                  `json:"kmsKey"`
@@ -39,12 +47,12 @@ type CreateS3SourceInput struct {
 	S3PrefixLogTypes           []S3PrefixLogTypesInput `json:"s3PrefixLogTypes"`
 }
 
-// Output for the createS3LogSource mutation
+// CreateS3SourceOutput output for the createS3LogSource mutation
 type CreateS3SourceOutput struct {
 	LogSource *S3LogIntegration `graphql:"logSource"`
 }
 
-// Input for the updateS3Source mutation
+// UpdateS3SourceInput input for the updateS3Source mutation
 type UpdateS3SourceInput struct {
 	ID                         string                  `json:"id"`
 	KmsKey                     string                  `json:"kmsKey"`
@@ -55,22 +63,22 @@ type UpdateS3SourceInput struct {
 	S3PrefixLogTypes           []S3PrefixLogTypesInput `json:"s3PrefixLogTypes"`
 }
 
-// Output for the updateS3LogSource mutation
+// UpdateS3SourceOutput output for the updateS3LogSource mutation
 type UpdateS3SourceOutput struct {
 	LogSource *S3LogIntegration `graphql:"logSource"`
 }
 
-// Input for the deleteSource mutation
+// DeleteSourceInput input for the deleteSource mutation
 type DeleteSourceInput struct {
 	ID string `json:"id"`
 }
 
-// Output for the deleteSource mutation
+// DeleteSourceOutput output for the deleteSource mutation
 type DeleteSourceOutput struct {
 	ID string `json:"id"`
 }
 
-// Represents an S3 Log Source Integration
+// S3LogIntegration Represents an S3 Log Source Integration
 type S3LogIntegration struct {
 	// The ID of the AWS Account where the S3 Bucket is located
 	AwsAccountID string `graphql:"awsAccountId"`
@@ -98,7 +106,7 @@ type S3LogIntegration struct {
 	S3PrefixLogTypes []S3PrefixLogTypes `graphql:"s3PrefixLogTypes"`
 }
 
-// Mapping of S3 prefixes to log types
+// S3PrefixLogTypesInput Mapping of S3 prefixes to log types
 type S3PrefixLogTypesInput struct {
 	// S3 Prefixes to exclude
 	ExcludedPrefixes []string `json:"excludedPrefixes"`
@@ -115,4 +123,33 @@ type S3PrefixLogTypes struct {
 	LogTypes []string `graphql:"logTypes"`
 	// S3 Prefix to map to log types
 	Prefix string `graphql:"prefix"`
+}
+
+// CreateHttpSourceInput Input for creating an http log source
+type CreateHttpSourceInput struct {
+	IntegrationLabel    string   `json:"integration_label"`
+	LogStreamType       string   `json:"log_stream_type"`
+	LogTypes            []string `json:"log_types"`
+	SecurityAlg         string   `json:"security_alg"`
+	SecurityHeaderKey   string   `json:"security_header_key"`
+	SecurityPassword    string   `json:"security_password"`
+	SecuritySecretValue string   `json:"security_secret_value"`
+	SecurityType        string   `json:"security_type"`
+	SecurityUsername    string   `json:"security_username"`
+}
+
+// UpdateHttpSourceInput input for updating an http log source
+type UpdateHttpSourceInput struct {
+	// todo use a model struct?
+	Id string `json:"id"`
+	//HttpSource resource_httpsource.HttpsourceModel
+	IntegrationLabel    string   `json:"integration_label"`
+	LogStreamType       string   `json:"log_stream_type"`
+	LogTypes            []string `json:"log_types"`
+	SecurityAlg         string   `json:"security_alg"`
+	SecurityHeaderKey   string   `json:"security_header_key"`
+	SecurityPassword    string   `json:"security_password"`
+	SecuritySecretValue string   `json:"security_secret_value"`
+	SecurityType        string   `json:"security_type"`
+	SecurityUsername    string   `json:"security_username"`
 }
