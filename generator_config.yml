@@ -1,0 +1,16 @@
+provider:
+  name: panther
+resources:
+  httpsource:
+    create:
+      path: /log-sources/http
+      method: POST
+    read:
+      path: /log-sources/http/{id}
+      method: GET
+    update:
+      path: /log-sources/http/{id}
+      method: PUT
+    delete:
+      path: /log-sources/http/{id}
+      method: DELETE
