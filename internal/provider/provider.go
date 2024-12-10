@@ -123,8 +123,11 @@ func (p *PantherProvider) Configure(ctx context.Context, req provider.ConfigureR
 		return
 	}
 
-	graphClient := panther.NewGraphQLClient(url, token)
-	restClient := panther.NewRestClient(url, token)
+	// url in previous versions was provided including graphql endpoint,
+	// we strip it here to keep it backwards compatible
+	pantherUrl := panther.TrimUrl(url)
+	graphClient := panther.NewGraphQLClient(pantherUrl, token)
+	restClient := panther.NewRestClient(pantherUrl, token)
 
 	resp.ResourceData = panther.NewAPIClient(graphClient, restClient)
 

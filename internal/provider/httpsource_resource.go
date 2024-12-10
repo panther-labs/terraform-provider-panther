@@ -66,16 +66,18 @@ func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequ
 	// Create API call logic
 	// fixme change inputs
 	httpSource, err := r.client.CreateHttpSource(ctx, client.CreateHttpSourceInput{
-		// fill all the fields from the data model
-		IntegrationLabel:    data.IntegrationLabel.ValueString(),
-		LogStreamType:       data.LogStreamType.ValueString(),
-		LogTypes:            convertLogTypes(ctx, data.LogTypes),
-		SecurityAlg:         data.SecurityAlg.ValueString(),
-		SecurityHeaderKey:   data.SecurityHeaderKey.ValueString(),
-		SecurityPassword:    data.SecurityPassword.ValueString(),
-		SecuritySecretValue: data.SecuritySecretValue.ValueString(),
-		SecurityType:        data.SecurityType.ValueString(),
-		SecurityUsername:    data.SecurityUsername.ValueString(),
+		HttpSourceModifiableAttributes: client.HttpSourceModifiableAttributes{
+			// fill all the fields from the data model
+			IntegrationLabel:    data.IntegrationLabel.ValueString(),
+			LogStreamType:       data.LogStreamType.ValueString(),
+			LogTypes:            convertLogTypes(ctx, data.LogTypes),
+			SecurityAlg:         data.SecurityAlg.ValueString(),
+			SecurityHeaderKey:   data.SecurityHeaderKey.ValueString(),
+			SecurityPassword:    data.SecurityPassword.ValueString(),
+			SecuritySecretValue: data.SecuritySecretValue.ValueString(),
+			SecurityType:        data.SecurityType.ValueString(),
+			SecurityUsername:    data.SecurityUsername.ValueString(),
+		},
 	})
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -139,16 +141,18 @@ func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequ
 	// Update API call logic
 	httpSource, err := r.client.UpdateHttpSource(ctx, client.UpdateHttpSourceInput{
 		// fill all the fields from the data model
-		Id:                  id.ValueString(),
-		IntegrationLabel:    data.IntegrationLabel.ValueString(),
-		LogStreamType:       data.LogStreamType.ValueString(),
-		LogTypes:            convertLogTypes(ctx, data.LogTypes),
-		SecurityAlg:         data.SecurityAlg.ValueString(),
-		SecurityHeaderKey:   data.SecurityHeaderKey.ValueString(),
-		SecurityPassword:    data.SecurityPassword.ValueString(),
-		SecuritySecretValue: data.SecuritySecretValue.ValueString(),
-		SecurityType:        data.SecurityType.ValueString(),
-		SecurityUsername:    data.SecurityUsername.ValueString(),
+		Id: id.ValueString(),
+		HttpSourceModifiableAttributes: client.HttpSourceModifiableAttributes{
+			IntegrationLabel:    data.IntegrationLabel.ValueString(),
+			LogStreamType:       data.LogStreamType.ValueString(),
+			LogTypes:            convertLogTypes(ctx, data.LogTypes),
+			SecurityAlg:         data.SecurityAlg.ValueString(),
+			SecurityHeaderKey:   data.SecurityHeaderKey.ValueString(),
+			SecurityPassword:    data.SecurityPassword.ValueString(),
+			SecuritySecretValue: data.SecuritySecretValue.ValueString(),
+			SecurityType:        data.SecurityType.ValueString(),
+			SecurityUsername:    data.SecurityUsername.ValueString(),
+		},
 	})
 	if err != nil {
 		resp.Diagnostics.AddError(

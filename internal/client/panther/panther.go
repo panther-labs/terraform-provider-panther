@@ -26,12 +26,15 @@ import (
 	"io"
 	"net/http"
 	"terraform-provider-panther/internal/client"
-	"time"
 )
 
 var _ client.GraphQLClient = (*GraphQLClient)(nil)
 
 var _ client.RestClient = (*RestClient)(nil)
+
+type Doer interface {
+	Do(req *http.Request) (*http.Response, error)
+}
 
 type APIClient struct {
 	*GraphQLClient
@@ -43,26 +46,22 @@ type GraphQLClient struct {
 }
 
 type RestClient struct {
-	token string
-	url   string
-	*http.Client
+	url string
+	Doer
 }
 
 func NewGraphQLClient(url, token string) *GraphQLClient {
 	return &GraphQLClient{
 		graphql.NewClient(
-			url,
+			fmt.Sprintf("%s%s", url, graphqlEndpoint),
 			NewAuthorizedHTTPClient(token)),
 	}
 }
 
 func NewRestClient(url, token string) *RestClient {
 	return &RestClient{
-		token: token,
-		url:   url,
-		Client: &http.Client{
-			Timeout: 10 * time.Second,
-		},
+		fmt.Sprintf("%s%s", url, restEndpoint),
+		NewAuthorizedHTTPClient(token),
 	}
 }
 
@@ -72,17 +71,6 @@ func NewAPIClient(graphClient *GraphQLClient, restClient *RestClient) *APIClient
 		restClient,
 	}
 }
-
-//func NewAPIClient(graphClient *GraphQLClient) *APIClient {
-//	return &APIClient{
-//		graphClient,
-//	}
-//}
-
-//func NewRestClient(url, token string) *RestClient {
-//todo use authorized or whatever
-//return &RestClient{Client: http.}
-//}
 
 func (c RestClient) CreateHttpSource(ctx context.Context, input client.CreateHttpSourceInput) (*client.HttpSource, error) {
 	jsonData, err := json.Marshal(input)
@@ -96,7 +84,6 @@ func (c RestClient) CreateHttpSource(ctx context.Context, input client.CreateHtt
 	if err != nil {
 		return nil, fmt.Errorf("failed to create: %w", err)
 	}
-	req.Header.Add("X-API-Key", c.token)
 	resp, err := c.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to make request: %w", err)
@@ -140,7 +127,6 @@ func (c RestClient) UpdateHttpSource(ctx context.Context, input client.UpdateHtt
 	if err != nil {
 		return nil, fmt.Errorf("failed to create: %w", err)
 	}
-	req.Header.Add("X-API-Key", c.token)
 	resp, err := c.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to make request: %w", err)
@@ -174,7 +160,6 @@ func (c RestClient) GetHttpSource(ctx context.Context, id string) (*client.HttpS
 	if err != nil {
 		return nil, fmt.Errorf("failed to create: %w", err)
 	}
-	req.Header.Add("X-API-Key", c.token)
 	resp, err := c.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to make request: %w", err)
@@ -208,7 +193,6 @@ func (c RestClient) DeleteHttpSource(ctx context.Context, id string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create: %w", err)
 	}
-	req.Header.Add("X-API-Key", c.token)
 	resp, err := c.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to make request: %w", err)

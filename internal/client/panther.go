@@ -125,7 +125,12 @@ type S3PrefixLogTypes struct {
 }
 
 type HttpSource struct {
-	IntegrationId       string
+	IntegrationId string
+	HttpSourceModifiableAttributes
+}
+
+// HttpSourceModifiableAttributes attributes that can be modified on an http log source
+type HttpSourceModifiableAttributes struct {
 	IntegrationLabel    string
 	LogStreamType       string
 	LogTypes            []string
@@ -139,33 +144,15 @@ type HttpSource struct {
 
 // CreateHttpSourceInput Input for creating an http log source
 type CreateHttpSourceInput struct {
-	IntegrationLabel    string
-	LogStreamType       string
-	LogTypes            []string
-	SecurityAlg         string
-	SecurityHeaderKey   string
-	SecurityPassword    string
-	SecuritySecretValue string
-	SecurityType        string
-	SecurityUsername    string
+	HttpSourceModifiableAttributes
 }
 
 // UpdateHttpSourceInput input for updating an http log source
 type UpdateHttpSourceInput struct {
-	// todo use a model struct?
 	Id string `json:"id"`
-	//HttpSource resource_httpsource.HttpsourceModel
-	IntegrationLabel    string
-	LogStreamType       string
-	LogTypes            []string
-	SecurityAlg         string
-	SecurityHeaderKey   string
-	SecurityPassword    string
-	SecuritySecretValue string
-	SecurityType        string
-	SecurityUsername    string
+	HttpSourceModifiableAttributes
 }
 
 type HttpErrorResponse struct {
-	Message string `json:"message"`
+	Message string
 }
