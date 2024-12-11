@@ -9,7 +9,7 @@ _This template repository is built on the [Terraform Plugin Framework](https://g
 ## Requirements
 
 - [Terraform](https://www.terraform.io/downloads.html) >= 1.0
-- [Go](https://golang.org/doc/install) >= 1.19
+- [Go](https://golang.org/doc/install) >= 1.23
 
 ## Building The Provider
 
@@ -45,13 +45,60 @@ To compile the provider, run `go install`. This will build the provider and put 
 
 To generate or update documentation, run `go generate`.
 
+### Code generation
+
+Starting with the `httpsource` resource, the resource scaffolding and schema are generated using the terraform
+[framework code generator](https://developer.hashicorp.com/terraform/plugin/code-generation/framework-generator#installation)
+and the [openapi generator](https://developer.hashicorp.com/terraform/plugin/code-generation/framework-generator#installation)
+plugins. In order to update or create new resources, you need to install both these plugins as described in the links.
+
+### Creating a new resource
+
+In order to create a new resource in the Panther provider, it must already exist in the Panther REST API and provide
+CRUD REST methods. The following steps are required to create a new resource:
+
+1. Scaffold a new resource by running the following command:
+```
+   tfplugingen-framework scaffold resource \
+   --name {resource_name}} \
+   --output-dir ./internal/provider
+```
+2. Update the `generator_config.yml` file with the paths of the REST methods for the new resource.
+3. Get the latest Panther OpenAPI schema locally and run the following command to update the `provider-code-specs.json`
+specification file:
+```
+tfplugingen-openapi generate \
+  --config ./generator_config.yml \
+  --output ./provider-code-spec.json \
+    {path_to_openapi_yml}
+```
+4. Run the following command to populate the resource model/schema:
+```
+tfplugingen-framework generate resources \
+  --input ./provider-code-spec.json \
+  --output ./internal/provider
+```
+
+### Updating an existing resource
+
+In order to update an existing resource, e.g. because of a schema change or to add new attributes, perform the following
+steps:
+
+1. Make sure the `generator_config.yml` file is up to date. This has to be changed only for updates to existing 
+REST endpoints/resources.
+2. Follow steps `3` and `4` from the `Creating a new resource` section.
+
+### Testing
+
+```shell
+
 In order to run the full suite of Acceptance tests, run `make testacc`.
 
 *Note:* Acceptance tests create real resources and may cost money to run.
 
 ```shell
-PANTHER_API_URL=<Panther GraphQL URL> \
-PANTHER_API_TOKEN=<Panther GraphQL API Token> \
+PANTHER_API_URL=<Panther enviroment URL> \
+PANTHER_API_TOKEN=<Panther API Token> \
 make testacc
 ```
 
