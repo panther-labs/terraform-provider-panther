@@ -176,7 +176,6 @@ func (r *S3SourceResource) Configure(_ context.Context, req resource.ConfigureRe
 
 		return
 	}
-	// todo add nil check
 
 	r.client = c.GraphQLClient
 }

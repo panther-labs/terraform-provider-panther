@@ -81,8 +81,6 @@ func (r *httpsourceResource) Configure(_ context.Context, req resource.Configure
 		return
 	}
 
-	// todo add nil check
-
 	r.client = c.RestClient
 }
 
