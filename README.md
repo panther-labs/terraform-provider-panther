@@ -78,6 +78,9 @@ tfplugingen-framework generate resources \
   --input ./provider-code-spec.json \
   --output ./internal/provider
 ```
+5. Implement the CRUD methods in the resource file under `internal/provider/{resource_name}_resource.go` as is done in
+the `httpsource` resource. If creating a new resource that requires `Resource Import` functionality, you have to add the
+you have to implement the `ImportState` method in the resource file, as is done in the `httpsource` resource.
 
 ### Updating an existing resource
 
@@ -97,7 +100,7 @@ In order to run the full suite of Acceptance tests, run `make testacc`.
 *Note:* Acceptance tests create real resources and may cost money to run.
 
 ```shell
-PANTHER_API_URL=<Panther enviroment URL> \
+PANTHER_API_URL=<Panther environment URL> \
 PANTHER_API_TOKEN=<Panther API Token> \
 make testacc
 ```

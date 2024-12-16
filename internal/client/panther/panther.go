@@ -53,14 +53,14 @@ type RestClient struct {
 func NewGraphQLClient(url, token string) *GraphQLClient {
 	return &GraphQLClient{
 		graphql.NewClient(
-			fmt.Sprintf("%s%s", url, graphqlEndpoint),
+			fmt.Sprintf("%s%s", url, GraphqlEndpoint),
 			NewAuthorizedHTTPClient(token)),
 	}
 }
 
 func NewRestClient(url, token string) *RestClient {
 	return &RestClient{
-		fmt.Sprintf("%s%s", url, restEndpoint),
+		fmt.Sprintf("%s%s", url, RestEndpoint),
 		NewAuthorizedHTTPClient(token),
 	}
 }

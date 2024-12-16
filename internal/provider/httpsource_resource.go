@@ -3,8 +3,9 @@ package provider
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-framework/path"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"terraform-provider-panther/internal/client"
 	"terraform-provider-panther/internal/client/panther"
 	"terraform-provider-panther/internal/provider/resource_httpsource"
@@ -32,6 +33,10 @@ func (r *httpsourceResource) Metadata(ctx context.Context, req resource.Metadata
 
 func (r *httpsourceResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = resource_httpsource.HttpsourceResourceSchema(ctx)
+	// we add the UseStateForUnknown plan modifier to the id attribute manually because it is not supported by the schema generator
+	idAttr := resp.Schema.Attributes["id"].(schema.StringAttribute)
+	idAttr.PlanModifiers = append(idAttr.PlanModifiers, stringplanmodifier.UseStateForUnknown())
+	resp.Schema.Attributes["id"] = idAttr
 }
 
 func (r *httpsourceResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -63,11 +68,13 @@ func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequ
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	// Optional values are not set in the plan, so we need to set them to empty values. This can be avoided by setting
+	// the default values in the schema, but the schema generator does not support this yet.
+	data = initialiseUnknownValues(data)
 	// Create API call logic
-	// fixme change inputs
 	httpSource, err := r.client.CreateHttpSource(ctx, client.CreateHttpSourceInput{
 		HttpSourceModifiableAttributes: client.HttpSourceModifiableAttributes{
-			// fill all the fields from the data model
 			IntegrationLabel:    data.IntegrationLabel.ValueString(),
 			LogStreamType:       data.LogStreamType.ValueString(),
 			LogTypes:            convertLogTypes(ctx, data.LogTypes),
@@ -86,10 +93,7 @@ func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequ
 		)
 		return
 	}
-	// Example data value setting
 	data.Id = types.StringValue(httpSource.IntegrationId)
-	//data.IntegrationId = types.StringValue(httpSource.IntegrationId)
-	//data.
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -105,7 +109,6 @@ func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest,
 		return
 	}
 
-	// Read API call logic
 	httpSource, err := r.client.GetHttpSource(ctx, data.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -114,10 +117,16 @@ func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest,
 		)
 		return
 	}
-	// Example data value setting
+	// We need to set all the values from the API response into the data model, except for the sensitive values
+	// which are returned always as empty strings
 	data.Id = types.StringValue(httpSource.IntegrationId)
-	// todo overwrite data with state
-	//data.IntegrationId = types.StringValue(httpSource.IntegrationId)
+	data.IntegrationLabel = types.StringValue(httpSource.IntegrationLabel)
+	data.LogStreamType = types.StringValue(httpSource.LogStreamType)
+	data.LogTypes = convertFromLogTypes(ctx, httpSource.LogTypes, resp.Diagnostics)
+	data.SecurityType = types.StringValue(httpSource.SecurityType)
+	data.SecurityAlg = types.StringValue(httpSource.SecurityAlg)
+	data.SecurityHeaderKey = types.StringValue(httpSource.SecurityHeaderKey)
+	data.SecurityUsername = types.StringValue(httpSource.SecurityUsername)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -125,23 +134,19 @@ func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest,
 
 func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data resource_httpsource.HttpsourceModel
-	var id types.String
-	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &id)...)
-	tflog.Warn(ctx, "data: ", map[string]interface{}{
-		"id": id.ValueString(),
-	})
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+
+	// update unknown
+	data = initialiseUnknownValues(data)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Update API call logic
-	httpSource, err := r.client.UpdateHttpSource(ctx, client.UpdateHttpSourceInput{
-		// fill all the fields from the data model
-		Id: id.ValueString(),
+	_, err := r.client.UpdateHttpSource(ctx, client.UpdateHttpSourceInput{
+		Id: data.Id.ValueString(),
 		HttpSourceModifiableAttributes: client.HttpSourceModifiableAttributes{
 			IntegrationLabel:    data.IntegrationLabel.ValueString(),
 			LogStreamType:       data.LogStreamType.ValueString(),
@@ -161,10 +166,6 @@ func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequ
 		)
 		return
 	}
-	// Example data value setting
-	// fixme not there for s3
-	data.Id = types.StringValue(httpSource.IntegrationId)
-	//data.IntegrationId = types.StringValue(httpSource.IntegrationId)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -180,7 +181,6 @@ func (r *httpsourceResource) Delete(ctx context.Context, req resource.DeleteRequ
 		return
 	}
 
-	// Delete API call logic
 	err := r.client.DeleteHttpSource(ctx, data.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -196,4 +196,29 @@ func convertLogTypes(ctx context.Context, logTypes types.List) []string {
 	var result []string
 	logTypes.ElementsAs(ctx, &result, false)
 	return result
+}
+
+func convertFromLogTypes(ctx context.Context, logTypes []string, diagnostics diag.Diagnostics) types.List {
+	from, d := types.ListValueFrom(ctx, types.StringType, logTypes)
+	diagnostics.Append(d...)
+	return from
+}
+
+func initialiseUnknownValues(r resource_httpsource.HttpsourceModel) resource_httpsource.HttpsourceModel {
+	if r.SecurityAlg.IsUnknown() {
+		r.SecurityAlg = types.StringValue("")
+	}
+	if r.SecurityHeaderKey.IsUnknown() {
+		r.SecurityHeaderKey = types.StringValue("")
+	}
+	if r.SecuritySecretValue.IsUnknown() {
+		r.SecuritySecretValue = types.StringValue("")
+	}
+	if r.SecurityUsername.IsUnknown() {
+		r.SecurityUsername = types.StringValue("")
+	}
+	if r.SecurityPassword.IsUnknown() {
+		r.SecurityPassword = types.StringValue("")
+	}
+	return r
 }
