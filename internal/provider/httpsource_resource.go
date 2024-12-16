@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"terraform-provider-panther/internal/client"
 	"terraform-provider-panther/internal/client/panther"
@@ -32,11 +33,34 @@ func (r *httpsourceResource) Metadata(ctx context.Context, req resource.Metadata
 }
 
 func (r *httpsourceResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	// We are overriding the schema here with some settings that are not supported by the schema generator.
+	// We opt to do it here in order to be able to keep generating it without our changes getting overwritten in the generated file
 	resp.Schema = resource_httpsource.HttpsourceResourceSchema(ctx)
 	// we add the UseStateForUnknown plan modifier to the id attribute manually because it is not supported by the schema generator
 	idAttr := resp.Schema.Attributes["id"].(schema.StringAttribute)
 	idAttr.PlanModifiers = append(idAttr.PlanModifiers, stringplanmodifier.UseStateForUnknown())
 	resp.Schema.Attributes["id"] = idAttr
+
+	// override default value for optional values
+	secAlg := resp.Schema.Attributes["security_alg"].(schema.StringAttribute)
+	secAlg.Default = stringdefault.StaticString("")
+	resp.Schema.Attributes["security_alg"] = secAlg
+
+	secHeadKey := resp.Schema.Attributes["security_header_key"].(schema.StringAttribute)
+	secHeadKey.Default = stringdefault.StaticString("")
+	resp.Schema.Attributes["security_header_key"] = secHeadKey
+
+	secPass := resp.Schema.Attributes["security_password"].(schema.StringAttribute)
+	secPass.Default = stringdefault.StaticString("")
+	resp.Schema.Attributes["security_password"] = secPass
+
+	secSecVal := resp.Schema.Attributes["security_secret_value"].(schema.StringAttribute)
+	secSecVal.Default = stringdefault.StaticString("")
+	resp.Schema.Attributes["security_secret_value"] = secSecVal
+
+	secUser := resp.Schema.Attributes["security_username"].(schema.StringAttribute)
+	secUser.Default = stringdefault.StaticString("")
+	resp.Schema.Attributes["security_username"] = secUser
 }
 
 func (r *httpsourceResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -69,10 +93,6 @@ func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	// Optional values are not set in the plan, so we need to set them to empty values. This can be avoided by setting
-	// the default values in the schema, but the schema generator does not support this yet.
-	data = initialiseUnknownValues(data)
-	// Create API call logic
 	httpSource, err := r.client.CreateHttpSource(ctx, client.CreateHttpSourceInput{
 		HttpSourceModifiableAttributes: client.HttpSourceModifiableAttributes{
 			IntegrationLabel:    data.IntegrationLabel.ValueString(),
@@ -137,9 +157,6 @@ func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequ
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
-
-	// update unknown
-	data = initialiseUnknownValues(data)
 
 	if resp.Diagnostics.HasError() {
 		return
