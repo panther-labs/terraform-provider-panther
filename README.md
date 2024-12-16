@@ -35,15 +35,8 @@ go mod tidy
 
 ## Usage
 
-Use the examples directory as a guide for setting up the provider.
-
-### Import limitations
-
-The http source resource contains sensitive values for `security_password` and `security_secret_value`, which cannot be read after
-being created. For this reason, make sure to avoid updating these in the console as they cannot be reflected to the state of the resource
-in Terraform. This applies to importing the state of the resource as well from an existing resource. If updating these values 
-from the console or importing an existing resource, you will need to run `terraform apply` with the appropriate values to reflect
-the changes in the state of the resource.
+Use the examples directory and the corresponding [README.md](./examples/README.md) as a guide on setting up the provider
+and trying out terraform command to create/update/delete resources.
 
 ## Developing the Provider
 
@@ -109,7 +102,6 @@ optional values and setting the `UseStateForUnknownn` value for the `id` in the 
 ### Testing
 
 ```shell
-
 In order to run the full suite of Acceptance tests, run `make testacc`.
 
 *Note:* Acceptance tests create real resources and may cost money to run.
@@ -120,28 +112,12 @@ PANTHER_API_TOKEN=<Panther API Token> \
 make testacc
 ```
 
-There are also complete examples under the `examples` directory. If you want to try out the provider as you are building
-it, you can add a `.terraformrc` file in your home dir which contains the following:
-```hcl
-provider_installation {
-  dev_overrides {
-    "panther-labs/panther" = "{PATH}"
-  }
-  direct {}
-}
-```
-where `PATH` is the path that your go binaries are. This will either be your `GOBIN` var if it's set, or `{GOPATH}/bin`.
+In order to manually test the provider refer to the [Usage](#usage) section above.
 
-Then you can normally run terraform commands to create the resources, like
-```shell
-terraform plan -var="var1=value1" -var="var2=value2" ...
-```
-or by adding variables to a temporary `.tfvars` file and running:
-```shell
-terraform plan -var-file="your-file.tfvars"
-```
-As this will create actual resources in your dev environment, make sure to run 
-```shell
-terraform destroy ...
-```
-when you are done with testing, so no lingering resources are left.
+### Import limitations
+
+The http source resource contains sensitive values for `security_password` and `security_secret_value`, which cannot be read after
+being created. For this reason, make sure to avoid updating these in the console as they cannot be reflected to the state of the resource
+in Terraform. This applies to importing the state of the resource as well from an existing resource. If updating these values
+from the console or importing an existing resource, you will need to run `terraform apply` with the appropriate values to reflect
+the changes in the state of the resource.

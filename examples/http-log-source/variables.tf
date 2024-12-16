@@ -38,19 +38,3 @@ variable "security_secret_value" {
   type        = string
   sensitive   = true
 }
-
-variable "security_username" {
-  description = "Username for security purposes."
-  type        = string
-}
-
-variable "security_password" {
-  description = "Password for security purposes."
-  type        = string
-  sensitive   = true
-}
-
-variable "security_alg" {
-  description = "Security algorithm used."
-  type        = string
-}
