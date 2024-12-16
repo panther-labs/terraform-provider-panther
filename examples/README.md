@@ -1,7 +1,13 @@
 # Examples
 
 This directory contains examples that can be used to practically try out or test the provider and the resources it contains.
-In order to do that you have to:
+These are included under `full-examples`.
+Additionally, it contains some basic example files which are also used for generating some basic documentation for the 
+provider and its resources using `go generate`, which can be found in the `provider` and `resources` directories. 
+
+### Full examples
+
+In order to run the full examples and try out the provider you have to:
 
 1. Build the provider as described in the main [README.md](../README.md)
 2. Add a `.terraformrc` file in your home dir which contains the following:
@@ -14,7 +20,7 @@ provider_installation {
 }
 ```
 where `PATH` is the path that your go binaries are located. This will either be your `GOBIN` var if it's set, or `{GOPATH}/bin`.
-3. Navigate to the example directory you want to try out. The examples are set up so that a `variables.tf` file is created which
+3. Navigate to the example directory you want to try out under `full-examples/{resource_type}`. The examples are set up so that a `variables.tf` file is created which
 includes the provider level variables you need to run terraform commands (`token`, `url`). The easiest way to use these
 examples is to create a `*.tfvars` file to get the values for these variables, like in the example below:
 ```terraform
@@ -48,9 +54,11 @@ when you are done with testing, so no lingering resources are left.
 
 Don't forget to remove the `.terraformrc` file when you are done testing and if you plan to use the released provider version. 
 
+### Basic examples and docs generation
 
-
-The document generation tool looks for files in the following locations by default. All other *.tf files besides the ones mentioned below are ignored by the documentation tool. This is useful for creating examples that can run and/or ar testable even if some parts are not relevant for the documentation.
+The document generation tool looks for files in the following locations by default. All other *.tf files besides the ones mentioned
+below are ignored by the documentation tool. This is useful for creating examples that can run and/or ar testable even 
+if some parts are not relevant for the documentation.
 
 * **provider/provider.tf** example file for the provider index page
 * **data-sources/`full data source name`/data-source.tf** example file for the named data source page
