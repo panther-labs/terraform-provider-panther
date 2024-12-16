@@ -54,6 +54,13 @@ func TestHttpSourceResource(t *testing.T) {
 					resource.TestCheckResourceAttr("panther_httpsource.test", "security_secret_value", "test-secret-value"),
 				),
 			},
+			// ImportState testing
+			{
+				ResourceName:            "panther_httpsource.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"security_secret_value", "security_password"},
+			},
 			// Update and Read testing
 			{
 				Config: providerConfig + testUpdatedHttpSourceResourceConfig(integrationUpdatedLabel),
