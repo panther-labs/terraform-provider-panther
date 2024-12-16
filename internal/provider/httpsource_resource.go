@@ -225,22 +225,3 @@ func convertFromLogTypes(ctx context.Context, logTypes []string, diagnostics dia
 	diagnostics.Append(d...)
 	return from
 }
-
-func initialiseUnknownValues(r resource_httpsource.HttpsourceModel) resource_httpsource.HttpsourceModel {
-	if r.SecurityAlg.IsUnknown() {
-		r.SecurityAlg = types.StringValue("")
-	}
-	if r.SecurityHeaderKey.IsUnknown() {
-		r.SecurityHeaderKey = types.StringValue("")
-	}
-	if r.SecuritySecretValue.IsUnknown() {
-		r.SecuritySecretValue = types.StringValue("")
-	}
-	if r.SecurityUsername.IsUnknown() {
-		r.SecurityUsername = types.StringValue("")
-	}
-	if r.SecurityPassword.IsUnknown() {
-		r.SecurityPassword = types.StringValue("")
-	}
-	return r
-}
