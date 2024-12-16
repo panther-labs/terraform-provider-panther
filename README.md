@@ -37,6 +37,14 @@ go mod tidy
 
 Use the examples directory as a guide for setting up the provider.
 
+### Import limitations
+
+The http source resource contains sensitive values for `security_password` and `security_secret_value`, which cannot be read after
+being created. For this reason, make sure to avoid updating these in the console as they cannot be reflected to the state of the resource
+in Terraform. This applies to importing the state of the resource as well from an existing resource. If updating these values 
+from the console or importing an existing resource, you will need to run `terraform apply` with the appropriate values to reflect
+the changes in the state of the resource.
+
 ## Developing the Provider
 
 If you wish to work on the provider, you'll first need [Go](http://www.golang.org) installed on your machine (see [Requirements](#requirements) above).
@@ -90,6 +98,13 @@ steps:
 1. Make sure the `generator_config.yml` file is up to date. This has to be changed only for updates to existing 
 REST endpoints/resources.
 2. Follow steps `3` and `4` from the `Creating a new resource` section.
+
+### Code generation limitations
+
+The code generation tools currently do not cover all the functionality we need. For this reason, setting the defaults for
+optional values and setting the `UseStateForUnknownn` value for the `id` in the schema is done manually in the resource
+`Schema` method. Additionally, as mentioned above, there is no support for importing the state of a resource, so the
+`ImportState` method has to be implemented manually.
 
 ### Testing
 
