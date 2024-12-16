@@ -49,8 +49,8 @@ To generate or update documentation, run `go generate`.
 ### Code generation
 
 Starting with the `httpsource` resource, the resource scaffolding and schema are generated using the terraform
-[framework code generator](https://developer.hashicorp.com/terraform/plugin/code-generation/framework-generator#installation)
-and the [openapi generator](https://developer.hashicorp.com/terraform/plugin/code-generation/framework-generator#installation)
+[framework code generator](https://developer.hashicorp.com/terraform/plugin/code-generation/framework-generator)
+and the [openapi generator](https://developer.hashicorp.com/terraform/plugin/code-generation/openapi-generator)
 plugins. In order to update or create new resources, you need to install both these plugins as described in the links.
 
 ### Creating a new resource
