@@ -20,7 +20,7 @@ variable "log_stream_type" {
 
 variable "log_types" {
   description = "List of log types for the HTTP source."
-  type = list(string)
+  type        = list(string)
 }
 
 variable "security_type" {
