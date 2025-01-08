@@ -52,15 +52,15 @@ type RestClient struct {
 func NewGraphQLClient(url, token string) *GraphQLClient {
 	return &GraphQLClient{
 		graphql.NewClient(
-			fmt.Sprintf("%s%s", url, GraphqlEndpoint),
+			fmt.Sprintf("%s%s", url, GraphqlPath),
 			NewAuthorizedHTTPClient(token)),
 	}
 }
 
 func NewRestClient(url, token string) *RestClient {
 	return &RestClient{
-		fmt.Sprintf("%s%s", url, RestEndpoint),
-		NewAuthorizedHTTPClient(token),
+		url:  fmt.Sprintf("%s%s", url, RestHttpSourcePath),
+		Doer: NewAuthorizedHTTPClient(token),
 	}
 }
 
@@ -71,7 +71,7 @@ func NewAPIClient(graphClient *GraphQLClient, restClient *RestClient) *APIClient
 	}
 }
 
-func (c RestClient) CreateHttpSource(ctx context.Context, input client.CreateHttpSourceInput) (*client.HttpSource, error) {
+func (c *RestClient) CreateHttpSource(ctx context.Context, input client.CreateHttpSourceInput) (*client.HttpSource, error) {
 	jsonData, err := json.Marshal(input)
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling data: %w", err)
@@ -87,11 +87,7 @@ func (c RestClient) CreateHttpSource(ctx context.Context, input client.CreateHtt
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
-		msg, err := getErrorResponseMsg(resp)
-		if err != nil {
-			msg = err.Error()
-		}
-		return nil, fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, msg)
+		return nil, fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, getErrorResponseMsg(resp))
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -107,7 +103,7 @@ func (c RestClient) CreateHttpSource(ctx context.Context, input client.CreateHtt
 	return response, nil
 }
 
-func (c RestClient) UpdateHttpSource(ctx context.Context, input client.UpdateHttpSourceInput) (*client.HttpSource, error) {
+func (c *RestClient) UpdateHttpSource(ctx context.Context, input client.UpdateHttpSourceInput) (*client.HttpSource, error) {
 	reqURL := fmt.Sprintf("%s/%s", c.url, input.Id)
 	jsonData, err := json.Marshal(input)
 	if err != nil {
@@ -124,11 +120,7 @@ func (c RestClient) UpdateHttpSource(ctx context.Context, input client.UpdateHtt
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		msg, err := getErrorResponseMsg(resp)
-		if err != nil {
-			msg = err.Error()
-		}
-		return nil, fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, msg)
+		return nil, fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, getErrorResponseMsg(resp))
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -144,7 +136,7 @@ func (c RestClient) UpdateHttpSource(ctx context.Context, input client.UpdateHtt
 	return response, nil
 }
 
-func (c RestClient) GetHttpSource(ctx context.Context, id string) (*client.HttpSource, error) {
+func (c *RestClient) GetHttpSource(ctx context.Context, id string) (*client.HttpSource, error) {
 	reqURL := fmt.Sprintf("%s/%s", c.url, id)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
 	if err != nil {
@@ -157,11 +149,7 @@ func (c RestClient) GetHttpSource(ctx context.Context, id string) (*client.HttpS
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		msg, err := getErrorResponseMsg(resp)
-		if err != nil {
-			msg = err.Error()
-		}
-		return nil, fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, msg)
+		return nil, fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, getErrorResponseMsg(resp))
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -177,7 +165,7 @@ func (c RestClient) GetHttpSource(ctx context.Context, id string) (*client.HttpS
 	return response, nil
 }
 
-func (c RestClient) DeleteHttpSource(ctx context.Context, id string) error {
+func (c *RestClient) DeleteHttpSource(ctx context.Context, id string) error {
 	reqURL := fmt.Sprintf("%s/%s", c.url, id)
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, reqURL, nil)
 	if err != nil {
@@ -190,11 +178,7 @@ func (c RestClient) DeleteHttpSource(ctx context.Context, id string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusNoContent {
-		msg, err := getErrorResponseMsg(resp)
-		if err != nil {
-			msg = err.Error()
-		}
-		return fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, msg)
+		return fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, getErrorResponseMsg(resp))
 	}
 
 	return nil
@@ -261,16 +245,16 @@ func (c *GraphQLClient) CreateS3Source(ctx context.Context, input client.CreateS
 	return m.CreateS3Source.CreateS3SourceOutput, nil
 }
 
-func getErrorResponseMsg(resp *http.Response) (string, error) {
+func getErrorResponseMsg(resp *http.Response) string {
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("failed to read response body: %w", err)
+		return fmt.Sprintf("failed to read response body: %s", err.Error())
 	}
 
 	var errResponse *client.HttpErrorResponse
 	if err = json.Unmarshal(body, &errResponse); err != nil {
-		return "", fmt.Errorf("failed to unmarshal response body to get error response: %w", err)
+		return fmt.Sprintf("failed to unmarshal response body to get error response: %s", err.Error())
 	}
 
-	return errResponse.Message, nil
+	return errResponse.Message
 }

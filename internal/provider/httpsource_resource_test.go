@@ -119,7 +119,7 @@ func manuallyDeleteSource(s *terraform.State) error {
 	if httpSource.Primary.ID == "" {
 		return errors.New("http source ID is not set")
 	}
-	url := os.Getenv("PANTHER_API_URL") + panther.RestEndpoint + "/" + httpSource.Primary.ID
+	url := os.Getenv("PANTHER_API_URL") + panther.RestHttpSourcePath + "/" + httpSource.Primary.ID
 	client := http.DefaultClient
 	req, err := http.NewRequest(http.MethodDelete, url, nil)
 	if err != nil {
