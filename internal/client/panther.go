@@ -28,9 +28,9 @@ type GraphQLClient interface {
 }
 
 type RestClient interface {
-	CreateHttpSource(ctx context.Context, input CreateHttpSourceInput) (*HttpSource, error)
-	UpdateHttpSource(ctx context.Context, input UpdateHttpSourceInput) (*HttpSource, error)
-	GetHttpSource(ctx context.Context, id string) (*HttpSource, error)
+	CreateHttpSource(ctx context.Context, input CreateHttpSourceInput) (HttpSource, error)
+	UpdateHttpSource(ctx context.Context, input UpdateHttpSourceInput) (HttpSource, error)
+	GetHttpSource(ctx context.Context, id string) (HttpSource, error)
 	DeleteHttpSource(ctx context.Context, id string) error
 }
 

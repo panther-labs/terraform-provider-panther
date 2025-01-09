@@ -71,95 +71,95 @@ func NewAPIClient(graphClient *GraphQLClient, restClient *RestClient) *APIClient
 	}
 }
 
-func (c *RestClient) CreateHttpSource(ctx context.Context, input client.CreateHttpSourceInput) (*client.HttpSource, error) {
+func (c *RestClient) CreateHttpSource(ctx context.Context, input client.CreateHttpSourceInput) (client.HttpSource, error) {
 	jsonData, err := json.Marshal(input)
 	if err != nil {
-		return nil, fmt.Errorf("error marshaling data: %w", err)
+		return client.HttpSource{}, fmt.Errorf("error marshaling data: %w", err)
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.url, bytes.NewReader(jsonData))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create: %w", err)
+		return client.HttpSource{}, fmt.Errorf("failed to create http request: %w", err)
 	}
 	resp, err := c.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to make request: %w", err)
+		return client.HttpSource{}, fmt.Errorf("failed to make request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
-		return nil, fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, getErrorResponseMsg(resp))
+		return client.HttpSource{}, fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, getErrorResponseMsg(resp))
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
+		return client.HttpSource{}, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	var response *client.HttpSource
+	var response client.HttpSource
 	if err = json.Unmarshal(body, &response); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal response body: %w", err)
+		return client.HttpSource{}, fmt.Errorf("failed to unmarshal response body: %w", err)
 	}
 
 	return response, nil
 }
 
-func (c *RestClient) UpdateHttpSource(ctx context.Context, input client.UpdateHttpSourceInput) (*client.HttpSource, error) {
+func (c *RestClient) UpdateHttpSource(ctx context.Context, input client.UpdateHttpSourceInput) (client.HttpSource, error) {
 	reqURL := fmt.Sprintf("%s/%s", c.url, input.IntegrationId)
 	jsonData, err := json.Marshal(input)
 	if err != nil {
-		return nil, fmt.Errorf("error marshaling data: %w", err)
+		return client.HttpSource{}, fmt.Errorf("error marshaling data: %w", err)
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, reqURL, bytes.NewReader(jsonData))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create: %w", err)
+		return client.HttpSource{}, fmt.Errorf("failed to create http request: %w", err)
 	}
 	resp, err := c.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to make request: %w", err)
+		return client.HttpSource{}, fmt.Errorf("failed to make request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, getErrorResponseMsg(resp))
+		return client.HttpSource{}, fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, getErrorResponseMsg(resp))
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
+		return client.HttpSource{}, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	var response *client.HttpSource
+	var response client.HttpSource
 	if err = json.Unmarshal(body, &response); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal response body: %w", err)
+		return client.HttpSource{}, fmt.Errorf("failed to unmarshal response body: %w", err)
 	}
 
 	return response, nil
 }
 
-func (c *RestClient) GetHttpSource(ctx context.Context, id string) (*client.HttpSource, error) {
+func (c *RestClient) GetHttpSource(ctx context.Context, id string) (client.HttpSource, error) {
 	reqURL := fmt.Sprintf("%s/%s", c.url, id)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create: %w", err)
+		return client.HttpSource{}, fmt.Errorf("failed to create http request: %w", err)
 	}
 	resp, err := c.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to make request: %w", err)
+		return client.HttpSource{}, fmt.Errorf("failed to make request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, getErrorResponseMsg(resp))
+		return client.HttpSource{}, fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, getErrorResponseMsg(resp))
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
+		return client.HttpSource{}, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	var response *client.HttpSource
+	var response client.HttpSource
 	if err = json.Unmarshal(body, &response); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal response body: %w", err)
+		return client.HttpSource{}, fmt.Errorf("failed to unmarshal response body: %w", err)
 	}
 
 	return response, nil
@@ -169,7 +169,7 @@ func (c *RestClient) DeleteHttpSource(ctx context.Context, id string) error {
 	reqURL := fmt.Sprintf("%s/%s", c.url, id)
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, reqURL, nil)
 	if err != nil {
-		return fmt.Errorf("failed to create: %w", err)
+		return fmt.Errorf("failed to create http request: %w", err)
 	}
 	resp, err := c.Do(req)
 	if err != nil {
@@ -251,7 +251,7 @@ func getErrorResponseMsg(resp *http.Response) string {
 		return fmt.Sprintf("failed to read response body: %s", err.Error())
 	}
 
-	var errResponse *client.HttpErrorResponse
+	var errResponse client.HttpErrorResponse
 	if err = json.Unmarshal(body, &errResponse); err != nil {
 		return fmt.Sprintf("failed to unmarshal response body to get error response: %s", err.Error())
 	}

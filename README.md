@@ -79,9 +79,9 @@ tfplugingen-framework generate resources \
   --input ./provider-code-spec.json \
   --output ./internal/provider
 ```
-5. Implement the CRUD methods in the resource file under `internal/provider/{resource_name}_resource.go` as is done in
-the `httpsource` resource. If creating a new resource that requires `Resource Import` functionality, you have to add the
-you have to implement the `ImportState` method in the resource file, as is done in the `httpsource` resource.
+5. Implement the CRUD methods in the resource file under `internal/provider/{resource_name}_resource.go` as is done for
+the `httpsource` resource. If creating a new resource that requires `Resource Import` functionality, you have to implement
+the `ImportState` method in the resource file, as is done for the `httpsource` resource.
 
 ### Updating an existing resource
 
