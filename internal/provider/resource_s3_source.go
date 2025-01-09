@@ -307,7 +307,7 @@ func (r *S3SourceResource) ImportState(ctx context.Context, req resource.ImportS
 
 // convert terraform model to Panther client input
 func prefixLogTypesToInput(prefixLogTypes []PrefixLogTypesModel) []client.S3PrefixLogTypesInput {
-	var result []client.S3PrefixLogTypesInput
+	result := []client.S3PrefixLogTypesInput{}
 	for _, p := range prefixLogTypes {
 		excluded := []string{}
 		logTypes := []string{}
@@ -329,10 +329,10 @@ func prefixLogTypesToInput(prefixLogTypes []PrefixLogTypesModel) []client.S3Pref
 
 // convert Panther client output to terraform model
 func prefixLogTypesToModel(prefixLogTypes []client.S3PrefixLogTypes) []PrefixLogTypesModel {
-	var result []PrefixLogTypesModel
+	result := []PrefixLogTypesModel{}
 	for _, p := range prefixLogTypes {
-		var excluded []types.String
-		var logTypes []types.String
+		excluded := []types.String{}
+		logTypes := []types.String{}
 		for _, v := range p.ExcludedPrefixes {
 			excluded = append(excluded, types.StringValue(v))
 		}
