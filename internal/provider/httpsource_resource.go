@@ -178,7 +178,7 @@ func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequ
 	}
 
 	_, err := r.client.UpdateHttpSource(ctx, client.UpdateHttpSourceInput{
-		Id: data.Id.ValueString(),
+		IntegrationId: data.Id.ValueString(),
 		HttpSourceModifiableAttributes: client.HttpSourceModifiableAttributes{
 			IntegrationLabel:    data.IntegrationLabel.ValueString(),
 			LogStreamType:       data.LogStreamType.ValueString(),

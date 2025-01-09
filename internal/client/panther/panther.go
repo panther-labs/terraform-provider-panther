@@ -104,7 +104,7 @@ func (c *RestClient) CreateHttpSource(ctx context.Context, input client.CreateHt
 }
 
 func (c *RestClient) UpdateHttpSource(ctx context.Context, input client.UpdateHttpSourceInput) (*client.HttpSource, error) {
-	reqURL := fmt.Sprintf("%s/%s", c.url, input.Id)
+	reqURL := fmt.Sprintf("%s/%s", c.url, input.IntegrationId)
 	jsonData, err := json.Marshal(input)
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling data: %w", err)
