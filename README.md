@@ -116,7 +116,7 @@ In order to manually test the provider refer to the [Usage](#usage) section abov
 
 ### Import limitations
 
-The http source resource contains sensitive values for `security_password` and `security_secret_value`, which cannot be read after
+The http source resource contains sensitive values for `auth_password` and `auth_secret_value`, which cannot be read after
 being created. For this reason, make sure to avoid updating these in the console as they cannot be reflected to the state of the resource
 in Terraform. This applies to importing the state of the resource as well from an existing resource. If updating these values
 from the console or importing an existing resource, you will need to run `terraform apply` with the appropriate values to reflect

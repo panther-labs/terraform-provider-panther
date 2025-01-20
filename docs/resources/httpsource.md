@@ -17,16 +17,17 @@ description: |-
 
 ### Required
 
-- `integration_label` (String) The id of the data model
-- `log_stream_type` (String) The log stream types
+- `auth_method` (String) The authentication method of the http source
+- `integration_label` (String) The integration label (name)
+- `log_stream_type` (String) The log stream type
 - `log_types` (List of String) The log types of the integration
-- `security_type` (String) The security type of the http endpoint
 
 ### Optional
 
+- `auth_bearer_token` (String) The authentication bearer token value of the http source. Used for Bearer auth method
+- `auth_header_key` (String) The authentication header key of the http source. Used for HMAC and SharedSecret auth methods
+- `auth_hmac_alg` (String) The authentication algorithm of the http source. Used for HMAC auth method
+- `auth_password` (String) The authentication header password of the http source. Used for Basic auth method
+- `auth_secret_value` (String) The authentication header secret value of the http source. Used for HMAC and SharedSecret auth methods
+- `auth_username` (String) The authentication header username of the http source. Used for Basic auth method
 - `id` (String) ID of the http source to fetch
-- `security_alg` (String) The authentication algorithm of the http source
-- `security_header_key` (String) The security header key of the http source
-- `security_password` (String) The authentication header password of the http source
-- `security_secret_value` (String) The header secret value of the http source
-- `security_username` (String) The authentication header username of the http source
