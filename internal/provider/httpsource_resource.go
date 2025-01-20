@@ -167,7 +167,6 @@ func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest,
 	data.AuthHmacAlg = types.StringValue(httpSource.AuthHmacAlg)
 	data.AuthHeaderKey = types.StringValue(httpSource.AuthHeaderKey)
 	data.AuthUsername = types.StringValue(httpSource.AuthUsername)
-	data.AuthBearerToken = types.StringValue(httpSource.AuthBearerToken)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

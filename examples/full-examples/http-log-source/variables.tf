@@ -23,18 +23,18 @@ variable "log_types" {
   type        = list(string)
 }
 
-variable "security_type" {
-  description = "Type of security used."
+variable "auth_method" {
+  description = "Authentication method used."
   type        = string
 }
 
-variable "security_header_key" {
-  description = "Key for the security header."
+variable "auth_header_key" {
+  description = "Key for the authentication header."
   type        = string
 }
 
-variable "security_secret_value" {
-  description = "Secret value."
+variable "auth_secret_value" {
+  description = "Authentication secret value."
   type        = string
   sensitive   = true
 }

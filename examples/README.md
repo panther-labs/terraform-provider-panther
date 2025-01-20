@@ -24,14 +24,14 @@ where `PATH` is the path that your go binaries are located. This will either be 
 includes the provider level variables you need to run terraform commands (`token`, `url`). The easiest way to use these
 examples is to create a `*.tfvars` file to get the values for these variables, like in the example below:
 ```terraform
-token                 = "{your_token}"
-url                   = "{your_url}"
-integration_label     = "test-label"
-log_stream_type       = "Auto"
-log_types             = ["AWS.CloudFrontAccess"]
-security_type         = "SharedSecret"
-security_header_key   = "x-api-key"
-security_secret_value = "test-secret"
+token             = "{your_token}"
+url               = "{your_url}"
+integration_label = "test-label"
+log_stream_type   = "Auto"
+log_types = ["AWS.CloudFrontAccess"]
+auth_method       = "SharedSecret"
+auth_header_key   = "x-api-key"
+auth_secret_value = "test-secret"
 ```
 That way you can run terraform commands like
 ```shell

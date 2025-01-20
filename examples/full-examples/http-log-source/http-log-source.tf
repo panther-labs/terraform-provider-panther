@@ -1,8 +1,8 @@
 resource "panther_httpsource" "example_http_source" {
-  integration_label     = var.integration_label
-  log_stream_type       = var.log_stream_type
-  log_types             = var.log_types
-  security_type         = var.security_type
-  security_header_key   = var.security_header_key
-  security_secret_value = var.security_secret_value
+  integration_label = var.integration_label
+  log_stream_type   = var.log_stream_type
+  log_types         = var.log_types
+  auth_method       = var.auth_method
+  auth_header_key   = var.auth_header_key
+  auth_secret_value = var.auth_secret_value
 }
