@@ -49,9 +49,9 @@ func TestHttpSourceResource(t *testing.T) {
 					resource.TestCheckResourceAttr("panther_httpsource.test", "integration_label", integrationLabel),
 					resource.TestCheckResourceAttr("panther_httpsource.test", "log_stream_type", "Auto"),
 					resource.TestCheckResourceAttr("panther_httpsource.test", "log_types.0", "AWS.CloudFrontAccess"),
-					resource.TestCheckResourceAttr("panther_httpsource.test", "security_type", "SharedSecret"),
-					resource.TestCheckResourceAttr("panther_httpsource.test", "security_header_key", "x-api-key"),
-					resource.TestCheckResourceAttr("panther_httpsource.test", "security_secret_value", "test-secret-value"),
+					resource.TestCheckResourceAttr("panther_httpsource.test", "auth_method", "SharedSecret"),
+					resource.TestCheckResourceAttr("panther_httpsource.test", "auth_header_key", "x-api-key"),
+					resource.TestCheckResourceAttr("panther_httpsource.test", "auth_secret_value", "test-secret-value"),
 				),
 			},
 			// ImportState testing
@@ -59,7 +59,7 @@ func TestHttpSourceResource(t *testing.T) {
 				ResourceName:            "panther_httpsource.test",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"security_secret_value", "security_password"},
+				ImportStateVerifyIgnore: []string{"auth_secret_value", "auth_password"},
 			},
 			// Update and Read testing
 			{
@@ -68,9 +68,9 @@ func TestHttpSourceResource(t *testing.T) {
 					resource.TestCheckResourceAttr("panther_httpsource.test", "integration_label", integrationUpdatedLabel),
 					resource.TestCheckResourceAttr("panther_httpsource.test", "log_stream_type", "JSON"),
 					resource.TestCheckResourceAttr("panther_httpsource.test", "log_types.0", "Zscaler.ZIA.WebLog"),
-					resource.TestCheckResourceAttr("panther_httpsource.test", "security_type", "Basic"),
-					resource.TestCheckResourceAttr("panther_httpsource.test", "security_username", "foo"),
-					resource.TestCheckResourceAttr("panther_httpsource.test", "security_password", "bar"),
+					resource.TestCheckResourceAttr("panther_httpsource.test", "auth_method", "Basic"),
+					resource.TestCheckResourceAttr("panther_httpsource.test", "auth_username", "foo"),
+					resource.TestCheckResourceAttr("panther_httpsource.test", "auth_password", "bar"),
 				),
 			},
 			// Provide an unchanged configuration and manually delete the resource
@@ -91,9 +91,9 @@ resource "panther_httpsource" "test" {
   integration_label     = "%v"
   log_stream_type       = "Auto"
   log_types             = ["AWS.CloudFrontAccess"]
-  security_type         = "SharedSecret"
-  security_header_key   = "x-api-key"
-  security_secret_value = "test-secret-value"
+  auth_method         = "SharedSecret"
+  auth_header_key   = "x-api-key"
+  auth_secret_value = "test-secret-value"
 }
 `, name)
 }
@@ -104,9 +104,9 @@ resource "panther_httpsource" "test" {
   integration_label     = "%v"
   log_stream_type       = "JSON"
   log_types             = ["Zscaler.ZIA.WebLog"]
-  security_type         = "Basic"
-  security_username   	= "foo"
-  security_password 	= "bar"
+  auth_method         = "Basic"
+  auth_username   	= "foo"
+  auth_password 	= "bar"
 }
 `, name)
 }

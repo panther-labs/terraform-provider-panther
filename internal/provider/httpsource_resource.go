@@ -59,25 +59,29 @@ func (r *httpsourceResource) Schema(ctx context.Context, req resource.SchemaRequ
 	resp.Schema.Attributes["id"] = idAttr
 
 	// override default value for optional values
-	secAlg := resp.Schema.Attributes["security_alg"].(schema.StringAttribute)
-	secAlg.Default = stringdefault.StaticString("")
-	resp.Schema.Attributes["security_alg"] = secAlg
+	hmacAlg := resp.Schema.Attributes["auth_hmac_alg"].(schema.StringAttribute)
+	hmacAlg.Default = stringdefault.StaticString("")
+	resp.Schema.Attributes["auth_hmac_alg"] = hmacAlg
 
-	secHeadKey := resp.Schema.Attributes["security_header_key"].(schema.StringAttribute)
-	secHeadKey.Default = stringdefault.StaticString("")
-	resp.Schema.Attributes["security_header_key"] = secHeadKey
+	authHeadKey := resp.Schema.Attributes["auth_header_key"].(schema.StringAttribute)
+	authHeadKey.Default = stringdefault.StaticString("")
+	resp.Schema.Attributes["auth_header_key"] = authHeadKey
 
-	secPass := resp.Schema.Attributes["security_password"].(schema.StringAttribute)
-	secPass.Default = stringdefault.StaticString("")
-	resp.Schema.Attributes["security_password"] = secPass
+	authPass := resp.Schema.Attributes["auth_password"].(schema.StringAttribute)
+	authPass.Default = stringdefault.StaticString("")
+	resp.Schema.Attributes["auth_password"] = authPass
 
-	secSecVal := resp.Schema.Attributes["security_secret_value"].(schema.StringAttribute)
-	secSecVal.Default = stringdefault.StaticString("")
-	resp.Schema.Attributes["security_secret_value"] = secSecVal
+	authSecVal := resp.Schema.Attributes["auth_secret_value"].(schema.StringAttribute)
+	authSecVal.Default = stringdefault.StaticString("")
+	resp.Schema.Attributes["auth_secret_value"] = authSecVal
 
-	secUser := resp.Schema.Attributes["security_username"].(schema.StringAttribute)
-	secUser.Default = stringdefault.StaticString("")
-	resp.Schema.Attributes["security_username"] = secUser
+	authUser := resp.Schema.Attributes["auth_username"].(schema.StringAttribute)
+	authUser.Default = stringdefault.StaticString("")
+	resp.Schema.Attributes["auth_username"] = authUser
+
+	bearerToken := resp.Schema.Attributes["auth_bearer_token"].(schema.StringAttribute)
+	bearerToken.Default = stringdefault.StaticString("")
+	resp.Schema.Attributes["auth_bearer_token"] = bearerToken
 }
 
 func (r *httpsourceResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -110,15 +114,16 @@ func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequ
 
 	httpSource, err := r.client.CreateHttpSource(ctx, client.CreateHttpSourceInput{
 		HttpSourceModifiableAttributes: client.HttpSourceModifiableAttributes{
-			IntegrationLabel:    data.IntegrationLabel.ValueString(),
-			LogStreamType:       data.LogStreamType.ValueString(),
-			LogTypes:            convertLogTypes(ctx, data.LogTypes),
-			SecurityAlg:         data.SecurityAlg.ValueString(),
-			SecurityHeaderKey:   data.SecurityHeaderKey.ValueString(),
-			SecurityPassword:    data.SecurityPassword.ValueString(),
-			SecuritySecretValue: data.SecuritySecretValue.ValueString(),
-			SecurityType:        data.SecurityType.ValueString(),
-			SecurityUsername:    data.SecurityUsername.ValueString(),
+			IntegrationLabel: data.IntegrationLabel.ValueString(),
+			LogStreamType:    data.LogStreamType.ValueString(),
+			LogTypes:         convertLogTypes(ctx, data.LogTypes),
+			AuthHmacAlg:      data.AuthHmacAlg.ValueString(),
+			AuthHeaderKey:    data.AuthHeaderKey.ValueString(),
+			AuthPassword:     data.AuthPassword.ValueString(),
+			AuthSecretValue:  data.AuthSecretValue.ValueString(),
+			AuthMethod:       data.AuthMethod.ValueString(),
+			AuthUsername:     data.AuthUsername.ValueString(),
+			AuthBearerToken:  data.AuthBearerToken.ValueString(),
 		},
 	})
 	if err != nil {
@@ -158,10 +163,11 @@ func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest,
 	data.IntegrationLabel = types.StringValue(httpSource.IntegrationLabel)
 	data.LogStreamType = types.StringValue(httpSource.LogStreamType)
 	data.LogTypes = convertFromLogTypes(ctx, httpSource.LogTypes, resp.Diagnostics)
-	data.SecurityType = types.StringValue(httpSource.SecurityType)
-	data.SecurityAlg = types.StringValue(httpSource.SecurityAlg)
-	data.SecurityHeaderKey = types.StringValue(httpSource.SecurityHeaderKey)
-	data.SecurityUsername = types.StringValue(httpSource.SecurityUsername)
+	data.AuthMethod = types.StringValue(httpSource.AuthMethod)
+	data.AuthHmacAlg = types.StringValue(httpSource.AuthHmacAlg)
+	data.AuthHeaderKey = types.StringValue(httpSource.AuthHeaderKey)
+	data.AuthUsername = types.StringValue(httpSource.AuthUsername)
+	data.AuthBearerToken = types.StringValue(httpSource.AuthBearerToken)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -180,15 +186,16 @@ func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequ
 	_, err := r.client.UpdateHttpSource(ctx, client.UpdateHttpSourceInput{
 		IntegrationId: data.Id.ValueString(),
 		HttpSourceModifiableAttributes: client.HttpSourceModifiableAttributes{
-			IntegrationLabel:    data.IntegrationLabel.ValueString(),
-			LogStreamType:       data.LogStreamType.ValueString(),
-			LogTypes:            convertLogTypes(ctx, data.LogTypes),
-			SecurityAlg:         data.SecurityAlg.ValueString(),
-			SecurityHeaderKey:   data.SecurityHeaderKey.ValueString(),
-			SecurityPassword:    data.SecurityPassword.ValueString(),
-			SecuritySecretValue: data.SecuritySecretValue.ValueString(),
-			SecurityType:        data.SecurityType.ValueString(),
-			SecurityUsername:    data.SecurityUsername.ValueString(),
+			IntegrationLabel: data.IntegrationLabel.ValueString(),
+			LogStreamType:    data.LogStreamType.ValueString(),
+			LogTypes:         convertLogTypes(ctx, data.LogTypes),
+			AuthHmacAlg:      data.AuthHmacAlg.ValueString(),
+			AuthHeaderKey:    data.AuthHeaderKey.ValueString(),
+			AuthPassword:     data.AuthPassword.ValueString(),
+			AuthSecretValue:  data.AuthSecretValue.ValueString(),
+			AuthMethod:       data.AuthMethod.ValueString(),
+			AuthUsername:     data.AuthUsername.ValueString(),
+			AuthBearerToken:  data.AuthBearerToken.ValueString(),
 		},
 	})
 	if err != nil {
