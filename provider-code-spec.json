@@ -8,17 +8,78 @@
 			"schema": {
 				"attributes": [
 					{
+						"name": "auth_bearer_token",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The authentication bearer token value of the http source. Used for Bearer auth method"
+						}
+					},
+					{
+						"name": "auth_header_key",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The authentication header key of the http source. Used for HMAC and SharedSecret auth methods"
+						}
+					},
+					{
+						"name": "auth_hmac_alg",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The authentication algorithm of the http source. Used for HMAC auth method"
+						}
+					},
+					{
+						"name": "auth_method",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "The authentication method of the http source",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.OneOf(\n\"SharedSecret\",\n\"HMAC\",\n\"Bearer\",\n\"Basic\",\n\"None\",\n)"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "auth_password",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The authentication header password of the http source. Used for Basic auth method"
+						}
+					},
+					{
+						"name": "auth_secret_value",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The authentication header secret value of the http source. Used for HMAC and SharedSecret auth methods"
+						}
+					},
+					{
+						"name": "auth_username",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The authentication header username of the http source. Used for Basic auth method"
+						}
+					},
+					{
 						"name": "integration_label",
 						"string": {
 							"computed_optional_required": "required",
-							"description": "The id of the data model"
+							"description": "The integration label (name)"
 						}
 					},
 					{
 						"name": "log_stream_type",
 						"string": {
 							"computed_optional_required": "required",
-							"description": "The log stream types",
+							"description": "The log stream type",
 							"validators": [
 								{
 									"custom": {
@@ -41,60 +102,6 @@
 								"string": {}
 							},
 							"description": "The log types of the integration"
-						}
-					},
-					{
-						"name": "security_alg",
-						"string": {
-							"computed_optional_required": "computed_optional",
-							"description": "The authentication algorithm of the http source"
-						}
-					},
-					{
-						"name": "security_header_key",
-						"string": {
-							"computed_optional_required": "computed_optional",
-							"description": "The security header key of the http source"
-						}
-					},
-					{
-						"name": "security_password",
-						"string": {
-							"computed_optional_required": "computed_optional",
-							"description": "The authentication header password of the http source"
-						}
-					},
-					{
-						"name": "security_secret_value",
-						"string": {
-							"computed_optional_required": "computed_optional",
-							"description": "The header secret value of the http source"
-						}
-					},
-					{
-						"name": "security_type",
-						"string": {
-							"computed_optional_required": "required",
-							"description": "The security type of the http endpoint",
-							"validators": [
-								{
-									"custom": {
-										"imports": [
-											{
-												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-											}
-										],
-										"schema_definition": "stringvalidator.OneOf(\n\"SharedSecret\",\n\"HMAC\",\n\"Bearer\",\n\"Basic\",\n\"None\",\n)"
-									}
-								}
-							]
-						}
-					},
-					{
-						"name": "security_username",
-						"string": {
-							"computed_optional_required": "computed_optional",
-							"description": "The authentication header username of the http source"
 						}
 					},
 					{

@@ -14,6 +14,56 @@ import (
 func HttpsourceResourceSchema(ctx context.Context) schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
+			"auth_bearer_token": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				Description:         "The authentication bearer token value of the http source. Used for Bearer auth method",
+				MarkdownDescription: "The authentication bearer token value of the http source. Used for Bearer auth method",
+			},
+			"auth_header_key": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				Description:         "The authentication header key of the http source. Used for HMAC and SharedSecret auth methods",
+				MarkdownDescription: "The authentication header key of the http source. Used for HMAC and SharedSecret auth methods",
+			},
+			"auth_hmac_alg": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				Description:         "The authentication algorithm of the http source. Used for HMAC auth method",
+				MarkdownDescription: "The authentication algorithm of the http source. Used for HMAC auth method",
+			},
+			"auth_method": schema.StringAttribute{
+				Required:            true,
+				Description:         "The authentication method of the http source",
+				MarkdownDescription: "The authentication method of the http source",
+				Validators: []validator.String{
+					stringvalidator.OneOf(
+						"SharedSecret",
+						"HMAC",
+						"Bearer",
+						"Basic",
+						"None",
+					),
+				},
+			},
+			"auth_password": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				Description:         "The authentication header password of the http source. Used for Basic auth method",
+				MarkdownDescription: "The authentication header password of the http source. Used for Basic auth method",
+			},
+			"auth_secret_value": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				Description:         "The authentication header secret value of the http source. Used for HMAC and SharedSecret auth methods",
+				MarkdownDescription: "The authentication header secret value of the http source. Used for HMAC and SharedSecret auth methods",
+			},
+			"auth_username": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				Description:         "The authentication header username of the http source. Used for Basic auth method",
+				MarkdownDescription: "The authentication header username of the http source. Used for Basic auth method",
+			},
 			"id": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
@@ -22,13 +72,13 @@ func HttpsourceResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"integration_label": schema.StringAttribute{
 				Required:            true,
-				Description:         "The id of the data model",
-				MarkdownDescription: "The id of the data model",
+				Description:         "The integration label (name)",
+				MarkdownDescription: "The integration label (name)",
 			},
 			"log_stream_type": schema.StringAttribute{
 				Required:            true,
-				Description:         "The log stream types",
-				MarkdownDescription: "The log stream types",
+				Description:         "The log stream type",
+				MarkdownDescription: "The log stream type",
 				Validators: []validator.String{
 					stringvalidator.OneOf(
 						"Auto",
@@ -45,63 +95,20 @@ func HttpsourceResourceSchema(ctx context.Context) schema.Schema {
 				Description:         "The log types of the integration",
 				MarkdownDescription: "The log types of the integration",
 			},
-			"security_alg": schema.StringAttribute{
-				Optional:            true,
-				Computed:            true,
-				Description:         "The authentication algorithm of the http source",
-				MarkdownDescription: "The authentication algorithm of the http source",
-			},
-			"security_header_key": schema.StringAttribute{
-				Optional:            true,
-				Computed:            true,
-				Description:         "The security header key of the http source",
-				MarkdownDescription: "The security header key of the http source",
-			},
-			"security_password": schema.StringAttribute{
-				Optional:            true,
-				Computed:            true,
-				Description:         "The authentication header password of the http source",
-				MarkdownDescription: "The authentication header password of the http source",
-			},
-			"security_secret_value": schema.StringAttribute{
-				Optional:            true,
-				Computed:            true,
-				Description:         "The header secret value of the http source",
-				MarkdownDescription: "The header secret value of the http source",
-			},
-			"security_type": schema.StringAttribute{
-				Required:            true,
-				Description:         "The security type of the http endpoint",
-				MarkdownDescription: "The security type of the http endpoint",
-				Validators: []validator.String{
-					stringvalidator.OneOf(
-						"SharedSecret",
-						"HMAC",
-						"Bearer",
-						"Basic",
-						"None",
-					),
-				},
-			},
-			"security_username": schema.StringAttribute{
-				Optional:            true,
-				Computed:            true,
-				Description:         "The authentication header username of the http source",
-				MarkdownDescription: "The authentication header username of the http source",
-			},
 		},
 	}
 }
 
 type HttpsourceModel struct {
-	Id                  types.String `tfsdk:"id"`
-	IntegrationLabel    types.String `tfsdk:"integration_label"`
-	LogStreamType       types.String `tfsdk:"log_stream_type"`
-	LogTypes            types.List   `tfsdk:"log_types"`
-	SecurityAlg         types.String `tfsdk:"security_alg"`
-	SecurityHeaderKey   types.String `tfsdk:"security_header_key"`
-	SecurityPassword    types.String `tfsdk:"security_password"`
-	SecuritySecretValue types.String `tfsdk:"security_secret_value"`
-	SecurityType        types.String `tfsdk:"security_type"`
-	SecurityUsername    types.String `tfsdk:"security_username"`
+	AuthBearerToken  types.String `tfsdk:"auth_bearer_token"`
+	AuthHeaderKey    types.String `tfsdk:"auth_header_key"`
+	AuthHmacAlg      types.String `tfsdk:"auth_hmac_alg"`
+	AuthMethod       types.String `tfsdk:"auth_method"`
+	AuthPassword     types.String `tfsdk:"auth_password"`
+	AuthSecretValue  types.String `tfsdk:"auth_secret_value"`
+	AuthUsername     types.String `tfsdk:"auth_username"`
+	Id               types.String `tfsdk:"id"`
+	IntegrationLabel types.String `tfsdk:"integration_label"`
+	LogStreamType    types.String `tfsdk:"log_stream_type"`
+	LogTypes         types.List   `tfsdk:"log_types"`
 }
