@@ -19,11 +19,6 @@ jobs:
       with:
         go-version: 1.23
 
-    - name: Install Terraform
-      uses: hashicorp/setup-terraform@v3
-      with:
-        terraform_version: 1.10.4
-
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3.1.2
       with:
