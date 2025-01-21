@@ -27,6 +27,9 @@ import (
 	"terraform-provider-panther/internal/client"
 )
 
+const GraphqlPath = "/v1/public/graphql"
+const RestHttpSourcePath = "/v1/log-sources/http"
+
 var _ client.GraphQLClient = (*GraphQLClient)(nil)
 
 var _ client.RestClient = (*RestClient)(nil)

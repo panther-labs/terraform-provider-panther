@@ -19,6 +19,7 @@ package provider
 import (
 	"context"
 	"os"
+	"strings"
 
 	"terraform-provider-panther/internal/client/panther"
 
@@ -125,7 +126,7 @@ func (p *PantherProvider) Configure(ctx context.Context, req provider.ConfigureR
 
 	// url in previous versions was provided including graphql endpoint,
 	// we strip it here to keep it backwards compatible
-	pantherUrl := panther.TrimUrl(url)
+	pantherUrl := strings.TrimSuffix(url, panther.GraphqlPath)
 	graphClient := panther.NewGraphQLClient(pantherUrl, token)
 	restClient := panther.NewRestClient(pantherUrl, token)
 
