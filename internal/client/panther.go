@@ -20,14 +20,21 @@ import (
 	"context"
 )
 
-type Client interface {
+type GraphQLClient interface {
 	CreateS3Source(ctx context.Context, input CreateS3SourceInput) (CreateS3SourceOutput, error)
 	UpdateS3Source(ctx context.Context, input UpdateS3SourceInput) (UpdateS3SourceOutput, error)
 	GetS3Source(ctx context.Context, id string) (*S3LogIntegration, error)
 	DeleteSource(ctx context.Context, input DeleteSourceInput) (DeleteSourceOutput, error)
 }
 
-// Input for the createS3LogSource mutation
+type RestClient interface {
+	CreateHttpSource(ctx context.Context, input CreateHttpSourceInput) (HttpSource, error)
+	UpdateHttpSource(ctx context.Context, input UpdateHttpSourceInput) (HttpSource, error)
+	GetHttpSource(ctx context.Context, id string) (HttpSource, error)
+	DeleteHttpSource(ctx context.Context, id string) error
+}
+
+// CreateS3SourceInput Input for the createS3LogSource mutation
 type CreateS3SourceInput struct {
 	AwsAccountID               string                  `json:"awsAccountId"`
 	KmsKey                     string                  `json:"kmsKey"`
@@ -39,12 +46,12 @@ type CreateS3SourceInput struct {
 	S3PrefixLogTypes           []S3PrefixLogTypesInput `json:"s3PrefixLogTypes"`
 }
 
-// Output for the createS3LogSource mutation
+// CreateS3SourceOutput output for the createS3LogSource mutation
 type CreateS3SourceOutput struct {
 	LogSource *S3LogIntegration `graphql:"logSource"`
 }
 
-// Input for the updateS3Source mutation
+// UpdateS3SourceInput input for the updateS3Source mutation
 type UpdateS3SourceInput struct {
 	ID                         string                  `json:"id"`
 	KmsKey                     string                  `json:"kmsKey"`
@@ -55,22 +62,22 @@ type UpdateS3SourceInput struct {
 	S3PrefixLogTypes           []S3PrefixLogTypesInput `json:"s3PrefixLogTypes"`
 }
 
-// Output for the updateS3LogSource mutation
+// UpdateS3SourceOutput output for the updateS3LogSource mutation
 type UpdateS3SourceOutput struct {
 	LogSource *S3LogIntegration `graphql:"logSource"`
 }
 
-// Input for the deleteSource mutation
+// DeleteSourceInput input for the deleteSource mutation
 type DeleteSourceInput struct {
 	ID string `json:"id"`
 }
 
-// Output for the deleteSource mutation
+// DeleteSourceOutput output for the deleteSource mutation
 type DeleteSourceOutput struct {
 	ID string `json:"id"`
 }
 
-// Represents an S3 Log Source Integration
+// S3LogIntegration Represents an S3 Log Source Integration
 type S3LogIntegration struct {
 	// The ID of the AWS Account where the S3 Bucket is located
 	AwsAccountID string `graphql:"awsAccountId"`
@@ -98,7 +105,7 @@ type S3LogIntegration struct {
 	S3PrefixLogTypes []S3PrefixLogTypes `graphql:"s3PrefixLogTypes"`
 }
 
-// Mapping of S3 prefixes to log types
+// S3PrefixLogTypesInput Mapping of S3 prefixes to log types
 type S3PrefixLogTypesInput struct {
 	// S3 Prefixes to exclude
 	ExcludedPrefixes []string `json:"excludedPrefixes"`
@@ -115,4 +122,38 @@ type S3PrefixLogTypes struct {
 	LogTypes []string `graphql:"logTypes"`
 	// S3 Prefix to map to log types
 	Prefix string `graphql:"prefix"`
+}
+
+type HttpSource struct {
+	IntegrationId string
+	HttpSourceModifiableAttributes
+}
+
+// HttpSourceModifiableAttributes attributes that can be modified on an http log source
+type HttpSourceModifiableAttributes struct {
+	IntegrationLabel string
+	LogStreamType    string
+	LogTypes         []string
+	AuthHmacAlg      string
+	AuthHeaderKey    string
+	AuthPassword     string
+	AuthSecretValue  string
+	AuthMethod       string
+	AuthUsername     string
+	AuthBearerToken  string
+}
+
+// CreateHttpSourceInput Input for creating an http log source
+type CreateHttpSourceInput struct {
+	HttpSourceModifiableAttributes
+}
+
+// UpdateHttpSourceInput input for updating an http log source
+type UpdateHttpSourceInput struct {
+	IntegrationId string
+	HttpSourceModifiableAttributes
+}
+
+type HttpErrorResponse struct {
+	Message string
 }

@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"terraform-provider-panther/internal/client/panther"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -37,9 +38,9 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var (
-	_ resource.Resource                = &S3SourceResource{}
-	_ resource.ResourceWithImportState = &S3SourceResource{}
-	_ resource.ResourceWithConfigure   = &S3SourceResource{}
+	_ resource.Resource                = (*S3SourceResource)(nil)
+	_ resource.ResourceWithImportState = (*S3SourceResource)(nil)
+	_ resource.ResourceWithConfigure   = (*S3SourceResource)(nil)
 )
 
 func NewS3SourceResource() resource.Resource {
@@ -47,10 +48,10 @@ func NewS3SourceResource() resource.Resource {
 }
 
 type S3SourceResource struct {
-	client client.Client
+	client client.GraphQLClient
 }
 
-// ExampleResourceModel describes the resource data model.
+// S3SourceResourceModel describes the resource data model.
 type S3SourceResourceModel struct {
 	AWSAccountID                             types.String          `tfsdk:"aws_account_id"`
 	KMSKeyARN                                types.String          `tfsdk:"kms_key_arn"`
@@ -69,11 +70,11 @@ type PrefixLogTypesModel struct {
 	Prefix           types.String   `tfsdk:"prefix"`
 }
 
-func (r *S3SourceResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *S3SourceResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_s3_source"
 }
 
-func (r *S3SourceResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *S3SourceResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
 		MarkdownDescription: "Represents an S3 Log Source in Panther",
@@ -159,24 +160,24 @@ To manage the notification-related infrastructure through terraform, refer to [t
 	}
 }
 
-func (r *S3SourceResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *S3SourceResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
 	}
 
-	c, ok := req.ProviderData.(client.Client)
+	c, ok := req.ProviderData.(*panther.APIClient)
 
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected client.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *panther.APIClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
 	}
 
-	r.client = c
+	r.client = c.GraphQLClient
 }
 
 func (r *S3SourceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -252,7 +253,6 @@ func (r *S3SourceResource) Read(ctx context.Context, req resource.ReadRequest, r
 
 func (r *S3SourceResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data *S3SourceResourceModel
-
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 

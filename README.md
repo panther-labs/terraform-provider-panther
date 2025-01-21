@@ -9,7 +9,7 @@ _This template repository is built on the [Terraform Plugin Framework](https://g
 ## Requirements
 
 - [Terraform](https://www.terraform.io/downloads.html) >= 1.0
-- [Go](https://golang.org/doc/install) >= 1.19
+- [Go](https://golang.org/doc/install) >= 1.23
 
 ## Building The Provider
 
@@ -35,7 +35,8 @@ go mod tidy
 
 ## Usage
 
-Use the examples directory as a guide for setting up the provider.
+Use the examples directory and the corresponding [README.md](./examples/README.md) as a guide on setting up the provider
+and trying out terraform command to create/update/delete resources.
 
 ## Developing the Provider
 
@@ -45,38 +46,78 @@ To compile the provider, run `go install`. This will build the provider and put 
 
 To generate or update documentation, run `go generate`.
 
+### Code generation
+
+Starting with the `httpsource` resource, the resource scaffolding and schema are generated using the terraform
+[framework code generator](https://developer.hashicorp.com/terraform/plugin/code-generation/framework-generator)
+and the [openapi generator](https://developer.hashicorp.com/terraform/plugin/code-generation/openapi-generator)
+plugins. In order to update or create new resources, you need to install both these plugins as described in the links.
+
+### Creating a new resource
+
+In order to create a new resource in the Panther provider, it must already exist in the Panther REST API and provide
+CRUD REST methods. The following steps are required to create a new resource:
+
+1. Scaffold a new resource by running the following command:
+```
+   tfplugingen-framework scaffold resource \
+   --name {resource_name}} \
+   --output-dir ./internal/provider
+```
+2. Update the `generator_config.yml` file with the paths of the REST methods for the new resource.
+3. Get the latest Panther OpenAPI schema locally and run the following command to update the `provider-code-specs.json`
+specification file:
+```
+tfplugingen-openapi generate \
+  --config ./generator_config.yml \
+  --output ./provider-code-spec.json \
+    {path_to_openapi_yml}
+```
+4. Run the following command to populate the resource model/schema:
+```
+tfplugingen-framework generate resources \
+  --input ./provider-code-spec.json \
+  --output ./internal/provider
+```
+5. Implement the CRUD methods in the resource file under `internal/provider/{resource_name}_resource.go` as is done for
+the `httpsource` resource. If creating a new resource that requires `Resource Import` functionality, you have to implement
+the `ImportState` method in the resource file, as is done for the `httpsource` resource.
+
+### Updating an existing resource
+
+In order to update an existing resource, e.g. because of a schema change or to add new attributes, perform the following
+steps:
+
+1. Make sure the `generator_config.yml` file is up to date. This has to be changed only for updates to existing 
+REST endpoints/resources.
+2. Follow steps `3` and `4` from the `Creating a new resource` section.
+
+### Code generation limitations
+
+The code generation tools currently do not cover all the functionality we need. For this reason, setting the defaults for
+optional values and setting the `UseStateForUnknownn` value for the `id` in the schema is done manually in the resource
+`Schema` method. Additionally, as mentioned above, there is no support for importing the state of a resource, so the
+`ImportState` method has to be implemented manually.
+
+### Testing
+
+```shell
 In order to run the full suite of Acceptance tests, run `make testacc`.
 
 *Note:* Acceptance tests create real resources and may cost money to run.
 
 ```shell
-PANTHER_API_URL=<Panther GraphQL URL> \
-PANTHER_API_TOKEN=<Panther GraphQL API Token> \
+PANTHER_API_URL=<Panther environment URL> \
+PANTHER_API_TOKEN=<Panther API Token> \
 make testacc
 ```
 
-There are also complete examples under the `examples` directory. If you want to try out the provider as you are building
-it, you can add a `.terraformrc` file in your home dir which contains the following:
-```hcl
-provider_installation {
-  dev_overrides {
-    "panther-labs/panther" = "{PATH}"
-  }
-  direct {}
-}
-```
-where `PATH` is the path that your go binaries are. This will either be your `GOBIN` var if it's set, or `{GOPATH}/bin`.
+In order to manually test the provider refer to the [Usage](#usage) section above.
 
-Then you can normally run terraform commands to create the resources, like
-```shell
-terraform plan -var="var1=value1" -var="var2=value2" ...
-```
-or by adding variables to a temporary `.tfvars` file and running:
-```shell
-terraform plan -var-file="your-file.tfvars"
-```
-As this will create actual resources in your dev environment, make sure to run 
-```shell
-terraform destroy ...
-```
-when you are done with testing, so no lingering resources are left.
+### Import limitations
+
+The http source resource contains sensitive values for `auth_password`, `auth_secret_value`, and `auth_bearer_token` which cannot be read after
+being created. For this reason, make sure to avoid updating these in the console as they cannot be reflected to the state of the resource
+in Terraform. This applies to importing the state of the resource as well from an existing resource. If updating these values
+from the console or importing an existing resource, you will need to run `terraform apply` with the appropriate values to reflect
+the changes in the state of the resource.
