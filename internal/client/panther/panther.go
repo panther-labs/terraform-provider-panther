@@ -24,6 +24,7 @@ import (
 	"github.com/hasura/go-graphql-client"
 	"io"
 	"net/http"
+	"strings"
 	"terraform-provider-panther/internal/client"
 )
 
@@ -72,6 +73,16 @@ func NewAPIClient(graphClient *GraphQLClient, restClient *RestClient) *APIClient
 		graphClient,
 		restClient,
 	}
+}
+
+func CreateAPIClient(url, token string) *APIClient {
+	// url in previous versions was provided including graphql endpoint,
+	// we strip it here to keep it backwards compatible
+	pantherUrl := strings.TrimSuffix(url, GraphqlPath)
+	graphClient := NewGraphQLClient(pantherUrl, token)
+	restClient := NewRestClient(pantherUrl, token)
+
+	return NewAPIClient(graphClient, restClient)
 }
 
 func (c *RestClient) CreateHttpSource(ctx context.Context, input client.CreateHttpSourceInput) (client.HttpSource, error) {
