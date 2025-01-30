@@ -6,8 +6,8 @@ import (
 	"testing"
 )
 
-// Saas customer which provides the graphql endpoint (legacy behavior)
-func TestCreateAPIClient_SaasGraphEndpoint(t *testing.T) {
+// Customer with custom url that provides the graphql endpoint (legacy behavior)
+func TestCreateAPIClient_CustomURLWithGraphEndpoint(t *testing.T) {
 	url := "panther-url/public/graphql"
 	client := *CreateAPIClient(url, "token")
 	graphUrl := reflect.ValueOf(client).FieldByIndex([]int{0}).Elem().FieldByName("url").String()
@@ -15,8 +15,8 @@ func TestCreateAPIClient_SaasGraphEndpoint(t *testing.T) {
 	assert.Equal(t, "panther-url/log-sources/http", client.RestClient.url)
 }
 
-// Saas customer which provides the panther root url (new behavior)
-func TestCreateAPIClient_SaasBaseURL(t *testing.T) {
+// Customer with custom url that provides the panther root url (new behavior)
+func TestCreateAPIClient_CustomUrlWithBaseUrl(t *testing.T) {
 	url := "panther-url"
 	client := *CreateAPIClient(url, "token")
 	graphUrl := reflect.ValueOf(client).FieldByIndex([]int{0}).Elem().FieldByName("url").String()
@@ -24,8 +24,8 @@ func TestCreateAPIClient_SaasBaseURL(t *testing.T) {
 	assert.Equal(t, "panther-url/log-sources/http", client.RestClient.url)
 }
 
-// Cloud Connected/Self-hosted customer which provides the graphql endpoint (legacy behavior)
-func TestCreateAPIClient_CCGraphEndpoint(t *testing.T) {
+// Customer with API Gateway url that provides the graphql endpoint (legacy behavior)
+func TestCreateAPIClient_ApiGWUrlWithGraphEndpoint(t *testing.T) {
 	url := "panther-url/v1/public/graphql"
 	client := *CreateAPIClient(url, "token")
 	graphUrl := reflect.ValueOf(client).FieldByIndex([]int{0}).Elem().FieldByName("url").String()
@@ -33,8 +33,8 @@ func TestCreateAPIClient_CCGraphEndpoint(t *testing.T) {
 	assert.Equal(t, "panther-url/v1/log-sources/http", client.RestClient.url)
 }
 
-// Cloud Connected/Self-hosted customer which provides the panther root url (new behavior)
-func TestCreateAPIClient_CCBaseURL(t *testing.T) {
+// Customer with API Gateway url that provides the panther root url (new behavior)
+func TestCreateAPIClient_ApiGWUrlWithBaseUrl(t *testing.T) {
 	url := "panther-url/v1"
 	client := *CreateAPIClient(url, "token")
 	graphUrl := reflect.ValueOf(client).FieldByIndex([]int{0}).Elem().FieldByName("url").String()
