@@ -79,7 +79,7 @@ func (p *PantherProvider) Configure(ctx context.Context, req provider.ConfigureR
 		resp.Diagnostics.AddAttributeError(
 			path.Root("url"),
 			"API URL Invalid",
-			"The Panther GraphQL API URL is invalid.",
+			"The Panther API URL is invalid.",
 		)
 	}
 
@@ -87,7 +87,7 @@ func (p *PantherProvider) Configure(ctx context.Context, req provider.ConfigureR
 		resp.Diagnostics.AddAttributeError(
 			path.Root("url"),
 			"API Token Invalid",
-			"The API Token for Panther GraphQL API is invalid.",
+			"The API Token for Panther API is invalid.",
 		)
 	}
 
@@ -106,7 +106,7 @@ func (p *PantherProvider) Configure(ctx context.Context, req provider.ConfigureR
 		resp.Diagnostics.AddAttributeError(
 			path.Root("url"),
 			"Missing Panther API URL",
-			"Panther GraphQL API URL must be provided.",
+			"Panther API URL must be provided.",
 		)
 	}
 
@@ -114,7 +114,7 @@ func (p *PantherProvider) Configure(ctx context.Context, req provider.ConfigureR
 		resp.Diagnostics.AddAttributeError(
 			path.Root("token"),
 			"Missing Panther API Token",
-			"Panther GraphQL API Token must be provided.",
+			"Panther API Token must be provided.",
 		)
 	}
 
