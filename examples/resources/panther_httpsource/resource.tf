@@ -1,5 +1,5 @@
 # Manage Http Log Source integration
-resource "panther_http_source" "example_http_source" {
+resource "panther_httpsource" "example_http_source" {
   integration_label = ""
   log_stream_type   = "JSON"
   log_types         = ""

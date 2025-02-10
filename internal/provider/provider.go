@@ -55,11 +55,11 @@ func (p *PantherProvider) Schema(ctx context.Context, req provider.SchemaRequest
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"url": schema.StringAttribute{
-				Description: "The GraphQL API URL for the target Panther instance.",
+				Description: "The API URL for the target Panther instance.",
 				Optional:    true,
 			},
 			"token": schema.StringAttribute{
-				Description: "The API token for the Panther GraphQL API.",
+				Description: "The API token for the Panther API.",
 				Optional:    true,
 				Sensitive:   true,
 			},
