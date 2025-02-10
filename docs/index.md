@@ -16,7 +16,7 @@ description: |-
 # Configuration-based authentication
 provider "panther" {
   token = ""
-  url   = "https://api.<panther-instance-url>/public/graphql"
+  url   = "https://<panther-instance-url>"
 }
 ```
 
@@ -25,5 +25,5 @@ provider "panther" {
 
 ### Optional
 
-- `token` (String, Sensitive) The API token for the Panther GraphQL API.
-- `url` (String) The GraphQL API URL for the target Panther instance.
+- `token` (String, Sensitive) The API token for the Panther API.
+- `url` (String) The API URL for the target Panther instance.
