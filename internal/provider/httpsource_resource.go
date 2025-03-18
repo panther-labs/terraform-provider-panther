@@ -32,7 +32,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var (
@@ -86,16 +85,12 @@ func (r *httpsourceResource) Schema(ctx context.Context, req resource.SchemaRequ
 	bearerToken.Default = stringdefault.StaticString("")
 	resp.Schema.Attributes["auth_bearer_token"] = bearerToken
 
-	// Get the nested attribute
 	logStreamTypeOptions := resp.Schema.Attributes["log_stream_type_options"].(schema.SingleNestedAttribute)
-
-	// Set a null default using objectdefault.StaticValue
 	logStreamTypeOptions.Default = objectdefault.StaticValue(types.ObjectNull(
 		map[string]attr.Type{
 			"json_array_envelope_field": types.StringType,
 		},
 	))
-
 	resp.Schema.Attributes["log_stream_type_options"] = logStreamTypeOptions
 }
 
@@ -127,44 +122,28 @@ func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	// Log the input data
-	tflog.Warn(ctx, "Creating HTTP Source", map[string]interface{}{
-		"INTEGRATION_LABEL":               data.IntegrationLabel.ValueString(),
-		"LOG_STREAM_TYPE":                 data.LogStreamType.ValueString(),
-		"LOG_STREAM_TYPE_OPTIONS":         fmt.Sprintf("%+v", data.LogStreamTypeOptions),
-		"LOG_STREAM_TYPE_OPTIONS_NULL":    data.LogStreamTypeOptions.IsNull(),
-		"LOG_STREAM_TYPE_OPTIONS_UNKNOWN": data.LogStreamTypeOptions.IsUnknown(),
-	})
-
-	// Create LogStreamTypeOptions if it's provided
-	var logStreamTypeOptions *client.LogStreamTypeOptions
-	if !data.LogStreamTypeOptions.IsNull() && !data.LogStreamTypeOptions.IsUnknown() {
-		logStreamTypeOptions = &client.LogStreamTypeOptions{
-			JsonArrayEnvelopeField: data.LogStreamTypeOptions.JsonArrayEnvelopeField.ValueString(),
-		}
-
-		tflog.Warn(ctx, "Setting LogStreamTypeOptions", map[string]interface{}{
-			"JSON_ARRAY_ENVELOPE_FIELD": data.LogStreamTypeOptions.JsonArrayEnvelopeField.ValueString(),
-		})
-	} else {
-		tflog.Warn(ctx, "LogStreamTypeOptions is null or unknown, not setting")
+	input := client.CreateHttpSourceInput{
+		HttpSourceModifiableAttributes: client.HttpSourceModifiableAttributes{
+			IntegrationLabel: data.IntegrationLabel.ValueString(),
+			LogStreamType:    data.LogStreamType.ValueString(),
+			LogTypes:         convertLogTypes(ctx, data.LogTypes),
+			AuthHmacAlg:      data.AuthHmacAlg.ValueString(),
+			AuthHeaderKey:    data.AuthHeaderKey.ValueString(),
+			AuthPassword:     data.AuthPassword.ValueString(),
+			AuthSecretValue:  data.AuthSecretValue.ValueString(),
+			AuthMethod:       data.AuthMethod.ValueString(),
+			AuthUsername:     data.AuthUsername.ValueString(),
+			AuthBearerToken:  data.AuthBearerToken.ValueString(),
+		},
 	}
 
-	httpSource, err := r.client.CreateHttpSource(ctx, client.CreateHttpSourceInput{
-		HttpSourceModifiableAttributes: client.HttpSourceModifiableAttributes{
-			IntegrationLabel:     data.IntegrationLabel.ValueString(),
-			LogStreamType:        data.LogStreamType.ValueString(),
-			LogTypes:             convertLogTypes(ctx, data.LogTypes),
-			LogStreamTypeOptions: logStreamTypeOptions,
-			AuthHmacAlg:          data.AuthHmacAlg.ValueString(),
-			AuthHeaderKey:        data.AuthHeaderKey.ValueString(),
-			AuthPassword:         data.AuthPassword.ValueString(),
-			AuthSecretValue:      data.AuthSecretValue.ValueString(),
-			AuthMethod:           data.AuthMethod.ValueString(),
-			AuthUsername:         data.AuthUsername.ValueString(),
-			AuthBearerToken:      data.AuthBearerToken.ValueString(),
-		},
-	})
+	if !data.LogStreamTypeOptions.IsNull() && !data.LogStreamTypeOptions.IsUnknown(){
+		input.HttpSourceModifiableAttributes.LogStreamTypeOptions = &client.LogStreamTypeOptions{
+			JsonArrayEnvelopeField: data.LogStreamTypeOptions.JsonArrayEnvelopeField.ValueString(),
+		}
+	}
+
+	httpSource, err := r.client.CreateHttpSource(ctx, input)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error creating HTTP Source",
@@ -172,17 +151,6 @@ func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequ
 		)
 		return
 	}
-
-	tflog.Warn(ctx, "API Response from HTTP Source", map[string]interface{}{
-		"HTTP_SOURCE":             fmt.Sprintf("%+v", httpSource),
-		"LOG_STREAM_TYPE_OPTIONS": fmt.Sprintf("%+v", httpSource.LogStreamTypeOptions),
-	})
-
-	// Log the response
-	tflog.Warn(ctx, "HTTP Source created successfully", map[string]interface{}{
-		"HTTP_SOURCE":                      fmt.Sprintf("%+v", httpSource),
-		"RESPONSE_LOG_STREAM_TYPE_OPTIONS": fmt.Sprintf("%+v", httpSource.LogStreamTypeOptions),
-	})
 
 	data.Id = types.StringValue(httpSource.IntegrationId)
 
@@ -219,47 +187,20 @@ func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest,
 	data.AuthHeaderKey = types.StringValue(httpSource.AuthHeaderKey)
 	data.AuthUsername = types.StringValue(httpSource.AuthUsername)
 
-	// Warning logging with tflog
-	tflog.Warn(ctx, "API Response from HTTP Source", map[string]interface{}{
-		"HTTP_SOURCE":             fmt.Sprintf("%+v", httpSource),
-		"LOG_STREAM_TYPE_OPTIONS": fmt.Sprintf("%+v", httpSource.LogStreamTypeOptions),
-	})
-
-	// Try a different approach to handle LogStreamTypeOptions
-	var logStreamTypeOptions resource_httpsource.LogStreamTypeOptionsValue
-
-	if httpSource.LogStreamTypeOptions != nil {
-		// Build from the object value method using context
+	if httpSource.LogStreamTypeOptions != nil && httpSource.LogStreamTypeOptions.JsonArrayEnvelopeField != "" {
 		attributeTypes := map[string]attr.Type{
 			"json_array_envelope_field": types.StringType,
 		}
-
 		attributeValues := map[string]attr.Value{
 			"json_array_envelope_field": types.StringValue(httpSource.LogStreamTypeOptions.JsonArrayEnvelopeField),
 		}
-
-		// Use NewLogStreamTypeOptionsValue to create the object
-		logStreamTypeOptionsObj, diags := resource_httpsource.NewLogStreamTypeOptionsValue(attributeTypes, attributeValues)
+		logStreamTypeOptionsValue, diags := resource_httpsource.NewLogStreamTypeOptionsValue(attributeTypes, attributeValues)
 		if diags.HasError() {
 			resp.Diagnostics.Append(diags...)
 		} else {
-			logStreamTypeOptions = logStreamTypeOptionsObj
+			data.LogStreamTypeOptions = logStreamTypeOptionsValue
 		}
-	} else {
-		// Explicitly use the null constructor
-		logStreamTypeOptions = resource_httpsource.NewLogStreamTypeOptionsValueNull()
 	}
-
-	// After setting the field
-	tflog.Warn(ctx, "LogStreamTypeOptions after setting", map[string]interface{}{
-		"VALUE":      fmt.Sprintf("%+v", data.LogStreamTypeOptions),
-		"IS_NULL":    data.LogStreamTypeOptions.IsNull(),
-		"IS_UNKNOWN": data.LogStreamTypeOptions.IsUnknown(),
-	})
-
-	// Assign the properly constructed object
-	data.LogStreamTypeOptions = logStreamTypeOptions
-
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -274,21 +215,12 @@ func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	// Create LogStreamTypeOptions if it's provided
-	var logStreamTypeOptions *client.LogStreamTypeOptions
-	if !data.LogStreamTypeOptions.IsNull() && !data.LogStreamTypeOptions.IsUnknown() {
-		logStreamTypeOptions = &client.LogStreamTypeOptions{
-			JsonArrayEnvelopeField: data.LogStreamTypeOptions.JsonArrayEnvelopeField.ValueString(),
-		}
-	}
-
-	_, err := r.client.UpdateHttpSource(ctx, client.UpdateHttpSourceInput{
+	input := client.UpdateHttpSourceInput{
 		IntegrationId: data.Id.ValueString(),
 		HttpSourceModifiableAttributes: client.HttpSourceModifiableAttributes{
 			IntegrationLabel:     data.IntegrationLabel.ValueString(),
 			LogStreamType:        data.LogStreamType.ValueString(),
 			LogTypes:             convertLogTypes(ctx, data.LogTypes),
-			LogStreamTypeOptions: logStreamTypeOptions,
 			AuthHmacAlg:          data.AuthHmacAlg.ValueString(),
 			AuthHeaderKey:        data.AuthHeaderKey.ValueString(),
 			AuthPassword:         data.AuthPassword.ValueString(),
@@ -297,7 +229,15 @@ func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequ
 			AuthUsername:         data.AuthUsername.ValueString(),
 			AuthBearerToken:      data.AuthBearerToken.ValueString(),
 		},
-	})
+	}
+
+	if !data.LogStreamTypeOptions.IsNull() && !data.LogStreamTypeOptions.IsUnknown() {
+		input.HttpSourceModifiableAttributes.LogStreamTypeOptions = &client.LogStreamTypeOptions{
+			JsonArrayEnvelopeField: data.LogStreamTypeOptions.JsonArrayEnvelopeField.ValueString(),
+		}
+	}
+
+	_, err := r.client.UpdateHttpSource(ctx, input)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating HTTP Source",
