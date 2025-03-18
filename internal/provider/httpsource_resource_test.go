@@ -19,8 +19,6 @@ package provider
 import (
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"net/http"
 	"os"
 	"regexp"
@@ -28,6 +26,9 @@ import (
 	"terraform-provider-panther/internal/client/panther"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
@@ -71,6 +72,7 @@ func TestHttpSourceResource(t *testing.T) {
 					resource.TestCheckResourceAttr("panther_httpsource.test", "auth_method", "Basic"),
 					resource.TestCheckResourceAttr("panther_httpsource.test", "auth_username", "foo"),
 					resource.TestCheckResourceAttr("panther_httpsource.test", "auth_password", "bar"),
+					resource.TestCheckResourceAttr("panther_httpsource.test", "log_stream_type_options.json_array_envelope_field", "records"),
 				),
 			},
 			// Provide an unchanged configuration and manually delete the resource
@@ -91,9 +93,9 @@ resource "panther_httpsource" "test" {
   integration_label     = "%v"
   log_stream_type       = "Auto"
   log_types             = ["AWS.CloudFrontAccess"]
-  auth_method         = "SharedSecret"
-  auth_header_key   = "x-api-key"
-  auth_secret_value = "test-secret-value"
+  auth_method           = "SharedSecret"
+  auth_header_key       = "x-api-key"
+  auth_secret_value     = "test-secret-value"
 }
 `, name)
 }
@@ -107,6 +109,9 @@ resource "panther_httpsource" "test" {
   auth_method         = "Basic"
   auth_username   	= "foo"
   auth_password 	= "bar"
+  log_stream_type_options {
+    json_array_envelope_field = "records" 
+  }
 }
 `, name)
 }

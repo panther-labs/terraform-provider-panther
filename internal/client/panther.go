@@ -129,18 +129,24 @@ type HttpSource struct {
 	HttpSourceModifiableAttributes
 }
 
+// LogStreamTypeOptions contains options specific to the log stream type
+type LogStreamTypeOptions struct {
+	JsonArrayEnvelopeField string `json:"jsonArrayEnvelopeField,omitempty"`
+}
+
 // HttpSourceModifiableAttributes attributes that can be modified on an http log source
 type HttpSourceModifiableAttributes struct {
-	IntegrationLabel string
-	LogStreamType    string
-	LogTypes         []string
-	AuthHmacAlg      string
-	AuthHeaderKey    string
-	AuthPassword     string
-	AuthSecretValue  string
-	AuthMethod       string
-	AuthUsername     string
-	AuthBearerToken  string
+	IntegrationLabel     string
+	LogStreamType        string
+	LogTypes             []string
+	LogStreamTypeOptions *LogStreamTypeOptions `json:"logStreamTypeOptions,omitempty"`
+	AuthHmacAlg          string
+	AuthHeaderKey        string
+	AuthPassword         string
+	AuthSecretValue      string
+	AuthMethod           string
+	AuthUsername         string
+	AuthBearerToken      string
 }
 
 // CreateHttpSourceInput Input for creating an http log source
