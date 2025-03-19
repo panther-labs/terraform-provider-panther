@@ -60,7 +60,7 @@ func TestHttpSourceResource(t *testing.T) {
 				ResourceName:            "panther_httpsource.test",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"auth_secret_value", "auth_password"},
+				ImportStateVerifyIgnore: []string{"auth_secret_value", "auth_password", "auth_bearer_token"},
 			},
 			// Update and Read testing
 			{
@@ -109,7 +109,7 @@ resource "panther_httpsource" "test" {
   auth_method         = "Basic"
   auth_username   	= "foo"
   auth_password 	= "bar"
-  log_stream_type_options {
+  log_stream_type_options = {
     json_array_envelope_field = "records" 
   }
 }
