@@ -77,7 +77,7 @@ func TestHttpSourceResource(t *testing.T) {
 			},
 			// Provide an unchanged configuration and manually delete the resource
 			{
-				Config:      providerConfig + testHttpSourceResourceConfig(integrationUpdatedLabel),
+				Config:      providerConfig + testUpdatedHttpSourceResourceConfig(integrationUpdatedLabel),
 				Check:       manuallyDeleteSource,
 				ExpectError: regexp.MustCompile("Error running post-apply refresh plan"),
 			},
@@ -143,6 +143,5 @@ func manuallyDeleteSource(s *terraform.State) error {
 		time.Sleep(5 * time.Second)
 		retry++
 	}
-
 	return fmt.Errorf("could not delete http source after %d retries", retry)
 }

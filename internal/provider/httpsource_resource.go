@@ -32,6 +32,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var (
@@ -151,7 +152,9 @@ func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequ
 		)
 		return
 	}
-
+	tflog.Debug(ctx, "Created HTTP Source", map[string]any{
+		"id": httpSource.IntegrationId,
+	})
 	data.Id = types.StringValue(httpSource.IntegrationId)
 
 	// Save data into Terraform state
@@ -172,10 +175,13 @@ func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest,
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading HTTP Source",
-			"Could not read HTTP Source, unexpected error: "+err.Error(),
+			fmt.Sprintf("Could not read HTTP Source with id %s, unexpected error: %s", data.Id.ValueString(), err.Error()),
 		)
 		return
 	}
+	tflog.Debug(ctx, "Got HTTP Source", map[string]any{
+		"id": httpSource.IntegrationId,
+	})
 	// We need to set all the values from the API response into the data model, except for the sensitive values
 	// which are returned always as empty strings
 	data.Id = types.StringValue(httpSource.IntegrationId)
@@ -241,10 +247,13 @@ func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequ
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating HTTP Source",
-			"Could not update HTTP Source, unexpected error: "+err.Error(),
+			fmt.Sprintf("Could not update HTTP Source with id %s, unexpected error: %s", data.Id.ValueString(), err.Error()),
 		)
 		return
 	}
+	tflog.Debug(ctx, "Updated HTTP Source", map[string]any{
+		"id": data.Id.ValueString(),
+	})
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -264,11 +273,13 @@ func (r *httpsourceResource) Delete(ctx context.Context, req resource.DeleteRequ
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error deleting HTTP Source",
-			"Could not delete HTTP Source, unexpected error: "+err.Error(),
+			fmt.Sprintf("Could not delete HTTP Source with id %s, unexpected error: %s", data.Id.ValueString(), err.Error()),
 		)
 		return
 	}
-
+	tflog.Debug(ctx, "Deleted HTTP Source", map[string]any{
+		"id": data.Id.ValueString(),
+	})
 }
 
 func (r *httpsourceResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
