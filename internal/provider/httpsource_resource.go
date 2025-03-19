@@ -137,7 +137,7 @@ func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequ
 		},
 	}
 
-	if !data.LogStreamTypeOptions.IsNull() && !data.LogStreamTypeOptions.IsUnknown(){
+	if !data.LogStreamTypeOptions.IsNull() {
 		input.HttpSourceModifiableAttributes.LogStreamTypeOptions = &client.LogStreamTypeOptions{
 			JsonArrayEnvelopeField: data.LogStreamTypeOptions.JsonArrayEnvelopeField.ValueString(),
 		}
@@ -218,20 +218,20 @@ func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequ
 	input := client.UpdateHttpSourceInput{
 		IntegrationId: data.Id.ValueString(),
 		HttpSourceModifiableAttributes: client.HttpSourceModifiableAttributes{
-			IntegrationLabel:     data.IntegrationLabel.ValueString(),
-			LogStreamType:        data.LogStreamType.ValueString(),
-			LogTypes:             convertLogTypes(ctx, data.LogTypes),
-			AuthHmacAlg:          data.AuthHmacAlg.ValueString(),
-			AuthHeaderKey:        data.AuthHeaderKey.ValueString(),
-			AuthPassword:         data.AuthPassword.ValueString(),
-			AuthSecretValue:      data.AuthSecretValue.ValueString(),
-			AuthMethod:           data.AuthMethod.ValueString(),
-			AuthUsername:         data.AuthUsername.ValueString(),
-			AuthBearerToken:      data.AuthBearerToken.ValueString(),
+			IntegrationLabel: data.IntegrationLabel.ValueString(),
+			LogStreamType:    data.LogStreamType.ValueString(),
+			LogTypes:         convertLogTypes(ctx, data.LogTypes),
+			AuthHmacAlg:      data.AuthHmacAlg.ValueString(),
+			AuthHeaderKey:    data.AuthHeaderKey.ValueString(),
+			AuthPassword:     data.AuthPassword.ValueString(),
+			AuthSecretValue:  data.AuthSecretValue.ValueString(),
+			AuthMethod:       data.AuthMethod.ValueString(),
+			AuthUsername:     data.AuthUsername.ValueString(),
+			AuthBearerToken:  data.AuthBearerToken.ValueString(),
 		},
 	}
 
-	if !data.LogStreamTypeOptions.IsNull() && !data.LogStreamTypeOptions.IsUnknown() {
+	if !data.LogStreamTypeOptions.IsNull() {
 		input.HttpSourceModifiableAttributes.LogStreamTypeOptions = &client.LogStreamTypeOptions{
 			JsonArrayEnvelopeField: data.LogStreamTypeOptions.JsonArrayEnvelopeField.ValueString(),
 		}
