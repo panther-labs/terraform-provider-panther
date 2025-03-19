@@ -193,7 +193,7 @@ func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest,
 	data.AuthHeaderKey = types.StringValue(httpSource.AuthHeaderKey)
 	data.AuthUsername = types.StringValue(httpSource.AuthUsername)
 
-	if httpSource.LogStreamTypeOptions != nil && httpSource.LogStreamTypeOptions.JsonArrayEnvelopeField != "" {
+	if httpSource.LogStreamTypeOptions != nil {
 		attributeTypes := map[string]attr.Type{
 			"json_array_envelope_field": types.StringType,
 		}
