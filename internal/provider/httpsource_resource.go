@@ -19,17 +19,20 @@ package provider
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/path"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"terraform-provider-panther/internal/client"
 	"terraform-provider-panther/internal/client/panther"
 	"terraform-provider-panther/internal/provider/resource_httpsource"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var (
@@ -82,6 +85,14 @@ func (r *httpsourceResource) Schema(ctx context.Context, req resource.SchemaRequ
 	bearerToken := resp.Schema.Attributes["auth_bearer_token"].(schema.StringAttribute)
 	bearerToken.Default = stringdefault.StaticString("")
 	resp.Schema.Attributes["auth_bearer_token"] = bearerToken
+
+	logStreamTypeOptions := resp.Schema.Attributes["log_stream_type_options"].(schema.SingleNestedAttribute)
+	logStreamTypeOptions.Default = objectdefault.StaticValue(types.ObjectNull(
+		map[string]attr.Type{
+			"json_array_envelope_field": types.StringType,
+		},
+	))
+	resp.Schema.Attributes["log_stream_type_options"] = logStreamTypeOptions
 }
 
 func (r *httpsourceResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -112,7 +123,7 @@ func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	httpSource, err := r.client.CreateHttpSource(ctx, client.CreateHttpSourceInput{
+	input := client.CreateHttpSourceInput{
 		HttpSourceModifiableAttributes: client.HttpSourceModifiableAttributes{
 			IntegrationLabel: data.IntegrationLabel.ValueString(),
 			LogStreamType:    data.LogStreamType.ValueString(),
@@ -125,7 +136,15 @@ func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequ
 			AuthUsername:     data.AuthUsername.ValueString(),
 			AuthBearerToken:  data.AuthBearerToken.ValueString(),
 		},
-	})
+	}
+
+	if !data.LogStreamTypeOptions.IsNull() {
+		input.HttpSourceModifiableAttributes.LogStreamTypeOptions = &client.LogStreamTypeOptions{
+			JsonArrayEnvelopeField: data.LogStreamTypeOptions.JsonArrayEnvelopeField.ValueString(),
+		}
+	}
+
+	httpSource, err := r.client.CreateHttpSource(ctx, input)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error creating HTTP Source",
@@ -133,6 +152,9 @@ func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequ
 		)
 		return
 	}
+	tflog.Debug(ctx, "Created HTTP Source", map[string]any{
+		"id": httpSource.IntegrationId,
+	})
 	data.Id = types.StringValue(httpSource.IntegrationId)
 
 	// Save data into Terraform state
@@ -153,10 +175,13 @@ func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest,
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading HTTP Source",
-			"Could not read HTTP Source, unexpected error: "+err.Error(),
+			fmt.Sprintf("Could not read HTTP Source with id %s, unexpected error: %s", data.Id.ValueString(), err.Error()),
 		)
 		return
 	}
+	tflog.Debug(ctx, "Got HTTP Source", map[string]any{
+		"id": httpSource.IntegrationId,
+	})
 	// We need to set all the values from the API response into the data model, except for the sensitive values
 	// which are returned always as empty strings
 	data.Id = types.StringValue(httpSource.IntegrationId)
@@ -168,6 +193,20 @@ func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest,
 	data.AuthHeaderKey = types.StringValue(httpSource.AuthHeaderKey)
 	data.AuthUsername = types.StringValue(httpSource.AuthUsername)
 
+	if httpSource.LogStreamTypeOptions != nil {
+		attributeTypes := map[string]attr.Type{
+			"json_array_envelope_field": types.StringType,
+		}
+		attributeValues := map[string]attr.Value{
+			"json_array_envelope_field": types.StringValue(httpSource.LogStreamTypeOptions.JsonArrayEnvelopeField),
+		}
+		logStreamTypeOptionsValue, diags := resource_httpsource.NewLogStreamTypeOptionsValue(attributeTypes, attributeValues)
+		if diags.HasError() {
+			resp.Diagnostics.Append(diags...)
+		} else {
+			data.LogStreamTypeOptions = logStreamTypeOptionsValue
+		}
+	}
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -182,7 +221,7 @@ func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	_, err := r.client.UpdateHttpSource(ctx, client.UpdateHttpSourceInput{
+	input := client.UpdateHttpSourceInput{
 		IntegrationId: data.Id.ValueString(),
 		HttpSourceModifiableAttributes: client.HttpSourceModifiableAttributes{
 			IntegrationLabel: data.IntegrationLabel.ValueString(),
@@ -196,14 +235,25 @@ func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequ
 			AuthUsername:     data.AuthUsername.ValueString(),
 			AuthBearerToken:  data.AuthBearerToken.ValueString(),
 		},
-	})
+	}
+
+	if !data.LogStreamTypeOptions.IsNull() {
+		input.HttpSourceModifiableAttributes.LogStreamTypeOptions = &client.LogStreamTypeOptions{
+			JsonArrayEnvelopeField: data.LogStreamTypeOptions.JsonArrayEnvelopeField.ValueString(),
+		}
+	}
+
+	_, err := r.client.UpdateHttpSource(ctx, input)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating HTTP Source",
-			"Could not update HTTP Source, unexpected error: "+err.Error(),
+			fmt.Sprintf("Could not update HTTP Source with id %s, unexpected error: %s", data.Id.ValueString(), err.Error()),
 		)
 		return
 	}
+	tflog.Debug(ctx, "Updated HTTP Source", map[string]any{
+		"id": data.Id.ValueString(),
+	})
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -223,11 +273,13 @@ func (r *httpsourceResource) Delete(ctx context.Context, req resource.DeleteRequ
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error deleting HTTP Source",
-			"Could not delete HTTP Source, unexpected error: "+err.Error(),
+			fmt.Sprintf("Could not delete HTTP Source with id %s, unexpected error: %s", data.Id.ValueString(), err.Error()),
 		)
 		return
 	}
-
+	tflog.Debug(ctx, "Deleted HTTP Source", map[string]any{
+		"id": data.Id.ValueString(),
+	})
 }
 
 func (r *httpsourceResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

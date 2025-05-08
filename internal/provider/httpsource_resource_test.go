@@ -19,8 +19,6 @@ package provider
 import (
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"net/http"
 	"os"
 	"regexp"
@@ -28,6 +26,9 @@ import (
 	"terraform-provider-panther/internal/client/panther"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
@@ -59,7 +60,7 @@ func TestHttpSourceResource(t *testing.T) {
 				ResourceName:            "panther_httpsource.test",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"auth_secret_value", "auth_password"},
+				ImportStateVerifyIgnore: []string{"auth_secret_value", "auth_password", "auth_bearer_token"},
 			},
 			// Update and Read testing
 			{
@@ -71,11 +72,12 @@ func TestHttpSourceResource(t *testing.T) {
 					resource.TestCheckResourceAttr("panther_httpsource.test", "auth_method", "Basic"),
 					resource.TestCheckResourceAttr("panther_httpsource.test", "auth_username", "foo"),
 					resource.TestCheckResourceAttr("panther_httpsource.test", "auth_password", "bar"),
+					resource.TestCheckResourceAttr("panther_httpsource.test", "log_stream_type_options.json_array_envelope_field", "records"),
 				),
 			},
 			// Provide an unchanged configuration and manually delete the resource
 			{
-				Config:      providerConfig + testHttpSourceResourceConfig(integrationUpdatedLabel),
+				Config:      providerConfig + testUpdatedHttpSourceResourceConfig(integrationUpdatedLabel),
 				Check:       manuallyDeleteSource,
 				ExpectError: regexp.MustCompile("Error running post-apply refresh plan"),
 			},
@@ -91,9 +93,9 @@ resource "panther_httpsource" "test" {
   integration_label     = "%v"
   log_stream_type       = "Auto"
   log_types             = ["AWS.CloudFrontAccess"]
-  auth_method         = "SharedSecret"
-  auth_header_key   = "x-api-key"
-  auth_secret_value = "test-secret-value"
+  auth_method           = "SharedSecret"
+  auth_header_key       = "x-api-key"
+  auth_secret_value     = "test-secret-value"
 }
 `, name)
 }
@@ -107,6 +109,9 @@ resource "panther_httpsource" "test" {
   auth_method         = "Basic"
   auth_username   	= "foo"
   auth_password 	= "bar"
+  log_stream_type_options = {
+    json_array_envelope_field = "records" 
+  }
 }
 `, name)
 }
@@ -138,6 +143,5 @@ func manuallyDeleteSource(s *terraform.State) error {
 		time.Sleep(5 * time.Second)
 		retry++
 	}
-
 	return fmt.Errorf("could not delete http source after %d retries", retry)
 }

@@ -38,3 +38,8 @@ variable "auth_secret_value" {
   type        = string
   sensitive   = true
 }
+
+variable "json_array_envelope_field" {
+  description = "Envelope field for json array stream"
+  type        = string
+}

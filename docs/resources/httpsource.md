@@ -47,3 +47,11 @@ resource "panther_httpsource" "example_http_source" {
 - `auth_secret_value` (String) The authentication header secret value of the http source. Used for HMAC and SharedSecret auth methods
 - `auth_username` (String) The authentication header username of the http source. Used for Basic auth method
 - `id` (String) ID of the http source to fetch
+- `log_stream_type_options` (Attributes) (see [below for nested schema](#nestedatt--log_stream_type_options))
+
+<a id="nestedatt--log_stream_type_options"></a>
+### Nested Schema for `log_stream_type_options`
+
+Optional:
+
+- `json_array_envelope_field` (String) Path to the array value to extract elements from, only applicable if logStreamType is JsonArray. Leave empty if the input JSON is an array itself
