@@ -95,6 +95,21 @@
 						}
 					},
 					{
+						"name": "log_stream_type_options",
+						"single_nested": {
+							"computed_optional_required": "computed_optional",
+							"attributes": [
+								{
+									"name": "json_array_envelope_field",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "Path to the array value to extract elements from, only applicable if logStreamType is JsonArray. Leave empty if the input JSON is an array itself"
+									}
+								}
+							]
+						}
+					},
+					{
 						"name": "log_types",
 						"list": {
 							"computed_optional_required": "required",
