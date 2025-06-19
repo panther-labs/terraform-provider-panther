@@ -107,7 +107,7 @@ func (r *S3SourceResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Required:    true,
 			},
 			"log_stream_type": schema.StringAttribute{
-				Description: "The format of the log files being ingested.",
+				Description: "The format of the log files being ingested. Supported log stream types: Auto, JSON, JsonArray, Lines, CloudWatchLogs",
 				Required:    true,
 				Validators: []validator.String{
 					stringvalidator.OneOf("Auto", "Lines", "JSON", "JsonArray", "CloudWatchLogs"),
