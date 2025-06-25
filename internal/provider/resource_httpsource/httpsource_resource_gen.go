@@ -83,15 +83,15 @@ func HttpsourceResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"log_stream_type": schema.StringAttribute{
 				Required:            true,
-				Description:         "The log stream type",
-				MarkdownDescription: "The log stream type",
+				Description:         "The log stream type. Supported log stream types: Auto, JSON, JsonArray, Lines, CloudWatchLogs",
+				MarkdownDescription: "The log stream type. Supported log stream types: Auto, JSON, JsonArray, Lines, CloudWatchLogs",
 				Validators: []validator.String{
 					stringvalidator.OneOf(
 						"Auto",
-						"CloudWatchLogs",
 						"JSON",
 						"JsonArray",
 						"Lines",
+						"CloudWatchLogs",
 					),
 				},
 			},

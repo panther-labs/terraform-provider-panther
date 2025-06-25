@@ -35,7 +35,7 @@ resource "panther_httpsource" "example_http_source" {
 
 - `auth_method` (String) The authentication method of the http source
 - `integration_label` (String) The integration label (name)
-- `log_stream_type` (String) The log stream type
+- `log_stream_type` (String) The log stream type. Supported log stream types: Auto, JSON, JsonArray, Lines, CloudWatchLogs
 - `log_types` (List of String) The log types of the integration
 
 ### Optional
