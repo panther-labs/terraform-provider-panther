@@ -79,7 +79,7 @@
 						"name": "log_stream_type",
 						"string": {
 							"computed_optional_required": "required",
-							"description": "The log stream type. Supported log stream types: Auto, JSON, JsonArray, Lines, CloudWatchLogs",
+							"description": "The log stream type. Supported log stream types: Auto, JSON, JsonArray, Lines, CloudWatchLogs, XML",
 							"validators": [
 								{
 									"custom": {
@@ -88,7 +88,7 @@
 												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 											}
 										],
-										"schema_definition": "stringvalidator.OneOf(\n\"Auto\",\n\"JSON\",\n\"JsonArray\",\n\"Lines\",\n\"CloudWatchLogs\",\n)"
+										"schema_definition": "stringvalidator.OneOf(\n\"Auto\",\n\"JSON\",\n\"JsonArray\",\n\"Lines\",\n\"CloudWatchLogs\",\n\"XML\",\n)"
 									}
 								}
 							]
