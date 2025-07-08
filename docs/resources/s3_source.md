@@ -38,7 +38,7 @@ resource "panther_s3_source" "test_source" {
 - `aws_account_id` (String) The ID of the AWS Account where the S3 Bucket is located.
 - `bucket_name` (String) The name of the S3 Bucket where logs will be ingested from.
 - `log_processing_role_arn` (String) The AWS Role used to access the S3 Bucket.
-- `log_stream_type` (String) The format of the log files being ingested. Supported log stream types: Auto, JSON, JsonArray, Lines, CloudWatchLogs
+- `log_stream_type` (String) The format of the log files being ingested. Supported log stream types: Auto, JSON, JsonArray, Lines, CloudWatchLogs, XML
 - `name` (String) The display name of the S3 Log Source integration.
 - `prefix_log_types` (Attributes List) The configured mapping of prefixes to log types. (see [below for nested schema](#nestedatt--prefix_log_types))
 
