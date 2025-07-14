@@ -107,10 +107,10 @@ func (r *S3SourceResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Required:    true,
 			},
 			"log_stream_type": schema.StringAttribute{
-				Description: "The format of the log files being ingested. Supported log stream types: Auto, JSON, JsonArray, Lines, CloudWatchLogs",
+				Description: "The format of the log files being ingested. Supported log stream types: Auto, JSON, JsonArray, Lines, CloudWatchLogs, XML",
 				Required:    true,
 				Validators: []validator.String{
-					stringvalidator.OneOf("Auto", "Lines", "JSON", "JsonArray", "CloudWatchLogs"),
+					stringvalidator.OneOf("Auto", "Lines", "JSON", "JsonArray", "CloudWatchLogs", "XML"),
 				},
 			},
 			"panther_managed_bucket_notifications_enabled": schema.BoolAttribute{
