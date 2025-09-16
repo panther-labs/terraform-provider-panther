@@ -62,6 +62,8 @@ func (r *httpsourceResource) Schema(ctx context.Context, req resource.SchemaRequ
 	resp.Schema.Attributes["id"] = idAttr
 
 	// override default value for optional values
+	// this is necessary because the code generator creates these fields as optional and computed, which means that if they are not provided
+	// by the user they will be unknown values.
 	hmacAlg := resp.Schema.Attributes["auth_hmac_alg"].(schema.StringAttribute)
 	hmacAlg.Default = stringdefault.StaticString("")
 	resp.Schema.Attributes["auth_hmac_alg"] = hmacAlg
@@ -87,12 +89,22 @@ func (r *httpsourceResource) Schema(ctx context.Context, req resource.SchemaRequ
 	resp.Schema.Attributes["auth_bearer_token"] = bearerToken
 
 	logStreamTypeOptions := resp.Schema.Attributes["log_stream_type_options"].(schema.SingleNestedAttribute)
+
+	jsonArrayEnvelopeField := logStreamTypeOptions.Attributes["json_array_envelope_field"].(schema.StringAttribute)
+	jsonArrayEnvelopeField.Default = stringdefault.StaticString("")
+	logStreamTypeOptions.Attributes["json_array_envelope_field"] = jsonArrayEnvelopeField
+
+	xmlRootElement := logStreamTypeOptions.Attributes["xml_root_element"].(schema.StringAttribute)
+	xmlRootElement.Default = stringdefault.StaticString("")
+	logStreamTypeOptions.Attributes["xml_root_element"] = xmlRootElement
+
 	logStreamTypeOptions.Default = objectdefault.StaticValue(types.ObjectNull(
 		map[string]attr.Type{
 			"json_array_envelope_field": types.StringType,
 			"xml_root_element":          types.StringType,
 		},
 	))
+
 	resp.Schema.Attributes["log_stream_type_options"] = logStreamTypeOptions
 }
 
@@ -196,17 +208,14 @@ func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest,
 	data.AuthUsername = types.StringValue(httpSource.AuthUsername)
 
 	if httpSource.LogStreamTypeOptions != nil {
-		attributeTypes := make(map[string]attr.Type)
-		attributeValues := make(map[string]attr.Value)
-
-		if httpSource.LogStreamTypeOptions.JsonArrayEnvelopeField != "" {
-			attributeTypes["json_array_envelope_field"] = types.StringType
-			attributeValues["json_array_envelope_field"] = types.StringValue(httpSource.LogStreamTypeOptions.JsonArrayEnvelopeField)
+		attributeTypes := map[string]attr.Type{
+			"json_array_envelope_field": types.StringType,
+			"xml_root_element":          types.StringType,
 		}
 
-		if httpSource.LogStreamTypeOptions.XmlRootElement != "" {
-			attributeTypes["xml_root_element"] = types.StringType
-			attributeValues["xml_root_element"] = types.StringValue(httpSource.LogStreamTypeOptions.XmlRootElement)
+		attributeValues := map[string]attr.Value{
+			"json_array_envelope_field": types.StringValue(httpSource.LogStreamTypeOptions.JsonArrayEnvelopeField),
+			"xml_root_element":          types.StringValue(httpSource.LogStreamTypeOptions.XmlRootElement),
 		}
 
 		logStreamTypeOptionsValue, diags := resource_httpsource.NewLogStreamTypeOptionsValue(attributeTypes, attributeValues)

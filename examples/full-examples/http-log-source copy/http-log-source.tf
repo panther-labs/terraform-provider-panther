@@ -7,6 +7,6 @@ resource "panther_httpsource" "example_http_source" {
   auth_secret_value = var.auth_secret_value
   log_stream_type_options = {
     json_array_envelope_field = var.json_array_envelope_field
-    xml_root_element = var.xml_root_element
+    xml_root_element          = var.xml_root_element
   }
 }
