@@ -128,7 +128,6 @@ func manuallyDeleteSource(t *testing.T) resource.TestCheckFunc {
 			return errors.New("http source ID is not set")
 		}
 		url := os.Getenv("PANTHER_API_URL") + panther.RestHttpSourcePath + "/" + httpSource.Primary.ID
-		t.Logf("Url: %s\n", url)
 		client := http.DefaultClient
 		req, err := http.NewRequest(http.MethodDelete, url, nil)
 		if err != nil {
