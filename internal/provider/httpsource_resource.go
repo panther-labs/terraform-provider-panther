@@ -90,6 +90,7 @@ func (r *httpsourceResource) Schema(ctx context.Context, req resource.SchemaRequ
 	logStreamTypeOptions.Default = objectdefault.StaticValue(types.ObjectNull(
 		map[string]attr.Type{
 			"json_array_envelope_field": types.StringType,
+			"xml_root_element":          types.StringType,
 		},
 	))
 	resp.Schema.Attributes["log_stream_type_options"] = logStreamTypeOptions
@@ -141,6 +142,7 @@ func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequ
 	if !data.LogStreamTypeOptions.IsNull() {
 		input.HttpSourceModifiableAttributes.LogStreamTypeOptions = &client.LogStreamTypeOptions{
 			JsonArrayEnvelopeField: data.LogStreamTypeOptions.JsonArrayEnvelopeField.ValueString(),
+			XmlRootElement:         data.LogStreamTypeOptions.XmlRootElement.ValueString(),
 		}
 	}
 
@@ -194,12 +196,19 @@ func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest,
 	data.AuthUsername = types.StringValue(httpSource.AuthUsername)
 
 	if httpSource.LogStreamTypeOptions != nil {
-		attributeTypes := map[string]attr.Type{
-			"json_array_envelope_field": types.StringType,
+		attributeTypes := make(map[string]attr.Type)
+		attributeValues := make(map[string]attr.Value)
+
+		if httpSource.LogStreamTypeOptions.JsonArrayEnvelopeField != "" {
+			attributeTypes["json_array_envelope_field"] = types.StringType
+			attributeValues["json_array_envelope_field"] = types.StringValue(httpSource.LogStreamTypeOptions.JsonArrayEnvelopeField)
 		}
-		attributeValues := map[string]attr.Value{
-			"json_array_envelope_field": types.StringValue(httpSource.LogStreamTypeOptions.JsonArrayEnvelopeField),
+
+		if httpSource.LogStreamTypeOptions.XmlRootElement != "" {
+			attributeTypes["xml_root_element"] = types.StringType
+			attributeValues["xml_root_element"] = types.StringValue(httpSource.LogStreamTypeOptions.XmlRootElement)
 		}
+
 		logStreamTypeOptionsValue, diags := resource_httpsource.NewLogStreamTypeOptionsValue(attributeTypes, attributeValues)
 		if diags.HasError() {
 			resp.Diagnostics.Append(diags...)
@@ -240,6 +249,7 @@ func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequ
 	if !data.LogStreamTypeOptions.IsNull() {
 		input.HttpSourceModifiableAttributes.LogStreamTypeOptions = &client.LogStreamTypeOptions{
 			JsonArrayEnvelopeField: data.LogStreamTypeOptions.JsonArrayEnvelopeField.ValueString(),
+			XmlRootElement:         data.LogStreamTypeOptions.XmlRootElement.ValueString(),
 		}
 	}
 
