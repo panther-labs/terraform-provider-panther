@@ -286,8 +286,8 @@ func (r *S3SourceResource) Read(ctx context.Context, req resource.ReadRequest, r
 	data.BucketName = types.StringValue(source.S3Bucket)
 	data.PrefixLogTypes = prefixLogTypesToModel(source.S3PrefixLogTypes)
 
-	// the grapqhl response always returns a non-nil object for logStreamTypeOptions, so we need to check if the fields are empty
-	// and set the whole field to null in our state
+	// the grapqhl response always returns a non-nil object for logStreamTypeOptions, so we need to check if the fields are not empty
+	// and only then set the field in our state
 	if source.LogStreamTypeOptions != nil && source.LogStreamTypeOptions.JsonArrayEnvelopeField != "" && source.LogStreamTypeOptions.XmlRootElement != "" {
 		attributeTypes := map[string]attr.Type{
 			"json_array_envelope_field": types.StringType,
@@ -306,6 +306,7 @@ func (r *S3SourceResource) Read(ctx context.Context, req resource.ReadRequest, r
 		}
 		data.LogStreamTypeOptions = objectValue
 	}
+	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 

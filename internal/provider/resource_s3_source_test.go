@@ -52,7 +52,7 @@ func TestS3SourceResource(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
-			// Update and Read testing with LogStreamTypeOptions
+			// Update and Read testing
 			{
 				Config: providerConfig + testUpdatedS3SourceResourceConfig("test-source-updated"),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -132,10 +132,6 @@ resource "panther_s3_source" "test" {
   name = "%v"
   log_processing_role_arn = "arn:aws:iam::111122223333:role/TestRole"
   log_stream_type = "Lines"
-  log_stream_type_options = {
-    json_array_envelope_field = ""
-    xml_root_element = ""
-  }
   panther_managed_bucket_notifications_enabled = true
   bucket_name = "test_bucket"
   kms_key_arn = "arn:aws:kms:us-east-1:111122223333:key/testing"
