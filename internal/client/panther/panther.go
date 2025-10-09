@@ -272,3 +272,96 @@ func getErrorResponseMsg(resp *http.Response) string {
 
 	return errResponse.Message
 }
+
+// Generic REST helper for Rule endpoints
+func (c *RestClient) doRuleRequest(ctx context.Context, method, path string, input interface{}, expectedStatus int) ([]byte, error) {
+	// Extract base URL without the /log-sources/http suffix
+	baseURL := strings.TrimSuffix(c.url, RestHttpSourcePath)
+	fullURL := fmt.Sprintf("%s%s", baseURL, path)
+
+	var body io.Reader
+	if input != nil {
+		jsonData, err := json.Marshal(input)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling data: %w", err)
+		}
+		body = bytes.NewReader(jsonData)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, method, fullURL, body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create http request: %w", err)
+	}
+
+	if input != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	resp, err := c.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != expectedStatus {
+		return nil, fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, getErrorResponseMsg(resp))
+	}
+
+	responseBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	return responseBody, nil
+}
+
+// Rule methods
+func (c *RestClient) CreateRule(ctx context.Context, input client.CreateRuleInput) (client.Rule, error) {
+	body, err := c.doRuleRequest(ctx, http.MethodPost, "/rules", input, http.StatusOK)
+	if err != nil {
+		return client.Rule{}, err
+	}
+
+	var response client.Rule
+	if err = json.Unmarshal(body, &response); err != nil {
+		return client.Rule{}, fmt.Errorf("failed to unmarshal response body: %w", err)
+	}
+
+	return response, nil
+}
+
+func (c *RestClient) UpdateRule(ctx context.Context, input client.UpdateRuleInput) (client.Rule, error) {
+	path := fmt.Sprintf("/rules/%s", input.ID)
+	body, err := c.doRuleRequest(ctx, http.MethodPut, path, input, http.StatusOK)
+	if err != nil {
+		return client.Rule{}, err
+	}
+
+	var response client.Rule
+	if err = json.Unmarshal(body, &response); err != nil {
+		return client.Rule{}, fmt.Errorf("failed to unmarshal response body: %w", err)
+	}
+
+	return response, nil
+}
+
+func (c *RestClient) GetRule(ctx context.Context, id string) (client.Rule, error) {
+	path := fmt.Sprintf("/rules/%s", id)
+	body, err := c.doRuleRequest(ctx, http.MethodGet, path, nil, http.StatusOK)
+	if err != nil {
+		return client.Rule{}, err
+	}
+
+	var response client.Rule
+	if err = json.Unmarshal(body, &response); err != nil {
+		return client.Rule{}, fmt.Errorf("failed to unmarshal response body: %w", err)
+	}
+
+	return response, nil
+}
+
+func (c *RestClient) DeleteRule(ctx context.Context, id string) error {
+	path := fmt.Sprintf("/rules/%s", id)
+	_, err := c.doRuleRequest(ctx, http.MethodDelete, path, nil, http.StatusNoContent)
+	return err
+}

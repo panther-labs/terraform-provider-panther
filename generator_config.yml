@@ -17,3 +17,19 @@ resources:
     schema:
       ignores:
         - integrationId
+  rule:
+    create:
+      path: /rules
+      method: POST
+    read:
+      path: /rules/{id}
+      method: GET
+    update:
+      path: /rules/{id}
+      method: PUT
+    delete:
+      path: /rules/{id}
+      method: DELETE
+    schema:
+      ignores:
+        - id

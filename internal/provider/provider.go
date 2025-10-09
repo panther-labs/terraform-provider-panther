@@ -130,6 +130,7 @@ func (p *PantherProvider) Resources(ctx context.Context) []func() resource.Resou
 	return []func() resource.Resource{
 		NewS3SourceResource,
 		NewHttpsourceResource,
+		NewRuleResource,
 	}
 }
 

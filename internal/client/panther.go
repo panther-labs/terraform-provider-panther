@@ -32,6 +32,12 @@ type RestClient interface {
 	UpdateHttpSource(ctx context.Context, input UpdateHttpSourceInput) (HttpSource, error)
 	GetHttpSource(ctx context.Context, id string) (HttpSource, error)
 	DeleteHttpSource(ctx context.Context, id string) error
+
+	// Rule management
+	CreateRule(ctx context.Context, input CreateRuleInput) (Rule, error)
+	UpdateRule(ctx context.Context, input UpdateRuleInput) (Rule, error)
+	GetRule(ctx context.Context, id string) (Rule, error)
+	DeleteRule(ctx context.Context, id string) error
 }
 
 // CreateS3SourceInput Input for the createS3LogSource mutation
@@ -162,4 +168,35 @@ type UpdateHttpSourceInput struct {
 
 type HttpErrorResponse struct {
 	Message string
+}
+
+// Rule types
+type Rule struct {
+	ID        string `json:"id"`
+	CreatedAt string `json:"createdAt"`
+	UpdatedAt string `json:"updatedAt"`
+	RuleModifiableAttributes
+}
+
+type RuleModifiableAttributes struct {
+	DisplayName        string   `json:"displayName"`
+	Body               string   `json:"body"`
+	Description        string   `json:"description,omitempty"`
+	Severity           string   `json:"severity,omitempty"`
+	LogTypes           []string `json:"logTypes,omitempty"`
+	Tags               []string `json:"tags,omitempty"`
+	References         []string `json:"references,omitempty"`
+	Runbook            string   `json:"runbook,omitempty"`
+	DedupPeriodMinutes int      `json:"dedupPeriodMinutes,omitempty"`
+	Enabled            bool     `json:"enabled,omitempty"`
+}
+
+type CreateRuleInput struct {
+	ID string `json:"id"`
+	RuleModifiableAttributes
+}
+
+type UpdateRuleInput struct {
+	ID string `json:"id"`
+	RuleModifiableAttributes
 }
