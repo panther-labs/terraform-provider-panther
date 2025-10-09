@@ -132,6 +132,8 @@ func (p *PantherProvider) Resources(ctx context.Context) []func() resource.Resou
 		NewHttpsourceResource,
 		NewRuleResource,
 		NewPolicyResource,
+		NewScheduledRuleResource,
+		NewSimpleRuleResource,
 	}
 }
 
