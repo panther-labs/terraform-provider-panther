@@ -272,3 +272,144 @@ func getErrorResponseMsg(resp *http.Response) string {
 
 	return errResponse.Message
 }
+
+// Cloud Account GraphQL methods
+func (c *GraphQLClient) CreateCloudAccount(ctx context.Context, input client.CreateCloudAccountInput) (client.CreateCloudAccountOutput, error) {
+	var m struct {
+		CreateCloudAccount struct {
+			client.CreateCloudAccountOutput
+		} `graphql:"createCloudAccount(input: $input)"`
+	}
+	err := c.Mutate(ctx, &m, map[string]interface{}{
+		"input": input,
+	}, graphql.OperationName("CreateCloudAccount"))
+	if err != nil {
+		return client.CreateCloudAccountOutput{}, fmt.Errorf("GraphQL mutation failed: %w", err)
+	}
+	return m.CreateCloudAccount.CreateCloudAccountOutput, nil
+}
+
+func (c *GraphQLClient) UpdateCloudAccount(ctx context.Context, input client.UpdateCloudAccountInput) (client.UpdateCloudAccountOutput, error) {
+	var m struct {
+		UpdateCloudAccount struct {
+			client.UpdateCloudAccountOutput
+		} `graphql:"updateCloudAccount(input: $input)"`
+	}
+	err := c.Mutate(ctx, &m, map[string]interface{}{
+		"input": input,
+	}, graphql.OperationName("UpdateCloudAccount"))
+	if err != nil {
+		return client.UpdateCloudAccountOutput{}, fmt.Errorf("GraphQL mutation failed: %w", err)
+	}
+	return m.UpdateCloudAccount.UpdateCloudAccountOutput, nil
+}
+
+func (c *GraphQLClient) GetCloudAccount(ctx context.Context, id string) (*client.CloudAccount, error) {
+	var q struct {
+		CloudAccount client.CloudAccount `graphql:"cloudAccount(id: $id)"`
+	}
+
+	err := c.Query(ctx, &q, map[string]interface{}{
+		"id": graphql.ID(id),
+	}, graphql.OperationName("CloudAccount"))
+	if err != nil {
+		return nil, fmt.Errorf("GraphQL query failed: %w", err)
+	}
+	return &q.CloudAccount, nil
+}
+
+func (c *GraphQLClient) DeleteCloudAccount(ctx context.Context, input client.DeleteCloudAccountInput) (client.DeleteCloudAccountOutput, error) {
+	var m struct {
+		DeleteCloudAccount struct {
+			ID string `graphql:"id"`
+		} `graphql:"deleteCloudAccount(input: $input)"`
+	}
+	err := c.Mutate(ctx, &m, map[string]interface{}{
+		"input": input,
+	}, graphql.OperationName("DeleteCloudAccount"))
+	if err != nil {
+		return client.DeleteCloudAccountOutput{}, fmt.Errorf("GraphQL mutation failed: %w", err)
+	}
+	return client.DeleteCloudAccountOutput{ID: m.DeleteCloudAccount.ID}, nil
+}
+
+// Schema GraphQL methods
+func (c *GraphQLClient) CreateSchema(ctx context.Context, input client.CreateSchemaInput) (client.CreateSchemaOutput, error) {
+	var m struct {
+		CreateOrUpdateSchema struct {
+			client.CreateSchemaOutput
+		} `graphql:"createOrUpdateSchema(input: $input)"`
+	}
+	err := c.Mutate(ctx, &m, map[string]interface{}{
+		"input": input,
+	}, graphql.OperationName("CreateOrUpdateSchema"))
+	if err != nil {
+		return client.CreateSchemaOutput{}, fmt.Errorf("GraphQL mutation failed: %w", err)
+	}
+	return m.CreateOrUpdateSchema.CreateSchemaOutput, nil
+}
+
+func (c *GraphQLClient) UpdateSchema(ctx context.Context, input client.UpdateSchemaInput) (client.UpdateSchemaOutput, error) {
+	var m struct {
+		CreateOrUpdateSchema struct {
+			client.UpdateSchemaOutput
+		} `graphql:"createOrUpdateSchema(input: $input)"`
+	}
+	err := c.Mutate(ctx, &m, map[string]interface{}{
+		"input": input,
+	}, graphql.OperationName("CreateOrUpdateSchema"))
+	if err != nil {
+		return client.UpdateSchemaOutput{}, fmt.Errorf("GraphQL mutation failed: %w", err)
+	}
+	return m.CreateOrUpdateSchema.UpdateSchemaOutput, nil
+}
+
+func (c *GraphQLClient) GetSchema(ctx context.Context, name string) (*client.Schema, error) {
+	var q struct {
+		Schemas struct {
+			Edges []struct {
+				Node client.Schema `graphql:"node"`
+			} `graphql:"edges"`
+		} `graphql:"schemas(input: $input)"`
+	}
+
+	err := c.Query(ctx, &q, map[string]interface{}{
+		"input": map[string]interface{}{
+			"cursor": "",
+		},
+	}, graphql.OperationName("Schemas"))
+	if err != nil {
+		return nil, fmt.Errorf("GraphQL query failed: %w", err)
+	}
+
+	// Find schema by name
+	for _, edge := range q.Schemas.Edges {
+		if edge.Node.Name == name {
+			return &edge.Node, nil
+		}
+	}
+
+	return nil, nil // Schema not found
+}
+
+func (c *GraphQLClient) DeleteSchema(ctx context.Context, input client.DeleteSchemaInput) (client.DeleteSchemaOutput, error) {
+	var m struct {
+		UpdateSchemaStatus struct {
+			Schema struct {
+				Name string `graphql:"name"`
+			} `graphql:"schema"`
+		} `graphql:"updateSchemaStatus(input: $input)"`
+	}
+
+	err := c.Mutate(ctx, &m, map[string]interface{}{
+		"input": map[string]interface{}{
+			"name":       input.Name,
+			"isArchived": true,
+		},
+	}, graphql.OperationName("UpdateSchemaStatus"))
+	if err != nil {
+		return client.DeleteSchemaOutput{}, fmt.Errorf("GraphQL mutation failed: %w", err)
+	}
+
+	return client.DeleteSchemaOutput{Name: m.UpdateSchemaStatus.Schema.Name}, nil
+}

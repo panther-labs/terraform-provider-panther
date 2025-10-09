@@ -25,6 +25,18 @@ type GraphQLClient interface {
 	UpdateS3Source(ctx context.Context, input UpdateS3SourceInput) (UpdateS3SourceOutput, error)
 	GetS3Source(ctx context.Context, id string) (*S3LogIntegration, error)
 	DeleteSource(ctx context.Context, input DeleteSourceInput) (DeleteSourceOutput, error)
+
+	// Cloud Account management
+	CreateCloudAccount(ctx context.Context, input CreateCloudAccountInput) (CreateCloudAccountOutput, error)
+	UpdateCloudAccount(ctx context.Context, input UpdateCloudAccountInput) (UpdateCloudAccountOutput, error)
+	GetCloudAccount(ctx context.Context, id string) (*CloudAccount, error)
+	DeleteCloudAccount(ctx context.Context, input DeleteCloudAccountInput) (DeleteCloudAccountOutput, error)
+
+	// Schema management
+	CreateSchema(ctx context.Context, input CreateSchemaInput) (CreateSchemaOutput, error)
+	UpdateSchema(ctx context.Context, input UpdateSchemaInput) (UpdateSchemaOutput, error)
+	GetSchema(ctx context.Context, name string) (*Schema, error)
+	DeleteSchema(ctx context.Context, input DeleteSchemaInput) (DeleteSchemaOutput, error)
 }
 
 type RestClient interface {
@@ -162,4 +174,109 @@ type UpdateHttpSourceInput struct {
 
 type HttpErrorResponse struct {
 	Message string
+}
+
+// GraphQL Cloud Account types
+type AWSScanConfig struct {
+	AuditRole string `graphql:"auditRole"`
+}
+
+type CloudAccount struct {
+	ID                      string        `graphql:"id"`
+	AWSAccountID            string        `graphql:"awsAccountId"`
+	Label                   string        `graphql:"label"`
+	AWSStackName            string        `graphql:"awsStackName"`
+	AWSScanConfig           AWSScanConfig `graphql:"awsScanConfig"`
+	AWSRegionIgnoreList     []string      `graphql:"awsRegionIgnoreList"`
+	ResourceRegexIgnoreList []string      `graphql:"resourceRegexIgnoreList"`
+	ResourceTypeIgnoreList  []string      `graphql:"resourceTypeIgnoreList"`
+	IsEditable              bool          `graphql:"isEditable"`
+}
+
+type AWSScanConfigInput struct {
+	AuditRole string `json:"auditRole"`
+}
+
+type CreateCloudAccountInput struct {
+	AWSAccountID            string             `json:"awsAccountId"`
+	Label                   string             `json:"label"`
+	AWSScanConfig           AWSScanConfigInput `json:"awsScanConfig"`
+	AWSRegionIgnoreList     []string           `json:"awsRegionIgnoreList,omitempty"`
+	ResourceRegexIgnoreList []string           `json:"resourceRegexIgnoreList,omitempty"`
+	ResourceTypeIgnoreList  []string           `json:"resourceTypeIgnoreList,omitempty"`
+}
+
+type CreateCloudAccountOutput struct {
+	CloudAccount *CloudAccount `graphql:"cloudAccount"`
+}
+
+type UpdateCloudAccountInput struct {
+	ID                      string             `json:"id"`
+	Label                   string             `json:"label"`
+	AWSScanConfig           AWSScanConfigInput `json:"awsScanConfig"`
+	AWSRegionIgnoreList     []string           `json:"awsRegionIgnoreList,omitempty"`
+	ResourceRegexIgnoreList []string           `json:"resourceRegexIgnoreList,omitempty"`
+	ResourceTypeIgnoreList  []string           `json:"resourceTypeIgnoreList,omitempty"`
+}
+
+type UpdateCloudAccountOutput struct {
+	CloudAccount *CloudAccount `graphql:"cloudAccount"`
+}
+
+type DeleteCloudAccountInput struct {
+	ID string `json:"id"`
+}
+
+type DeleteCloudAccountOutput struct {
+	ID string `json:"id"`
+}
+
+// GraphQL Schema types
+type Schema struct {
+	Name                    string `json:"name" graphql:"name"`
+	Description             string `json:"description" graphql:"description"`
+	Spec                    string `json:"spec" graphql:"spec"`
+	DiscoveredSpec          string `json:"discoveredSpec" graphql:"discoveredSpec"`
+	Version                 int    `json:"version" graphql:"version"`
+	Revision                int    `json:"revision" graphql:"revision"`
+	IsFieldDiscoveryEnabled bool   `json:"isFieldDiscoveryEnabled" graphql:"isFieldDiscoveryEnabled"`
+	IsArchived              bool   `json:"isArchived" graphql:"isArchived"`
+	IsManaged               bool   `json:"isManaged" graphql:"isManaged"`
+	ReferenceURL            string `json:"referenceURL" graphql:"referenceURL"`
+	CreatedAt               string `json:"createdAt" graphql:"createdAt"`
+	UpdatedAt               string `json:"updatedAt" graphql:"updatedAt"`
+}
+
+type CreateSchemaInput struct {
+	Name                    string  `json:"name"`
+	Description             *string `json:"description,omitempty"`
+	Spec                    string  `json:"spec"`
+	IsFieldDiscoveryEnabled *bool   `json:"isFieldDiscoveryEnabled,omitempty"`
+	ReferenceURL            *string `json:"referenceURL,omitempty"`
+	Revision                *int    `json:"revision,omitempty"`
+}
+
+type CreateSchemaOutput struct {
+	Schema *Schema `graphql:"schema"`
+}
+
+type UpdateSchemaInput struct {
+	Name                    string  `json:"name"`
+	Description             *string `json:"description,omitempty"`
+	Spec                    string  `json:"spec"`
+	IsFieldDiscoveryEnabled *bool   `json:"isFieldDiscoveryEnabled,omitempty"`
+	ReferenceURL            *string `json:"referenceURL,omitempty"`
+	Revision                *int    `json:"revision,omitempty"`
+}
+
+type UpdateSchemaOutput struct {
+	Schema *Schema `graphql:"schema"`
+}
+
+type DeleteSchemaInput struct {
+	Name string `json:"name"`
+}
+
+type DeleteSchemaOutput struct {
+	Name string `json:"name"`
 }
