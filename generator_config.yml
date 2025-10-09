@@ -17,3 +17,35 @@ resources:
     schema:
       ignores:
         - integrationId
+  user:
+    create:
+      path: /users
+      method: POST
+    read:
+      path: /users/{id}
+      method: GET
+    update:
+      path: /users/{id}
+      method: POST
+    delete:
+      path: /users/{id}
+      method: DELETE
+    schema:
+      ignores:
+        - id
+  role:
+    create:
+      path: /roles
+      method: POST
+    read:
+      path: /roles/{id}
+      method: GET
+    update:
+      path: /roles/{id}
+      method: POST
+    delete:
+      path: /roles/{id}
+      method: DELETE
+    schema:
+      ignores:
+        - id
