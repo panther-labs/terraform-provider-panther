@@ -20,6 +20,7 @@ import (
 	"context"
 	"os"
 	"terraform-provider-panther/internal/client"
+	"terraform-provider-panther/internal/client/panther"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -28,6 +29,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
+
+// ProviderData holds both REST and GraphQL clients so all resource types can
+// extract whichever client they need from a single provider data value.
+type ProviderData struct {
+	REST    *client.RESTClient
+	GraphQL client.GraphQLClient
+}
 
 // Ensure PantherProvider satisfies various provider interfaces.
 var _ provider.Provider = &PantherProvider{}
@@ -123,7 +131,10 @@ func (p *PantherProvider) Configure(ctx context.Context, req provider.ConfigureR
 	}
 
 	userAgent := client.BuildUserAgent(p.version, req.TerraformVersion)
-	resp.ResourceData = client.NewRESTClient(url, token, userAgent)
+	resp.ResourceData = &ProviderData{
+		REST:    client.NewRESTClient(url, token, userAgent),
+		GraphQL: panther.NewGraphQLClient(url, token),
+	}
 }
 
 func (p *PantherProvider) Resources(ctx context.Context) []func() resource.Resource {
@@ -134,6 +145,8 @@ func (p *PantherProvider) Resources(ctx context.Context) []func() resource.Resou
 		NewGcssourceResource,
 		NewLogSourceAlarmResource,
 		NewAwsCloudAccountResource,
+		NewCloudAccountResource,
+		NewSchemaResource,
 	}
 }
 
