@@ -134,6 +134,7 @@ func (p *PantherProvider) Resources(ctx context.Context) []func() resource.Resou
 		NewGcssourceResource,
 		NewLogSourceAlarmResource,
 		NewAwsCloudAccountResource,
+		NewRuleResource,
 	}
 }
 
