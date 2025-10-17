@@ -1,9 +1,0 @@
-{
-  "claude-code.environmentVariables": [
-    {
-      "name": "CLAUDE_CONFIG_DIR",
-      "value": "~/.claude/"
-    }
-  ],
-  "claude-code.useTerminal": true
-}
