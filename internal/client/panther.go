@@ -131,7 +131,8 @@ type HttpSource struct {
 
 // LogStreamTypeOptions contains options specific to the log stream type
 type LogStreamTypeOptions struct {
-	JsonArrayEnvelopeField string
+	JsonArrayEnvelopeField string `json:"jsonArrayEnvelopeField,omitempty"`
+	XmlRootElement         string `json:"xmlRootElement,omitempty"`
 }
 
 // HttpSourceModifiableAttributes attributes that can be modified on an http log source
