@@ -55,3 +55,4 @@ resource "panther_httpsource" "example_http_source" {
 Optional:
 
 - `json_array_envelope_field` (String) Path to the array value to extract elements from, only applicable if logStreamType is JsonArray. Leave empty if the input JSON is an array itself
+- `xml_root_element` (String) The root element name for XML streams, only applicable if logStreamType is XML. Leave empty if the XML events are not enclosed in a root element
