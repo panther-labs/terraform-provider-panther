@@ -104,6 +104,12 @@ func HttpsourceResourceSchema(ctx context.Context) schema.Schema {
 						Description:         "Path to the array value to extract elements from, only applicable if logStreamType is JsonArray. Leave empty if the input JSON is an array itself",
 						MarkdownDescription: "Path to the array value to extract elements from, only applicable if logStreamType is JsonArray. Leave empty if the input JSON is an array itself",
 					},
+					"xml_root_element": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "The root element name for XML streams, only applicable if logStreamType is XML. Leave empty if the XML events are not enclosed in a root element",
+						MarkdownDescription: "The root element name for XML streams, only applicable if logStreamType is XML. Leave empty if the XML events are not enclosed in a root element",
+					},
 				},
 				CustomType: LogStreamTypeOptionsType{
 					ObjectType: types.ObjectType{
@@ -181,12 +187,31 @@ func (t LogStreamTypeOptionsType) ValueFromObject(ctx context.Context, in basety
 			fmt.Sprintf(`json_array_envelope_field expected to be basetypes.StringValue, was: %T`, jsonArrayEnvelopeFieldAttribute))
 	}
 
+	xmlRootElementAttribute, ok := attributes["xml_root_element"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`xml_root_element is missing from object`)
+
+		return nil, diags
+	}
+
+	xmlRootElementVal, ok := xmlRootElementAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`xml_root_element expected to be basetypes.StringValue, was: %T`, xmlRootElementAttribute))
+	}
+
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return LogStreamTypeOptionsValue{
 		JsonArrayEnvelopeField: jsonArrayEnvelopeFieldVal,
+		XmlRootElement:         xmlRootElementVal,
 		state:                  attr.ValueStateKnown,
 	}, diags
 }
@@ -272,12 +297,31 @@ func NewLogStreamTypeOptionsValue(attributeTypes map[string]attr.Type, attribute
 			fmt.Sprintf(`json_array_envelope_field expected to be basetypes.StringValue, was: %T`, jsonArrayEnvelopeFieldAttribute))
 	}
 
+	xmlRootElementAttribute, ok := attributes["xml_root_element"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`xml_root_element is missing from object`)
+
+		return NewLogStreamTypeOptionsValueUnknown(), diags
+	}
+
+	xmlRootElementVal, ok := xmlRootElementAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`xml_root_element expected to be basetypes.StringValue, was: %T`, xmlRootElementAttribute))
+	}
+
 	if diags.HasError() {
 		return NewLogStreamTypeOptionsValueUnknown(), diags
 	}
 
 	return LogStreamTypeOptionsValue{
 		JsonArrayEnvelopeField: jsonArrayEnvelopeFieldVal,
+		XmlRootElement:         xmlRootElementVal,
 		state:                  attr.ValueStateKnown,
 	}, diags
 }
@@ -351,22 +395,24 @@ var _ basetypes.ObjectValuable = LogStreamTypeOptionsValue{}
 
 type LogStreamTypeOptionsValue struct {
 	JsonArrayEnvelopeField basetypes.StringValue `tfsdk:"json_array_envelope_field"`
+	XmlRootElement         basetypes.StringValue `tfsdk:"xml_root_element"`
 	state                  attr.ValueState
 }
 
 func (v LogStreamTypeOptionsValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
-	attrTypes := make(map[string]tftypes.Type, 1)
+	attrTypes := make(map[string]tftypes.Type, 2)
 
 	var val tftypes.Value
 	var err error
 
 	attrTypes["json_array_envelope_field"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["xml_root_element"] = basetypes.StringType{}.TerraformType(ctx)
 
 	objectType := tftypes.Object{AttributeTypes: attrTypes}
 
 	switch v.state {
 	case attr.ValueStateKnown:
-		vals := make(map[string]tftypes.Value, 1)
+		vals := make(map[string]tftypes.Value, 2)
 
 		val, err = v.JsonArrayEnvelopeField.ToTerraformValue(ctx)
 
@@ -375,6 +421,14 @@ func (v LogStreamTypeOptionsValue) ToTerraformValue(ctx context.Context) (tftype
 		}
 
 		vals["json_array_envelope_field"] = val
+
+		val, err = v.XmlRootElement.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["xml_root_element"] = val
 
 		if err := tftypes.ValidateValue(objectType, vals); err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
@@ -407,6 +461,7 @@ func (v LogStreamTypeOptionsValue) ToObjectValue(ctx context.Context) (basetypes
 
 	attributeTypes := map[string]attr.Type{
 		"json_array_envelope_field": basetypes.StringType{},
+		"xml_root_element":          basetypes.StringType{},
 	}
 
 	if v.IsNull() {
@@ -421,6 +476,7 @@ func (v LogStreamTypeOptionsValue) ToObjectValue(ctx context.Context) (basetypes
 		attributeTypes,
 		map[string]attr.Value{
 			"json_array_envelope_field": v.JsonArrayEnvelopeField,
+			"xml_root_element":          v.XmlRootElement,
 		})
 
 	return objVal, diags
@@ -445,6 +501,10 @@ func (v LogStreamTypeOptionsValue) Equal(o attr.Value) bool {
 		return false
 	}
 
+	if !v.XmlRootElement.Equal(other.XmlRootElement) {
+		return false
+	}
+
 	return true
 }
 
@@ -459,5 +519,6 @@ func (v LogStreamTypeOptionsValue) Type(ctx context.Context) attr.Type {
 func (v LogStreamTypeOptionsValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
 	return map[string]attr.Type{
 		"json_array_envelope_field": basetypes.StringType{},
+		"xml_root_element":          basetypes.StringType{},
 	}
 }
