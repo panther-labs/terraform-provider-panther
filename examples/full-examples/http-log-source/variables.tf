@@ -43,3 +43,8 @@ variable "json_array_envelope_field" {
   description = "Envelope field for json array stream"
   type        = string
 }
+
+variable "xml_root_element" {
+  description = "Root element for xml stream"
+  type        = string
+}

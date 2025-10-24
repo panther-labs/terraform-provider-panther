@@ -73,12 +73,13 @@ func TestHttpSourceResource(t *testing.T) {
 					resource.TestCheckResourceAttr("panther_httpsource.test", "auth_username", "foo"),
 					resource.TestCheckResourceAttr("panther_httpsource.test", "auth_password", "bar"),
 					resource.TestCheckResourceAttr("panther_httpsource.test", "log_stream_type_options.json_array_envelope_field", "records"),
+					resource.TestCheckResourceAttr("panther_httpsource.test", "log_stream_type_options.xml_root_element", "root"),
 				),
 			},
 			// Provide an unchanged configuration and manually delete the resource
 			{
 				Config:      providerConfig + testUpdatedHttpSourceResourceConfig(integrationUpdatedLabel),
-				Check:       manuallyDeleteSource,
+				Check:       manuallyDeleteSource(t),
 				ExpectError: regexp.MustCompile("Error running post-apply refresh plan"),
 			},
 			// Delete testing automatically occurs in TestCase, in our case it is already deleted and the delete step
@@ -110,38 +111,43 @@ resource "panther_httpsource" "test" {
   auth_username   	= "foo"
   auth_password 	= "bar"
   log_stream_type_options = {
-    json_array_envelope_field = "records" 
+    json_array_envelope_field = "records"
+	xml_root_element = "root"
   }
 }
 `, name)
 }
 
-func manuallyDeleteSource(s *terraform.State) error {
-	httpSource, ok := s.RootModule().Resources["panther_httpsource.test"]
-	if !ok {
-		return fmt.Errorf("not found: %s", "panther_httpsource.test")
-	}
-	if httpSource.Primary.ID == "" {
-		return errors.New("http source ID is not set")
-	}
-	url := os.Getenv("PANTHER_API_URL") + panther.RestHttpSourcePath + "/" + httpSource.Primary.ID
-	client := http.DefaultClient
-	req, err := http.NewRequest(http.MethodDelete, url, nil)
-	if err != nil {
-		return fmt.Errorf("could not create delete request: %w", err)
-	}
-	req.Header.Set("X-API-Key", os.Getenv("PANTHER_API_TOKEN"))
-	retry := 0
-	for retry < 10 {
-		response, err := client.Do(req)
+func manuallyDeleteSource(t *testing.T) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		httpSource, ok := s.RootModule().Resources["panther_httpsource.test"]
+		if !ok {
+			return fmt.Errorf("not found: %s", "panther_httpsource.test")
+		}
+		if httpSource.Primary.ID == "" {
+			return errors.New("http source ID is not set")
+		}
+		url := os.Getenv("PANTHER_API_URL") + panther.RestHttpSourcePath + "/" + httpSource.Primary.ID
+		client := http.DefaultClient
+		req, err := http.NewRequest(http.MethodDelete, url, nil)
 		if err != nil {
-			return fmt.Errorf("could not delete http source: %w", err)
+			return fmt.Errorf("could not create delete request: %w", err)
 		}
-		if response.StatusCode == http.StatusNoContent {
-			return nil
+		req.Header.Set("X-API-Key", os.Getenv("PANTHER_API_TOKEN"))
+		retry := 0
+		for retry < 10 {
+			response, err := client.Do(req)
+			if err != nil {
+				t.Logf("Error deleting http source %s: error: %v, retry: %d\n", httpSource.Primary.ID, err, retry)
+				return fmt.Errorf("could not delete http source: %w", err)
+			}
+			if response.StatusCode == http.StatusNoContent {
+				return nil
+			}
+			t.Logf("Could not delete http source %s with retry %d: status code: %d. retrying\n", httpSource.Primary.ID, retry, response.StatusCode)
+			time.Sleep(5 * time.Second)
+			retry++
 		}
-		time.Sleep(5 * time.Second)
-		retry++
+		return fmt.Errorf("could not delete http source after %d retries", retry)
 	}
-	return fmt.Errorf("could not delete http source after %d retries", retry)
 }
