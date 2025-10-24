@@ -17,3 +17,67 @@ resources:
     schema:
       ignores:
         - integrationId
+  rule:
+    create:
+      path: /rules
+      method: POST
+    read:
+      path: /rules/{id}
+      method: GET
+    update:
+      path: /rules/{id}
+      method: PUT
+    delete:
+      path: /rules/{id}
+      method: DELETE
+    schema:
+      ignores:
+        - id
+  policy:
+    create:
+      path: /policies
+      method: POST
+    read:
+      path: /policies/{id}
+      method: GET
+    update:
+      path: /policies/{id}
+      method: PUT
+    delete:
+      path: /policies/{id}
+      method: DELETE
+    schema:
+      ignores:
+        - id
+  scheduled_rule:
+    create:
+      path: /scheduled-rules
+      method: POST
+    read:
+      path: /scheduled-rules/{id}
+      method: GET
+    update:
+      path: /scheduled-rules/{id}
+      method: PUT
+    delete:
+      path: /scheduled-rules/{id}
+      method: DELETE
+    schema:
+      ignores:
+        - id
+  simple_rule:
+    create:
+      path: /simple-rules
+      method: POST
+    read:
+      path: /simple-rules/{id}
+      method: GET
+    update:
+      path: /simple-rules/{id}
+      method: PUT
+    delete:
+      path: /simple-rules/{id}
+      method: DELETE
+    schema:
+      ignores:
+        - id
