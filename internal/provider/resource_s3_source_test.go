@@ -54,9 +54,20 @@ func TestS3SourceResource(t *testing.T) {
 			},
 			// Update and Read testing
 			{
-				Config: providerConfig + testS3SourceResourceConfig("test-source-updated"),
+				Config: providerConfig + testUpdatedS3SourceResourceConfig("test-source-updated"),
 				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("panther_s3_source.test", "aws_account_id", "111122223333"),
 					resource.TestCheckResourceAttr("panther_s3_source.test", "name", "test-source-updated"),
+					resource.TestCheckResourceAttr("panther_s3_source.test", "log_processing_role_arn", "arn:aws:iam::111122223333:role/TestRole"),
+					resource.TestCheckResourceAttr("panther_s3_source.test", "log_stream_type", "JSON"),
+					resource.TestCheckResourceAttr("panther_s3_source.test", "log_stream_type_options.json_array_envelope_field", "records"),
+					resource.TestCheckResourceAttr("panther_s3_source.test", "log_stream_type_options.xml_root_element", "root"),
+					resource.TestCheckResourceAttr("panther_s3_source.test", "panther_managed_bucket_notifications_enabled", "true"),
+					resource.TestCheckResourceAttr("panther_s3_source.test", "bucket_name", "test_bucket"),
+					resource.TestCheckResourceAttr("panther_s3_source.test", "kms_key_arn", "arn:aws:kms:us-east-1:111122223333:key/testing"),
+					resource.TestCheckResourceAttr("panther_s3_source.test", "prefix_log_types.0.prefix", "test/prefix"),
+					resource.TestCheckResourceAttr("panther_s3_source.test", "prefix_log_types.0.excluded_prefixes.0", "test/prefix/excluded"),
+					resource.TestCheckResourceAttr("panther_s3_source.test", "prefix_log_types.0.log_types.0", "AWS.CloudTrail"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -121,6 +132,29 @@ resource "panther_s3_source" "test" {
   name = "%v"
   log_processing_role_arn = "arn:aws:iam::111122223333:role/TestRole"
   log_stream_type = "Lines"
+  panther_managed_bucket_notifications_enabled = true
+  bucket_name = "test_bucket"
+  kms_key_arn = "arn:aws:kms:us-east-1:111122223333:key/testing"
+  prefix_log_types = [{
+    excluded_prefixes = ["test/prefix/excluded"]
+    log_types         = ["AWS.CloudTrail"]
+    prefix            = "test/prefix"
+  }]
+}
+`, name)
+}
+
+func testUpdatedS3SourceResourceConfig(name string) string {
+	return fmt.Sprintf(`
+resource "panther_s3_source" "test" {
+  aws_account_id = "111122223333"
+  name = "%v"
+  log_processing_role_arn = "arn:aws:iam::111122223333:role/TestRole"
+  log_stream_type = "JSON"
+  log_stream_type_options = {
+    json_array_envelope_field = "records"
+    xml_root_element = "root"
+  }
   panther_managed_bucket_notifications_enabled = true
   bucket_name = "test_bucket"
   kms_key_arn = "arn:aws:kms:us-east-1:111122223333:key/testing"

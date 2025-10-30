@@ -45,6 +45,7 @@ resource "panther_s3_source" "test_source" {
 ### Optional
 
 - `kms_key_arn` (String) The KMS key ARN used to access the S3 Bucket.
+- `log_stream_type_options` (Attributes) (see [below for nested schema](#nestedatt--log_stream_type_options))
 - `panther_managed_bucket_notifications_enabled` (Boolean) True if bucket notifications are being managed by Panther.  __This will cause Panther to create additional infrastructure in your AWS account.__ \
 To manage the notification-related infrastructure through terraform, refer to [this example](https://github.com/panther-labs/panther-auxiliary/tree/main/terraform/panther_log_processing_notifications).
 
@@ -60,3 +61,12 @@ Required:
 - `excluded_prefixes` (List of String) S3 Prefixes to be excluded from log type mapping.
 - `log_types` (List of String) List of log types that map to the S3 Prefix.
 - `prefix` (String) S3 Prefix to map Log Types to.
+
+
+<a id="nestedatt--log_stream_type_options"></a>
+### Nested Schema for `log_stream_type_options`
+
+Optional:
+
+- `json_array_envelope_field` (String) Path to the array value to extract elements from, only applicable if logStreamType is JsonArray. Leave empty if the input JSON is an array itself
+- `xml_root_element` (String) The root element name for XML streams, only applicable if logStreamType is XML. Leave empty if the XML events are not enclosed in a root element
