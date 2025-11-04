@@ -53,6 +53,7 @@ type CreateS3SourceInput struct {
 	Label                      string                  `json:"label"`
 	LogProcessingRole          string                  `json:"logProcessingRole"`
 	LogStreamType              string                  `json:"logStreamType"`
+	LogStreamTypeOptions       *LogStreamTypeOptions   `json:"logStreamTypeOptions,omitempty"`
 	ManagedBucketNotifications bool                    `json:"managedBucketNotifications"`
 	S3Bucket                   string                  `json:"s3Bucket"`
 	S3PrefixLogTypes           []S3PrefixLogTypesInput `json:"s3PrefixLogTypes"`
@@ -70,6 +71,7 @@ type UpdateS3SourceInput struct {
 	Label                      string                  `json:"label"`
 	LogProcessingRole          string                  `json:"logProcessingRole"`
 	LogStreamType              string                  `json:"logStreamType"`
+	LogStreamTypeOptions       *LogStreamTypeOptions   `json:"logStreamTypeOptions,omitempty"`
 	ManagedBucketNotifications bool                    `json:"managedBucketNotifications"`
 	S3PrefixLogTypes           []S3PrefixLogTypesInput `json:"s3PrefixLogTypes"`
 }
@@ -107,6 +109,8 @@ type S3LogIntegration struct {
 	LogProcessingRole *string `graphql:"logProcessingRole"`
 	// The format of the log files being ingested
 	LogStreamType *string `graphql:"logStreamType"`
+	// Options specific to the log stream type
+	LogStreamTypeOptions *LogStreamTypeOptions `graphql:"logStreamTypeOptions"`
 	// True if bucket notifications are being managed by Panther
 	ManagedBucketNotifications bool `json:"managedBucketNotifications"`
 	// The S3 Bucket name being ingested
