@@ -23,6 +23,8 @@ import (
 	"terraform-provider-panther/internal/client/panther"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -32,8 +34,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+
 	"terraform-provider-panther/internal/client"
+
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -58,6 +63,7 @@ type S3SourceResourceModel struct {
 	Name                                     types.String          `tfsdk:"name"`
 	LogProcessingRoleARN                     types.String          `tfsdk:"log_processing_role_arn"`
 	LogStreamType                            types.String          `tfsdk:"log_stream_type"`
+	LogStreamTypeOptions                     types.Object          `tfsdk:"log_stream_type_options"`
 	PantherManagedBucketNotificationsEnabled types.Bool            `tfsdk:"panther_managed_bucket_notifications_enabled"`
 	BucketName                               types.String          `tfsdk:"bucket_name"`
 	PrefixLogTypes                           []PrefixLogTypesModel `tfsdk:"prefix_log_types"`
@@ -74,7 +80,7 @@ func (r *S3SourceResource) Metadata(_ context.Context, req resource.MetadataRequ
 	resp.TypeName = req.ProviderTypeName + "_s3_source"
 }
 
-func (r *S3SourceResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *S3SourceResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
 		MarkdownDescription: "Represents an S3 Log Source in Panther",
@@ -112,6 +118,19 @@ func (r *S3SourceResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Validators: []validator.String{
 					stringvalidator.OneOf("Auto", "Lines", "JSON", "JsonArray", "CloudWatchLogs", "XML"),
 				},
+			},
+			"log_stream_type_options": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"json_array_envelope_field": schema.StringAttribute{
+						Optional:            true,
+						Description:         "Path to the array value to extract elements from, only applicable if logStreamType is JsonArray. Leave empty if the input JSON is an array itself",
+					},
+					"xml_root_element": schema.StringAttribute{
+						Optional:            true,
+						Description:         "The root element name for XML streams, only applicable if logStreamType is XML. Leave empty if the XML events are not enclosed in a root element",
+					},
+				},
+				Optional: true,
 			},
 			"panther_managed_bucket_notifications_enabled": schema.BoolAttribute{
 				MarkdownDescription: `True if bucket notifications are being managed by Panther.  __This will cause Panther to create additional infrastructure in your AWS account.__ \
@@ -190,6 +209,25 @@ func (r *S3SourceResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
+	// Create LogStreamTypeOptions if it's provided
+	var logStreamTypeOptions *client.LogStreamTypeOptions
+	if !data.LogStreamTypeOptions.IsNull() && !data.LogStreamTypeOptions.IsUnknown() {
+		var jsonArrayEnvelopeField, xmlRootElement string
+		
+		// Extract values from the object
+		if val, ok := data.LogStreamTypeOptions.Attributes()["json_array_envelope_field"]; ok && !val.IsNull() {
+			jsonArrayEnvelopeField = val.(types.String).ValueString()
+		}
+		if val, ok := data.LogStreamTypeOptions.Attributes()["xml_root_element"]; ok && !val.IsNull() {
+			xmlRootElement = val.(types.String).ValueString()
+		}
+		
+		logStreamTypeOptions = &client.LogStreamTypeOptions{
+			JsonArrayEnvelopeField: jsonArrayEnvelopeField,
+			XmlRootElement:         xmlRootElement,
+		}
+	}
+
 	// Make the GraphQL mutation to create the resource
 	output, err := r.client.CreateS3Source(ctx, client.CreateS3SourceInput{
 		AwsAccountID:               data.AWSAccountID.ValueString(),
@@ -197,6 +235,7 @@ func (r *S3SourceResource) Create(ctx context.Context, req resource.CreateReques
 		Label:                      data.Name.ValueString(),
 		LogProcessingRole:          data.LogProcessingRoleARN.ValueString(),
 		LogStreamType:              data.LogStreamType.ValueString(),
+		LogStreamTypeOptions:       logStreamTypeOptions,
 		ManagedBucketNotifications: data.PantherManagedBucketNotificationsEnabled.ValueBool(),
 		S3Bucket:                   data.BucketName.ValueString(),
 		S3PrefixLogTypes:           prefixLogTypesToInput(data.PrefixLogTypes),
@@ -247,6 +286,26 @@ func (r *S3SourceResource) Read(ctx context.Context, req resource.ReadRequest, r
 	data.BucketName = types.StringValue(source.S3Bucket)
 	data.PrefixLogTypes = prefixLogTypesToModel(source.S3PrefixLogTypes)
 
+	// the grapqhl response always returns a non-nil object for logStreamTypeOptions, so we need to check if the fields are not empty
+	// and only then set the field in our state
+	if source.LogStreamTypeOptions != nil && source.LogStreamTypeOptions.JsonArrayEnvelopeField != "" && source.LogStreamTypeOptions.XmlRootElement != "" {
+		attributeTypes := map[string]attr.Type{
+			"json_array_envelope_field": types.StringType,
+			"xml_root_element":          types.StringType,
+		}
+		
+		attributeValues := map[string]attr.Value{
+			"json_array_envelope_field": types.StringValue(source.LogStreamTypeOptions.JsonArrayEnvelopeField),
+			"xml_root_element":          types.StringValue(source.LogStreamTypeOptions.XmlRootElement),
+		}
+		
+		objectValue, diags := basetypes.NewObjectValue(attributeTypes, attributeValues)
+		if diags.HasError() {
+			resp.Diagnostics.Append(diags...)
+			return
+		}
+		data.LogStreamTypeOptions = objectValue
+	}
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -260,12 +319,32 @@ func (r *S3SourceResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
+	// Create LogStreamTypeOptions if it's provided
+	var logStreamTypeOptions *client.LogStreamTypeOptions
+	if !data.LogStreamTypeOptions.IsNull() && !data.LogStreamTypeOptions.IsUnknown() {
+		var jsonArrayEnvelopeField, xmlRootElement string
+		
+		// Extract values from the object
+		if val, ok := data.LogStreamTypeOptions.Attributes()["json_array_envelope_field"]; ok && !val.IsNull() {
+			jsonArrayEnvelopeField = val.(types.String).ValueString()
+		}
+		if val, ok := data.LogStreamTypeOptions.Attributes()["xml_root_element"]; ok && !val.IsNull() {
+			xmlRootElement = val.(types.String).ValueString()
+		}
+		
+		logStreamTypeOptions = &client.LogStreamTypeOptions{
+			JsonArrayEnvelopeField: jsonArrayEnvelopeField,
+			XmlRootElement:         xmlRootElement,
+		}
+	}
+
 	_, err := r.client.UpdateS3Source(ctx, client.UpdateS3SourceInput{
 		ID:                         data.Id.ValueString(),
 		KmsKey:                     data.KMSKeyARN.ValueString(),
 		Label:                      data.Name.ValueString(),
 		LogProcessingRole:          data.LogProcessingRoleARN.ValueString(),
 		LogStreamType:              data.LogStreamType.ValueString(),
+		LogStreamTypeOptions:       logStreamTypeOptions,
 		ManagedBucketNotifications: data.PantherManagedBucketNotificationsEnabled.ValueBool(),
 		S3PrefixLogTypes:           prefixLogTypesToInput(data.PrefixLogTypes),
 	})
