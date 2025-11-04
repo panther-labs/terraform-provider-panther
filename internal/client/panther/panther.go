@@ -198,6 +198,244 @@ func (c *RestClient) DeleteHttpSource(ctx context.Context, id string) error {
 	return nil
 }
 
+func (c *RestClient) CreateUser(ctx context.Context, input client.CreateUserInput) (client.User, error) {
+	jsonData, err := json.Marshal(input)
+	if err != nil {
+		return client.User{}, fmt.Errorf("error marshaling data: %w", err)
+	}
+
+	baseURL := strings.TrimSuffix(c.url, RestHttpSourcePath)
+	reqURL := fmt.Sprintf("%s/users", baseURL)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqURL, bytes.NewReader(jsonData))
+	if err != nil {
+		return client.User{}, fmt.Errorf("failed to create http request: %w", err)
+	}
+	resp, err := c.Do(req)
+	if err != nil {
+		return client.User{}, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		return client.User{}, fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, getErrorResponseMsg(resp))
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return client.User{}, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	var response client.User
+	if err = json.Unmarshal(body, &response); err != nil {
+		return client.User{}, fmt.Errorf("failed to unmarshal response body: %w", err)
+	}
+
+	return response, nil
+}
+
+func (c *RestClient) UpdateUser(ctx context.Context, input client.UpdateUserInput) (client.User, error) {
+	baseURL := strings.TrimSuffix(c.url, RestHttpSourcePath)
+	reqURL := fmt.Sprintf("%s/users/%s", baseURL, input.ID)
+	jsonData, err := json.Marshal(input.UserModifiableAttributes)
+	if err != nil {
+		return client.User{}, fmt.Errorf("error marshaling data: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqURL, bytes.NewReader(jsonData))
+	if err != nil {
+		return client.User{}, fmt.Errorf("failed to create http request: %w", err)
+	}
+	resp, err := c.Do(req)
+	if err != nil {
+		return client.User{}, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return client.User{}, fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, getErrorResponseMsg(resp))
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return client.User{}, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	var response client.User
+	if err = json.Unmarshal(body, &response); err != nil {
+		return client.User{}, fmt.Errorf("failed to unmarshal response body: %w", err)
+	}
+
+	return response, nil
+}
+
+func (c *RestClient) GetUser(ctx context.Context, id string) (client.User, error) {
+	baseURL := strings.TrimSuffix(c.url, RestHttpSourcePath)
+	reqURL := fmt.Sprintf("%s/users/%s", baseURL, id)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
+	if err != nil {
+		return client.User{}, fmt.Errorf("failed to create http request: %w", err)
+	}
+	resp, err := c.Do(req)
+	if err != nil {
+		return client.User{}, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return client.User{}, fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, getErrorResponseMsg(resp))
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return client.User{}, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	var response client.User
+	if err = json.Unmarshal(body, &response); err != nil {
+		return client.User{}, fmt.Errorf("failed to unmarshal response body: %w", err)
+	}
+
+	return response, nil
+}
+
+func (c *RestClient) DeleteUser(ctx context.Context, id string) error {
+	baseURL := strings.TrimSuffix(c.url, RestHttpSourcePath)
+	reqURL := fmt.Sprintf("%s/users/%s", baseURL, id)
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, reqURL, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create http request: %w", err)
+	}
+	resp, err := c.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, getErrorResponseMsg(resp))
+	}
+
+	return nil
+}
+
+func (c *RestClient) CreateRole(ctx context.Context, input client.CreateRoleInput) (client.Role, error) {
+	jsonData, err := json.Marshal(input)
+	if err != nil {
+		return client.Role{}, fmt.Errorf("error marshaling data: %w", err)
+	}
+
+	baseURL := strings.TrimSuffix(c.url, RestHttpSourcePath)
+	reqURL := fmt.Sprintf("%s/roles", baseURL)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqURL, bytes.NewReader(jsonData))
+	if err != nil {
+		return client.Role{}, fmt.Errorf("failed to create http request: %w", err)
+	}
+	resp, err := c.Do(req)
+	if err != nil {
+		return client.Role{}, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		return client.Role{}, fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, getErrorResponseMsg(resp))
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return client.Role{}, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	var response client.Role
+	if err = json.Unmarshal(body, &response); err != nil {
+		return client.Role{}, fmt.Errorf("failed to unmarshal response body: %w", err)
+	}
+
+	return response, nil
+}
+
+func (c *RestClient) UpdateRole(ctx context.Context, input client.UpdateRoleInput) (client.Role, error) {
+	baseURL := strings.TrimSuffix(c.url, RestHttpSourcePath)
+	reqURL := fmt.Sprintf("%s/roles/%s", baseURL, input.ID)
+	jsonData, err := json.Marshal(input.RoleModifiableAttributes)
+	if err != nil {
+		return client.Role{}, fmt.Errorf("error marshaling data: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqURL, bytes.NewReader(jsonData))
+	if err != nil {
+		return client.Role{}, fmt.Errorf("failed to create http request: %w", err)
+	}
+	resp, err := c.Do(req)
+	if err != nil {
+		return client.Role{}, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return client.Role{}, fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, getErrorResponseMsg(resp))
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return client.Role{}, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	var response client.Role
+	if err = json.Unmarshal(body, &response); err != nil {
+		return client.Role{}, fmt.Errorf("failed to unmarshal response body: %w", err)
+	}
+
+	return response, nil
+}
+
+func (c *RestClient) GetRole(ctx context.Context, id string) (client.Role, error) {
+	baseURL := strings.TrimSuffix(c.url, RestHttpSourcePath)
+	reqURL := fmt.Sprintf("%s/roles/%s", baseURL, id)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
+	if err != nil {
+		return client.Role{}, fmt.Errorf("failed to create http request: %w", err)
+	}
+	resp, err := c.Do(req)
+	if err != nil {
+		return client.Role{}, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return client.Role{}, fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, getErrorResponseMsg(resp))
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return client.Role{}, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	var response client.Role
+	if err = json.Unmarshal(body, &response); err != nil {
+		return client.Role{}, fmt.Errorf("failed to unmarshal response body: %w", err)
+	}
+
+	return response, nil
+}
+
+func (c *RestClient) DeleteRole(ctx context.Context, id string) error {
+	baseURL := strings.TrimSuffix(c.url, RestHttpSourcePath)
+	reqURL := fmt.Sprintf("%s/roles/%s", baseURL, id)
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, reqURL, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create http request: %w", err)
+	}
+	resp, err := c.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, getErrorResponseMsg(resp))
+	}
+
+	return nil
+}
+
 func (c *GraphQLClient) UpdateS3Source(ctx context.Context, input client.UpdateS3SourceInput) (client.UpdateS3SourceOutput, error) {
 	var m struct {
 		UpdateS3Source struct {
