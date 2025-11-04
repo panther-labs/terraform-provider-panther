@@ -23,3 +23,13 @@ variable "bucket_name" {
   description = "Bucket name"
   type        = string
 }
+
+variable "json_array_envelope_field" {
+  description = "Path to the array value to extract elements from, only applicable if logStreamType is JsonArray. Leave empty if the input JSON is an array itself"
+  type        = string
+}
+
+variable "xml_root_element" {
+  description = "The root element name for XML streams, only applicable if logStreamType is XML. Leave empty if the XML events are not enclosed in a root element"
+  type        = string
+}
