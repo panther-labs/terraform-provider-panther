@@ -32,6 +32,30 @@ type RestClient interface {
 	UpdateHttpSource(ctx context.Context, input UpdateHttpSourceInput) (HttpSource, error)
 	GetHttpSource(ctx context.Context, id string) (HttpSource, error)
 	DeleteHttpSource(ctx context.Context, id string) error
+
+	// Rule management
+	CreateRule(ctx context.Context, input CreateRuleInput) (Rule, error)
+	UpdateRule(ctx context.Context, input UpdateRuleInput) (Rule, error)
+	GetRule(ctx context.Context, id string) (Rule, error)
+	DeleteRule(ctx context.Context, id string) error
+
+	// Policy management
+	CreatePolicy(ctx context.Context, input CreatePolicyInput) (Policy, error)
+	UpdatePolicy(ctx context.Context, input UpdatePolicyInput) (Policy, error)
+	GetPolicy(ctx context.Context, id string) (Policy, error)
+	DeletePolicy(ctx context.Context, id string) error
+
+	// Scheduled rule management
+	CreateScheduledRule(ctx context.Context, input CreateScheduledRuleInput) (ScheduledRule, error)
+	UpdateScheduledRule(ctx context.Context, input UpdateScheduledRuleInput) (ScheduledRule, error)
+	GetScheduledRule(ctx context.Context, id string) (ScheduledRule, error)
+	DeleteScheduledRule(ctx context.Context, id string) error
+
+	// Simple rule management
+	CreateSimpleRule(ctx context.Context, input CreateSimpleRuleInput) (SimpleRule, error)
+	UpdateSimpleRule(ctx context.Context, input UpdateSimpleRuleInput) (SimpleRule, error)
+	GetSimpleRule(ctx context.Context, id string) (SimpleRule, error)
+	DeleteSimpleRule(ctx context.Context, id string) error
 }
 
 // CreateS3SourceInput Input for the createS3LogSource mutation
@@ -167,4 +191,141 @@ type UpdateHttpSourceInput struct {
 
 type HttpErrorResponse struct {
 	Message string
+}
+
+// Rule types
+type Rule struct {
+	ID        string `json:"id"`
+	CreatedAt string `json:"createdAt"`
+	UpdatedAt string `json:"updatedAt"`
+	RuleModifiableAttributes
+}
+
+type RuleModifiableAttributes struct {
+	DisplayName        string   `json:"displayName"`
+	Body               string   `json:"body"`
+	Description        string   `json:"description,omitempty"`
+	Severity           string   `json:"severity,omitempty"`
+	LogTypes           []string `json:"logTypes,omitempty"`
+	Tags               []string `json:"tags,omitempty"`
+	References         []string `json:"references,omitempty"`
+	Runbook            string   `json:"runbook,omitempty"`
+	DedupPeriodMinutes int      `json:"dedupPeriodMinutes,omitempty"`
+	Enabled            bool     `json:"enabled,omitempty"`
+}
+
+type CreateRuleInput struct {
+	ID string `json:"id"`
+	RuleModifiableAttributes
+}
+
+type UpdateRuleInput struct {
+	ID string `json:"id"`
+	RuleModifiableAttributes
+}
+
+// Policy types
+type Policy struct {
+	ID        string `json:"id"`
+	CreatedAt string `json:"createdAt"`
+	UpdatedAt string `json:"lastModified"`
+	Version   string `json:"version"`
+	PolicyModifiableAttributes
+}
+
+type PolicyModifiableAttributes struct {
+	DisplayName   string   `json:"displayName"`
+	Body          string   `json:"body"`
+	Description   string   `json:"description,omitempty"`
+	Severity      string   `json:"severity,omitempty"`
+	ResourceTypes []string `json:"resourceTypes,omitempty"`
+	Tags          []string `json:"tags,omitempty"`
+	Runbook       string   `json:"runbook,omitempty"`
+	Enabled       bool     `json:"enabled,omitempty"`
+}
+
+type CreatePolicyInput struct {
+	ID string `json:"id"`
+	PolicyModifiableAttributes
+}
+
+type UpdatePolicyInput struct {
+	ID string `json:"id"`
+	PolicyModifiableAttributes
+}
+
+// Scheduled rule types
+type ScheduledRule struct {
+	ID        string `json:"id"`
+	CreatedAt string `json:"createdAt"`
+	UpdatedAt string `json:"lastModified"`
+	ScheduledRuleModifiableAttributes
+}
+
+type ScheduledRuleModifiableAttributes struct {
+	DisplayName         string              `json:"displayName,omitempty"`
+	Body                string              `json:"body"`
+	Description         string              `json:"description,omitempty"`
+	Severity            string              `json:"severity"`
+	ScheduledQueries    []string            `json:"scheduledQueries,omitempty"`
+	Tags                []string            `json:"tags,omitempty"`
+	Runbook             string              `json:"runbook,omitempty"`
+	DedupPeriodMinutes  int                 `json:"dedupPeriodMinutes,omitempty"`
+	Enabled             bool                `json:"enabled,omitempty"`
+	OutputIds           []string            `json:"outputIDs,omitempty"`
+	Reports             map[string][]string `json:"reports,omitempty"`
+	SummaryAttributes   []string            `json:"summaryAttributes,omitempty"`
+	Threshold           int                 `json:"threshold,omitempty"`
+	Managed             bool                `json:"managed,omitempty"`
+}
+
+type CreateScheduledRuleInput struct {
+	ID string `json:"id"`
+	ScheduledRuleModifiableAttributes
+}
+
+type UpdateScheduledRuleInput struct {
+	ID string `json:"id"`
+	ScheduledRuleModifiableAttributes
+}
+
+// Simple rule types
+type SimpleRule struct {
+	ID        string `json:"id"`
+	CreatedAt string `json:"createdAt"`
+	UpdatedAt string `json:"lastModified"`
+	SimpleRuleModifiableAttributes
+}
+
+type SimpleRuleModifiableAttributes struct {
+	DisplayName        string              `json:"displayName,omitempty"`
+	Detection          string              `json:"detection"`
+	Description        string              `json:"description,omitempty"`
+	Severity           string              `json:"severity"`
+	LogTypes           []string            `json:"logTypes,omitempty"`
+	Tags               []string            `json:"tags,omitempty"`
+	Runbook            string              `json:"runbook,omitempty"`
+	DedupPeriodMinutes int                 `json:"dedupPeriodMinutes,omitempty"`
+	Enabled            bool                `json:"enabled,omitempty"`
+	AlertTitle         string              `json:"alertTitle,omitempty"`
+	AlertContext       string              `json:"alertContext,omitempty"`
+	DynamicSeverities  string              `json:"dynamicSeverities,omitempty"`
+	GroupBy            string              `json:"groupBy,omitempty"`
+	InlineFilters      string              `json:"inlineFilters,omitempty"`
+	OutputIds          []string            `json:"outputIDs,omitempty"`
+	PythonBody         string              `json:"pythonBody,omitempty"`
+	Reports            map[string][]string `json:"reports,omitempty"`
+	SummaryAttributes  []string            `json:"summaryAttributes,omitempty"`
+	Threshold          int                 `json:"threshold,omitempty"`
+	Managed            bool                `json:"managed,omitempty"`
+}
+
+type CreateSimpleRuleInput struct {
+	ID string `json:"id"`
+	SimpleRuleModifiableAttributes
+}
+
+type UpdateSimpleRuleInput struct {
+	ID string `json:"id"`
+	SimpleRuleModifiableAttributes
 }
