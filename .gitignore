@@ -4,3 +4,6 @@
 .terraform/
 *.tfvars
 .terraform.lock.hcl
+
+# asdf version files
+.tool-versions
