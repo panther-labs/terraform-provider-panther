@@ -114,6 +114,21 @@ make testacc
 
 In order to manually test the provider refer to the [Usage](#usage) section above.
 
+### Releasing
+
+To release a new version, create and push a git tag matching the pattern `v*` (e.g., `v0.1.0`):
+
+```shell
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+When the tag is pushed, the GitHub Actions workflow which builds and publishes the release using GoReleaser will be triggered.
+
+This in turn will release the latest provider version in the Terraform registry: https://registry.terraform.io/providers/panther-labs/panther/latest
+
+
+
 ### Import limitations
 
 The http source resource contains sensitive values for `auth_password`, `auth_secret_value`, and `auth_bearer_token` which cannot be read after
