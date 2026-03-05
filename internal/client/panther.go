@@ -136,6 +136,7 @@ type HttpSource struct {
 // LogStreamTypeOptions contains options specific to the log stream type
 type LogStreamTypeOptions struct {
 	JsonArrayEnvelopeField string `json:"jsonArrayEnvelopeField,omitempty"`
+	RetainEnvelopeFields   bool   `json:"retainEnvelopeFields,omitempty"`
 	XmlRootElement         string `json:"xmlRootElement,omitempty"`
 }
 

@@ -125,6 +125,10 @@ func (r *S3SourceResource) Schema(ctx context.Context, req resource.SchemaReques
 						Optional:            true,
 						Description:         "Path to the array value to extract elements from, only applicable if logStreamType is JsonArray. Leave empty if the input JSON is an array itself",
 					},
+					"retain_envelope_fields": schema.BoolAttribute{
+						Optional:    true,
+						Description: "When enabled, envelope metadata from CloudWatch Logs is preserved in a p_header column on each unpacked event.",
+					},
 					"xml_root_element": schema.StringAttribute{
 						Optional:            true,
 						Description:         "The root element name for XML streams, only applicable if logStreamType is XML. Leave empty if the XML events are not enclosed in a root element",
@@ -213,17 +217,22 @@ func (r *S3SourceResource) Create(ctx context.Context, req resource.CreateReques
 	var logStreamTypeOptions *client.LogStreamTypeOptions
 	if !data.LogStreamTypeOptions.IsNull() && !data.LogStreamTypeOptions.IsUnknown() {
 		var jsonArrayEnvelopeField, xmlRootElement string
-		
+		var retainEnvelopeFields bool
+
 		// Extract values from the object
 		if val, ok := data.LogStreamTypeOptions.Attributes()["json_array_envelope_field"]; ok && !val.IsNull() {
 			jsonArrayEnvelopeField = val.(types.String).ValueString()
 		}
+		if val, ok := data.LogStreamTypeOptions.Attributes()["retain_envelope_fields"]; ok && !val.IsNull() {
+			retainEnvelopeFields = val.(types.Bool).ValueBool()
+		}
 		if val, ok := data.LogStreamTypeOptions.Attributes()["xml_root_element"]; ok && !val.IsNull() {
 			xmlRootElement = val.(types.String).ValueString()
 		}
-		
+
 		logStreamTypeOptions = &client.LogStreamTypeOptions{
 			JsonArrayEnvelopeField: jsonArrayEnvelopeField,
+			RetainEnvelopeFields:   retainEnvelopeFields,
 			XmlRootElement:         xmlRootElement,
 		}
 	}
@@ -267,6 +276,8 @@ func (r *S3SourceResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
+	tflog.Warn(ctx, ">>>>>> USING LOCAL DEV BUILD OF PANTHER PROVIDER <<<<<<")
+
 	source, err := r.client.GetS3Source(ctx, data.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -288,17 +299,19 @@ func (r *S3SourceResource) Read(ctx context.Context, req resource.ReadRequest, r
 
 	// the grapqhl response always returns a non-nil object for logStreamTypeOptions, so we need to check if the fields are not empty
 	// and only then set the field in our state
-	if source.LogStreamTypeOptions != nil && source.LogStreamTypeOptions.JsonArrayEnvelopeField != "" && source.LogStreamTypeOptions.XmlRootElement != "" {
+	if source.LogStreamTypeOptions != nil && (source.LogStreamTypeOptions.JsonArrayEnvelopeField != "" || source.LogStreamTypeOptions.XmlRootElement != "" || source.LogStreamTypeOptions.RetainEnvelopeFields) {
 		attributeTypes := map[string]attr.Type{
 			"json_array_envelope_field": types.StringType,
+			"retain_envelope_fields":    types.BoolType,
 			"xml_root_element":          types.StringType,
 		}
-		
+
 		attributeValues := map[string]attr.Value{
 			"json_array_envelope_field": types.StringValue(source.LogStreamTypeOptions.JsonArrayEnvelopeField),
+			"retain_envelope_fields":    types.BoolValue(source.LogStreamTypeOptions.RetainEnvelopeFields),
 			"xml_root_element":          types.StringValue(source.LogStreamTypeOptions.XmlRootElement),
 		}
-		
+
 		objectValue, diags := basetypes.NewObjectValue(attributeTypes, attributeValues)
 		if diags.HasError() {
 			resp.Diagnostics.Append(diags...)
@@ -323,17 +336,22 @@ func (r *S3SourceResource) Update(ctx context.Context, req resource.UpdateReques
 	var logStreamTypeOptions *client.LogStreamTypeOptions
 	if !data.LogStreamTypeOptions.IsNull() && !data.LogStreamTypeOptions.IsUnknown() {
 		var jsonArrayEnvelopeField, xmlRootElement string
-		
+		var retainEnvelopeFields bool
+
 		// Extract values from the object
 		if val, ok := data.LogStreamTypeOptions.Attributes()["json_array_envelope_field"]; ok && !val.IsNull() {
 			jsonArrayEnvelopeField = val.(types.String).ValueString()
 		}
+		if val, ok := data.LogStreamTypeOptions.Attributes()["retain_envelope_fields"]; ok && !val.IsNull() {
+			retainEnvelopeFields = val.(types.Bool).ValueBool()
+		}
 		if val, ok := data.LogStreamTypeOptions.Attributes()["xml_root_element"]; ok && !val.IsNull() {
 			xmlRootElement = val.(types.String).ValueString()
 		}
-		
+
 		logStreamTypeOptions = &client.LogStreamTypeOptions{
 			JsonArrayEnvelopeField: jsonArrayEnvelopeField,
+			RetainEnvelopeFields:   retainEnvelopeFields,
 			XmlRootElement:         xmlRootElement,
 		}
 	}
