@@ -7,9 +7,7 @@ resource "panther_s3_source" "example_s3_source" {
   kms_key_arn                                  = var.kms_key_arn
   bucket_name                                  = var.bucket_name
   log_stream_type_options = {
-    json_array_envelope_field = var.json_array_envelope_field
-    retain_envelope_fields    = var.retain_envelope_fields
-    xml_root_element          = var.xml_root_element
+    retain_envelope_fields    = true
   }
   prefix_log_types = [{
     excluded_prefixes = []
