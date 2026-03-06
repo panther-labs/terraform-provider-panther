@@ -271,8 +271,6 @@ func (r *S3SourceResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	tflog.Warn(ctx, ">>>>>> 3 USING LOCAL DEV BUILD OF PANTHER PROVIDER <<<<<<")
-
 	source, err := r.client.GetS3Source(ctx, data.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
