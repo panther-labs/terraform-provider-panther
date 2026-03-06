@@ -292,7 +292,10 @@ func (r *S3SourceResource) Read(ctx context.Context, req resource.ReadRequest, r
 	data.BucketName = types.StringValue(source.S3Bucket)
 	data.PrefixLogTypes = prefixLogTypesToModel(source.S3PrefixLogTypes)
 
-	if source.LogStreamTypeOptions != nil && (source.LogStreamTypeOptions.JsonArrayEnvelopeField != nil || source.LogStreamTypeOptions.XmlRootElement != nil || source.LogStreamTypeOptions.RetainEnvelopeFields != nil) {
+	// the grapqhl response always returns a non-nil object for logStreamTypeOptions, so we need to check if the fields are not empty
+	// and only then set the field in our state
+	if source.LogStreamTypeOptions != nil && (source.LogStreamTypeOptions.JsonArrayEnvelopeField != nil || 
+		source.LogStreamTypeOptions.XmlRootElement != nil || source.LogStreamTypeOptions.RetainEnvelopeFields != nil) {
 		attributeTypes := map[string]attr.Type{
 			"json_array_envelope_field": types.StringType,
 			"retain_envelope_fields":    types.BoolType,
