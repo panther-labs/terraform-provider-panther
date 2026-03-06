@@ -127,7 +127,7 @@ func (r *S3SourceResource) Schema(ctx context.Context, req resource.SchemaReques
 					},
 					"retain_envelope_fields": schema.BoolAttribute{
 						Optional:    true,
-						Description: "When enabled, envelope metadata from CloudWatch Logs is preserved in a p_header column on each unpacked event.",
+						Description: "When enabled, envelope metadata from CloudWatch Logs is preserved in a p_header column on each unpacked event (only relevant when stream type is CloudWatchLogs).",
 					},
 					"xml_root_element": schema.StringAttribute{
 						Optional:            true,
