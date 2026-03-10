@@ -135,6 +135,1018 @@
 					}
 				]
 			}
+		},
+		{
+			"name": "policy",
+			"schema": {
+				"attributes": [
+					{
+						"name": "body",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "The python body of the policy"
+						}
+					},
+					{
+						"name": "description",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The description of the policy"
+						}
+					},
+					{
+						"name": "display_name",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The display name of the policy"
+						}
+					},
+					{
+						"name": "enabled",
+						"bool": {
+							"computed_optional_required": "computed_optional",
+							"description": "Determines whether or not the policy is active"
+						}
+					},
+					{
+						"name": "managed",
+						"bool": {
+							"computed_optional_required": "computed_optional",
+							"description": "Determines if the policy is managed by panther"
+						}
+					},
+					{
+						"name": "output_ids",
+						"list": {
+							"computed_optional_required": "computed_optional",
+							"element_type": {
+								"string": {}
+							},
+							"description": "Destination IDs that override default alert routing based on severity"
+						}
+					},
+					{
+						"name": "reports",
+						"map": {
+							"computed_optional_required": "computed_optional",
+							"element_type": {
+								"list": {
+									"element_type": {
+										"string": {}
+									}
+								}
+							},
+							"description": "Reports"
+						}
+					},
+					{
+						"name": "resource_types",
+						"list": {
+							"computed_optional_required": "computed_optional",
+							"element_type": {
+								"string": {}
+							},
+							"description": "Resource types"
+						}
+					},
+					{
+						"name": "severity",
+						"string": {
+							"computed_optional_required": "required",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.OneOf(\n\"INFO\",\n\"LOW\",\n\"MEDIUM\",\n\"HIGH\",\n\"CRITICAL\",\n)"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "suppressions",
+						"list": {
+							"computed_optional_required": "computed_optional",
+							"element_type": {
+								"string": {}
+							},
+							"description": "Resources to ignore via a pattern that matches the resource id"
+						}
+					},
+					{
+						"name": "tags",
+						"list": {
+							"computed_optional_required": "computed_optional",
+							"element_type": {
+								"string": {}
+							},
+							"description": "The tags for the policy"
+						}
+					},
+					{
+						"name": "tests",
+						"list_nested": {
+							"computed_optional_required": "computed_optional",
+							"nested_object": {
+								"attributes": [
+									{
+										"name": "expected_result",
+										"bool": {
+											"computed_optional_required": "required",
+											"description": "The expected result"
+										}
+									},
+									{
+										"name": "mocks",
+										"list": {
+											"computed_optional_required": "computed_optional",
+											"element_type": {
+												"map": {
+													"element_type": {
+														"string": {}
+													}
+												}
+											},
+											"description": "mocks"
+										}
+									},
+									{
+										"name": "name",
+										"string": {
+											"computed_optional_required": "required",
+											"description": "name"
+										}
+									},
+									{
+										"name": "resource",
+										"string": {
+											"computed_optional_required": "required",
+											"description": "resource"
+										}
+									}
+								]
+							},
+							"description": "Unit tests for the Policy. Best practice is to include a positive and negative case"
+						}
+					},
+					{
+						"name": "created_at",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "created_by",
+						"single_nested": {
+							"computed_optional_required": "computed",
+							"attributes": [
+								{
+									"name": "id",
+									"string": {
+										"computed_optional_required": "computed"
+									}
+								},
+								{
+									"name": "type",
+									"string": {
+										"computed_optional_required": "computed"
+									}
+								}
+							],
+							"description": "The actor who created the rule"
+						}
+					},
+					{
+						"name": "created_by_external",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "The text of the user-provided CreatedBy field when uploaded via CI/CD"
+						}
+					},
+					{
+						"name": "last_modified",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					}
+				]
+			}
+		},
+		{
+			"name": "rule",
+			"schema": {
+				"attributes": [
+					{
+						"name": "body",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "The python body of the rule"
+						}
+					},
+					{
+						"name": "dedup_period_minutes",
+						"int64": {
+							"computed_optional_required": "computed_optional",
+							"default": {
+								"static": 60
+							},
+							"description": "The amount of time in minutes for grouping alerts",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+											}
+										],
+										"schema_definition": "int64validator.AtLeast(1)"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "description",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The description of the rule"
+						}
+					},
+					{
+						"name": "display_name",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The display name of the rule"
+						}
+					},
+					{
+						"name": "enabled",
+						"bool": {
+							"computed_optional_required": "computed_optional",
+							"description": "Determines whether or not the rule is active"
+						}
+					},
+					{
+						"name": "inline_filters",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The filter for the rule represented in YAML"
+						}
+					},
+					{
+						"name": "log_types",
+						"list": {
+							"computed_optional_required": "computed_optional",
+							"element_type": {
+								"string": {}
+							},
+							"description": "log types"
+						}
+					},
+					{
+						"name": "managed",
+						"bool": {
+							"computed_optional_required": "computed_optional",
+							"description": "Determines if the rule is managed by panther"
+						}
+					},
+					{
+						"name": "output_ids",
+						"list": {
+							"computed_optional_required": "computed_optional",
+							"element_type": {
+								"string": {}
+							},
+							"description": "Destination IDs that override default alert routing based on severity"
+						}
+					},
+					{
+						"name": "reports",
+						"map": {
+							"computed_optional_required": "computed_optional",
+							"element_type": {
+								"list": {
+									"element_type": {
+										"string": {}
+									}
+								}
+							},
+							"description": "reports"
+						}
+					},
+					{
+						"name": "runbook",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "How to handle the generated alert"
+						}
+					},
+					{
+						"name": "severity",
+						"string": {
+							"computed_optional_required": "required",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.OneOf(\n\"INFO\",\n\"LOW\",\n\"MEDIUM\",\n\"HIGH\",\n\"CRITICAL\",\n)"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "summary_attributes",
+						"list": {
+							"computed_optional_required": "computed_optional",
+							"element_type": {
+								"string": {}
+							},
+							"description": "A list of fields in the event to create top 5 summaries for"
+						}
+					},
+					{
+						"name": "tags",
+						"list": {
+							"computed_optional_required": "computed_optional",
+							"element_type": {
+								"string": {}
+							},
+							"description": "The tags for the rule"
+						}
+					},
+					{
+						"name": "tests",
+						"list_nested": {
+							"computed_optional_required": "computed_optional",
+							"nested_object": {
+								"attributes": [
+									{
+										"name": "expected_result",
+										"bool": {
+											"computed_optional_required": "required",
+											"description": "The expected result"
+										}
+									},
+									{
+										"name": "mocks",
+										"list": {
+											"computed_optional_required": "computed_optional",
+											"element_type": {
+												"map": {
+													"element_type": {
+														"string": {}
+													}
+												}
+											},
+											"description": "mocks"
+										}
+									},
+									{
+										"name": "name",
+										"string": {
+											"computed_optional_required": "required",
+											"description": "name"
+										}
+									},
+									{
+										"name": "resource",
+										"string": {
+											"computed_optional_required": "required",
+											"description": "resource"
+										}
+									}
+								]
+							},
+							"description": "Unit tests for the Rule. Best practice is to include a positive and negative case"
+						}
+					},
+					{
+						"name": "threshold",
+						"int64": {
+							"computed_optional_required": "computed_optional",
+							"default": {
+								"static": 1
+							},
+							"description": "the number of events that must match before an alert is triggered",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+											}
+										],
+										"schema_definition": "int64validator.AtLeast(1)"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "created_at",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "created_by",
+						"single_nested": {
+							"computed_optional_required": "computed",
+							"attributes": [
+								{
+									"name": "id",
+									"string": {
+										"computed_optional_required": "computed"
+									}
+								},
+								{
+									"name": "type",
+									"string": {
+										"computed_optional_required": "computed"
+									}
+								}
+							],
+							"description": "The actor who created the rule"
+						}
+					},
+					{
+						"name": "created_by_external",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "The text of the user-provided CreatedBy field when uploaded via CI/CD"
+						}
+					},
+					{
+						"name": "last_modified",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					}
+				]
+			}
+		},
+		{
+			"name": "scheduled_rule",
+			"schema": {
+				"attributes": [
+					{
+						"name": "body",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "The python body of the scheduled rule"
+						}
+					},
+					{
+						"name": "dedup_period_minutes",
+						"int64": {
+							"computed_optional_required": "computed_optional",
+							"default": {
+								"static": 60
+							},
+							"description": "The amount of time in minutes for grouping alerts",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+											}
+										],
+										"schema_definition": "int64validator.AtLeast(1)"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "description",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The description of the scheduled rule"
+						}
+					},
+					{
+						"name": "display_name",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The display name of the scheduled rule"
+						}
+					},
+					{
+						"name": "enabled",
+						"bool": {
+							"computed_optional_required": "computed_optional",
+							"description": "Determines whether or not the scheduled rule is active"
+						}
+					},
+					{
+						"name": "managed",
+						"bool": {
+							"computed_optional_required": "computed_optional",
+							"description": "Determines if the scheduled rule is managed by panther"
+						}
+					},
+					{
+						"name": "output_ids",
+						"list": {
+							"computed_optional_required": "computed_optional",
+							"element_type": {
+								"string": {}
+							},
+							"description": "Destination IDs that override default alert routing based on severity"
+						}
+					},
+					{
+						"name": "reports",
+						"map": {
+							"computed_optional_required": "computed_optional",
+							"element_type": {
+								"list": {
+									"element_type": {
+										"string": {}
+									}
+								}
+							},
+							"description": "reports"
+						}
+					},
+					{
+						"name": "runbook",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "How to handle the generated alert"
+						}
+					},
+					{
+						"name": "scheduled_queries",
+						"list": {
+							"computed_optional_required": "computed_optional",
+							"element_type": {
+								"string": {}
+							},
+							"description": "the queries that this scheduled rule utilizes"
+						}
+					},
+					{
+						"name": "severity",
+						"string": {
+							"computed_optional_required": "required",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.OneOf(\n\"INFO\",\n\"LOW\",\n\"MEDIUM\",\n\"HIGH\",\n\"CRITICAL\",\n)"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "summary_attributes",
+						"list": {
+							"computed_optional_required": "computed_optional",
+							"element_type": {
+								"string": {}
+							},
+							"description": "A list of fields in the event to create top 5 summaries for"
+						}
+					},
+					{
+						"name": "tags",
+						"list": {
+							"computed_optional_required": "computed_optional",
+							"element_type": {
+								"string": {}
+							},
+							"description": "The tags for the scheduled rule"
+						}
+					},
+					{
+						"name": "tests",
+						"list_nested": {
+							"computed_optional_required": "computed_optional",
+							"nested_object": {
+								"attributes": [
+									{
+										"name": "expected_result",
+										"bool": {
+											"computed_optional_required": "required",
+											"description": "The expected result"
+										}
+									},
+									{
+										"name": "mocks",
+										"list": {
+											"computed_optional_required": "computed_optional",
+											"element_type": {
+												"map": {
+													"element_type": {
+														"string": {}
+													}
+												}
+											},
+											"description": "mocks"
+										}
+									},
+									{
+										"name": "name",
+										"string": {
+											"computed_optional_required": "required",
+											"description": "name"
+										}
+									},
+									{
+										"name": "resource",
+										"string": {
+											"computed_optional_required": "required",
+											"description": "resource"
+										}
+									}
+								]
+							},
+							"description": "Unit tests for the Rule. Best practice is to include a positive and negative case"
+						}
+					},
+					{
+						"name": "threshold",
+						"int64": {
+							"computed_optional_required": "computed_optional",
+							"default": {
+								"static": 1
+							},
+							"description": "the number of events that must match before an alert is triggered",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+											}
+										],
+										"schema_definition": "int64validator.AtLeast(1)"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "created_at",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "created_by",
+						"single_nested": {
+							"computed_optional_required": "computed",
+							"attributes": [
+								{
+									"name": "id",
+									"string": {
+										"computed_optional_required": "computed"
+									}
+								},
+								{
+									"name": "type",
+									"string": {
+										"computed_optional_required": "computed"
+									}
+								}
+							],
+							"description": "The actor who created the rule"
+						}
+					},
+					{
+						"name": "created_by_external",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "The text of the user-provided CreatedBy field when uploaded via CI/CD"
+						}
+					},
+					{
+						"name": "last_modified",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					}
+				]
+			}
+		},
+		{
+			"name": "simple_rule",
+			"schema": {
+				"attributes": [
+					{
+						"name": "alert_context",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The alert context represented in YAML"
+						}
+					},
+					{
+						"name": "alert_title",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The alert title represented in YAML"
+						}
+					},
+					{
+						"name": "dedup_period_minutes",
+						"int64": {
+							"computed_optional_required": "computed_optional",
+							"default": {
+								"static": 60
+							},
+							"description": "The amount of time in minutes for grouping alerts",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+											}
+										],
+										"schema_definition": "int64validator.AtLeast(1)"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "description",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The description of the rule"
+						}
+					},
+					{
+						"name": "detection",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "The yaml representation of the rule"
+						}
+					},
+					{
+						"name": "display_name",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The display name of the rule"
+						}
+					},
+					{
+						"name": "dynamic_severities",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The dynamic severity represented in YAML"
+						}
+					},
+					{
+						"name": "enabled",
+						"bool": {
+							"computed_optional_required": "computed_optional",
+							"description": "Determines whether or not the rule is active"
+						}
+					},
+					{
+						"name": "group_by",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The key on an event to group by represented in YAML"
+						}
+					},
+					{
+						"name": "inline_filters",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The filter for the rule represented in YAML"
+						}
+					},
+					{
+						"name": "log_types",
+						"list": {
+							"computed_optional_required": "computed_optional",
+							"element_type": {
+								"string": {}
+							},
+							"description": "log types"
+						}
+					},
+					{
+						"name": "managed",
+						"bool": {
+							"computed_optional_required": "computed_optional",
+							"description": "Determines if the simple rule is managed by panther"
+						}
+					},
+					{
+						"name": "output_ids",
+						"list": {
+							"computed_optional_required": "computed_optional",
+							"element_type": {
+								"string": {}
+							},
+							"description": "Destination IDs that override default alert routing based on severity"
+						}
+					},
+					{
+						"name": "python_body",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The python body of the rule"
+						}
+					},
+					{
+						"name": "reports",
+						"map": {
+							"computed_optional_required": "computed_optional",
+							"element_type": {
+								"list": {
+									"element_type": {
+										"string": {}
+									}
+								}
+							},
+							"description": "reports"
+						}
+					},
+					{
+						"name": "runbook",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "How to handle the generated alert"
+						}
+					},
+					{
+						"name": "severity",
+						"string": {
+							"computed_optional_required": "required",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.OneOf(\n\"INFO\",\n\"LOW\",\n\"MEDIUM\",\n\"HIGH\",\n\"CRITICAL\",\n)"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "summary_attributes",
+						"list": {
+							"computed_optional_required": "computed_optional",
+							"element_type": {
+								"string": {}
+							},
+							"description": "A list of fields in the event to create top 5 summaries for"
+						}
+					},
+					{
+						"name": "tags",
+						"list": {
+							"computed_optional_required": "computed_optional",
+							"element_type": {
+								"string": {}
+							},
+							"description": "The tags for the simple rule"
+						}
+					},
+					{
+						"name": "tests",
+						"list_nested": {
+							"computed_optional_required": "computed_optional",
+							"nested_object": {
+								"attributes": [
+									{
+										"name": "expected_result",
+										"bool": {
+											"computed_optional_required": "required",
+											"description": "The expected result"
+										}
+									},
+									{
+										"name": "mocks",
+										"list": {
+											"computed_optional_required": "computed_optional",
+											"element_type": {
+												"map": {
+													"element_type": {
+														"string": {}
+													}
+												}
+											},
+											"description": "mocks"
+										}
+									},
+									{
+										"name": "name",
+										"string": {
+											"computed_optional_required": "required",
+											"description": "name"
+										}
+									},
+									{
+										"name": "resource",
+										"string": {
+											"computed_optional_required": "required",
+											"description": "resource"
+										}
+									}
+								]
+							},
+							"description": "Unit tests for the Rule. Best practice is to include a positive and negative case"
+						}
+					},
+					{
+						"name": "threshold",
+						"int64": {
+							"computed_optional_required": "computed_optional",
+							"default": {
+								"static": 1
+							},
+							"description": "the number of events that must match before an alert is triggered",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+											}
+										],
+										"schema_definition": "int64validator.AtLeast(1)"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "created_at",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "created_by",
+						"single_nested": {
+							"computed_optional_required": "computed",
+							"attributes": [
+								{
+									"name": "id",
+									"string": {
+										"computed_optional_required": "computed"
+									}
+								},
+								{
+									"name": "type",
+									"string": {
+										"computed_optional_required": "computed"
+									}
+								}
+							],
+							"description": "The actor who created the rule"
+						}
+					},
+					{
+						"name": "created_by_external",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "The text of the user-provided CreatedBy field when uploaded via CI/CD"
+						}
+					},
+					{
+						"name": "last_modified",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "includepython",
+						"bool": {
+							"computed_optional_required": "computed_optional",
+							"default": {
+								"static": false
+							},
+							"description": "determines if associated python for the generated rule is returned"
+						}
+					}
+				]
+			}
 		}
 	],
 	"version": "0.1"
