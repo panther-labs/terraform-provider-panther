@@ -152,7 +152,7 @@ func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequ
 	}
 
 	if !data.LogStreamTypeOptions.IsNull() {
-		input.HttpSourceModifiableAttributes.LogStreamTypeOptions = &client.LogStreamTypeOptions{
+		input.HttpSourceModifiableAttributes.LogStreamTypeOptions = &client.HttpLogStreamTypeOptions{
 			JsonArrayEnvelopeField: data.LogStreamTypeOptions.JsonArrayEnvelopeField.ValueString(),
 			XmlRootElement:         data.LogStreamTypeOptions.XmlRootElement.ValueString(),
 		}
@@ -256,7 +256,7 @@ func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequ
 	}
 
 	if !data.LogStreamTypeOptions.IsNull() {
-		input.HttpSourceModifiableAttributes.LogStreamTypeOptions = &client.LogStreamTypeOptions{
+		input.HttpSourceModifiableAttributes.LogStreamTypeOptions = &client.HttpLogStreamTypeOptions{
 			JsonArrayEnvelopeField: data.LogStreamTypeOptions.JsonArrayEnvelopeField.ValueString(),
 			XmlRootElement:         data.LogStreamTypeOptions.XmlRootElement.ValueString(),
 		}

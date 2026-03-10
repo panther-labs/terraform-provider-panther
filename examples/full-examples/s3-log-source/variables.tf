@@ -24,9 +24,35 @@ variable "bucket_name" {
   type        = string
 }
 
+variable "log_stream_type" {
+  description = "The type of log stream (e.g. Lines, JsonArray, CloudWatchLogs, XML)"
+  type        = string
+}
+
+variable "kms_key_arn" {
+  description = "ARN of the KMS key used to encrypt the S3 bucket"
+  type        = string
+}
+
+variable "log_types" {
+  description = "List of log types for the prefix"
+  type        = list(string)
+}
+
+variable "prefix" {
+  description = "S3 prefix to filter logs"
+  type        = string
+}
+
 variable "json_array_envelope_field" {
   description = "Path to the array value to extract elements from, only applicable if logStreamType is JsonArray. Leave empty if the input JSON is an array itself"
   type        = string
+}
+
+variable "retain_envelope_fields" {
+  description = "When enabled, envelope metadata from CloudWatch Logs is preserved in a p_header column on each unpacked event."
+  type        = bool
+  default     = false
 }
 
 variable "xml_root_element" {

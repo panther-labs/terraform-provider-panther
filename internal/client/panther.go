@@ -135,6 +135,13 @@ type HttpSource struct {
 
 // LogStreamTypeOptions contains options specific to the log stream type
 type LogStreamTypeOptions struct {
+	JsonArrayEnvelopeField *string `json:"jsonArrayEnvelopeField,omitempty"`
+	RetainEnvelopeFields   *bool   `json:"retainEnvelopeFields,omitempty"`
+	XmlRootElement         *string `json:"xmlRootElement,omitempty"`
+}
+
+// HttpLogStreamTypeOptions contains options specific to the log stream type for HTTP sources
+type HttpLogStreamTypeOptions struct {
 	JsonArrayEnvelopeField string `json:"jsonArrayEnvelopeField,omitempty"`
 	XmlRootElement         string `json:"xmlRootElement,omitempty"`
 }
@@ -144,7 +151,7 @@ type HttpSourceModifiableAttributes struct {
 	IntegrationLabel     string
 	LogStreamType        string
 	LogTypes             []string
-	LogStreamTypeOptions *LogStreamTypeOptions
+	LogStreamTypeOptions *HttpLogStreamTypeOptions
 	AuthHmacAlg          string
 	AuthHeaderKey        string
 	AuthPassword         string
