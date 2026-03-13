@@ -9,3 +9,7 @@
 .tool-versions
 
 .claude/settings.local.json
+
+# Test environment variables and local test data (may contain secrets)
+.env*
+.test*/
