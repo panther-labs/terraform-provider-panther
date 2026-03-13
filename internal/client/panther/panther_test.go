@@ -12,7 +12,7 @@ func TestCreateAPIClient_CustomURLWithGraphEndpoint(t *testing.T) {
 	client := *CreateAPIClient(url, "token")
 	graphUrl := reflect.ValueOf(client).FieldByIndex([]int{0}).Elem().FieldByName("url").String()
 	assert.Equal(t, "panther-url/public/graphql", graphUrl)
-	assert.Equal(t, "panther-url/log-sources/http", client.RestClient.url)
+	assert.Equal(t, "panther-url", client.RestClient.baseURL)
 }
 
 // Customer with custom url that provides the panther root url (new behavior)
@@ -21,7 +21,7 @@ func TestCreateAPIClient_CustomUrlWithBaseUrl(t *testing.T) {
 	client := *CreateAPIClient(url, "token")
 	graphUrl := reflect.ValueOf(client).FieldByIndex([]int{0}).Elem().FieldByName("url").String()
 	assert.Equal(t, "panther-url/public/graphql", graphUrl)
-	assert.Equal(t, "panther-url/log-sources/http", client.RestClient.url)
+	assert.Equal(t, "panther-url", client.RestClient.baseURL)
 }
 
 // Customer with API Gateway url that provides the graphql endpoint (legacy behavior)
@@ -30,7 +30,7 @@ func TestCreateAPIClient_ApiGWUrlWithGraphEndpoint(t *testing.T) {
 	client := *CreateAPIClient(url, "token")
 	graphUrl := reflect.ValueOf(client).FieldByIndex([]int{0}).Elem().FieldByName("url").String()
 	assert.Equal(t, "panther-url/v1/public/graphql", graphUrl)
-	assert.Equal(t, "panther-url/v1/log-sources/http", client.RestClient.url)
+	assert.Equal(t, "panther-url/v1", client.RestClient.baseURL)
 }
 
 // Customer with API Gateway url that provides the panther root url (new behavior)
@@ -39,5 +39,5 @@ func TestCreateAPIClient_ApiGWUrlWithBaseUrl(t *testing.T) {
 	client := *CreateAPIClient(url, "token")
 	graphUrl := reflect.ValueOf(client).FieldByIndex([]int{0}).Elem().FieldByName("url").String()
 	assert.Equal(t, "panther-url/v1/public/graphql", graphUrl)
-	assert.Equal(t, "panther-url/v1/log-sources/http", client.RestClient.url)
+	assert.Equal(t, "panther-url/v1", client.RestClient.baseURL)
 }

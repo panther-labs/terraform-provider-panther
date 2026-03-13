@@ -37,5 +37,8 @@ func NewAuthorizedHTTPClient(token string) *AuthorizedHTTPClient {
 
 func (c *AuthorizedHTTPClient) Do(req *http.Request) (*http.Response, error) {
 	req.Header.Add("X-API-Key", c.token)
+	if req.Body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
 	return c.Client.Do(req)
 }
