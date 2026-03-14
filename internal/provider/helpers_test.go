@@ -17,9 +17,16 @@ limitations under the License.
 package provider
 
 import (
+	"context"
+	"fmt"
+	"net/http"
 	"testing"
 
+	"terraform-provider-panther/internal/client"
+
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -42,4 +49,59 @@ func TestProviderClients_WrongType(t *testing.T) {
 	assert.Nil(t, c)
 	assert.True(t, resp.Diagnostics.HasError())
 	assert.Contains(t, resp.Diagnostics.Errors()[0].Summary(), "Unexpected Resource Configure Type")
+}
+
+func TestHandleReadError_Nil(t *testing.T) {
+	resp := &resource.ReadResponse{}
+	handled := handleReadError(context.Background(), resp, "Test", "id-1", nil)
+	assert.False(t, handled)
+	assert.False(t, resp.Diagnostics.HasError())
+}
+
+func TestHandleReadError_NotFound(t *testing.T) {
+	resp := &resource.ReadResponse{}
+	// Initialize state with a minimal schema so RemoveResource doesn't panic
+	resp.State = tfsdk.State{
+		Schema: schema.Schema{
+			Attributes: map[string]schema.Attribute{
+				"id": schema.StringAttribute{Computed: true},
+			},
+		},
+	}
+	err := &client.APIError{StatusCode: http.StatusNotFound, Message: "not found"}
+	handled := handleReadError(context.Background(), resp, "Test", "id-1", err)
+	assert.True(t, handled)
+	assert.False(t, resp.Diagnostics.HasError()) // 404 removes from state, not an error diagnostic
+}
+
+func TestHandleReadError_OtherError(t *testing.T) {
+	resp := &resource.ReadResponse{}
+	err := fmt.Errorf("connection refused")
+	handled := handleReadError(context.Background(), resp, "Test", "id-1", err)
+	assert.True(t, handled)
+	assert.True(t, resp.Diagnostics.HasError())
+	assert.Contains(t, resp.Diagnostics.Errors()[0].Summary(), "Error reading Test")
+}
+
+func TestHandleDeleteError_Nil(t *testing.T) {
+	resp := &resource.DeleteResponse{}
+	handled := handleDeleteError(resp, "Test", "id-1", nil)
+	assert.False(t, handled)
+}
+
+func TestHandleDeleteError_NotFound(t *testing.T) {
+	resp := &resource.DeleteResponse{}
+	err := &client.APIError{StatusCode: http.StatusNotFound, Message: "not found"}
+	handled := handleDeleteError(resp, "Test", "id-1", err)
+	assert.False(t, handled) // 404 on delete = success, not handled as error
+	assert.False(t, resp.Diagnostics.HasError())
+}
+
+func TestHandleDeleteError_OtherError(t *testing.T) {
+	resp := &resource.DeleteResponse{}
+	err := fmt.Errorf("connection refused")
+	handled := handleDeleteError(resp, "Test", "id-1", err)
+	assert.True(t, handled)
+	assert.True(t, resp.Diagnostics.HasError())
+	assert.Contains(t, resp.Diagnostics.Errors()[0].Summary(), "Error deleting Test")
 }

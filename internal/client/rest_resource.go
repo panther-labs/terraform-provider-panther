@@ -61,6 +61,12 @@ type RESTClient struct {
 //	CreateIn — the input type for Create (e.g. CreatePubSubSourceInput)
 //	UpdateIn — the input type for Update (e.g. UpdatePubSubSourceInput)
 //	Resp     — the response type from Create/Get/Update (e.g. PubSubSource)
+//
+// Conventions assumed: POST (201) for Create, GET (200) for Read, PUT (200) for
+// Update, DELETE (204) for Delete, with a single path-segment ID. If a future
+// resource diverges (e.g. PATCH updates, 202 async creates, composite URLs),
+// extend via functional options on NewRESTResource or call restDo/restDelete
+// directly — those helpers have no opinion on method, URL shape, or status code.
 type RESTResource[CreateIn, UpdateIn, Resp any] struct {
 	client   *RESTClient
 	path     string // relative path, e.g. "/log-sources/pubsub"
