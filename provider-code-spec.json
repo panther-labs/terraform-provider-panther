@@ -135,6 +135,120 @@
 					}
 				]
 			}
+		},
+		{
+			"name": "pubsubsource",
+			"schema": {
+				"attributes": [
+					{
+						"name": "credentials",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The GCP credentials JSON content (service account key or WIF config). Required on create, optional on update."
+						}
+					},
+					{
+						"name": "enforced_regional_endpoint",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Optional regional endpoint override (e.g. europe-west3). If not set, the global endpoint is used."
+						}
+					},
+					{
+						"name": "integration_label",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "The integration label (name)"
+						}
+					},
+					{
+						"name": "log_stream_type",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "The log stream type. Supported log stream types: Auto, JSON, JsonArray, Lines, CloudWatchLogs, XML",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.OneOf(\n\"Auto\",\n\"JSON\",\n\"JsonArray\",\n\"Lines\",\n\"CloudWatchLogs\",\n\"XML\",\n)"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "log_stream_type_options",
+						"single_nested": {
+							"computed_optional_required": "computed_optional",
+							"attributes": [
+								{
+									"name": "json_array_envelope_field",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "Path to the array value to extract elements from, only applicable if logStreamType is JsonArray. Leave empty if the input JSON is an array itself"
+									}
+								},
+								{
+									"name": "xml_root_element",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "The root element name for XML streams, only applicable if logStreamType is XML. Leave empty if the XML events are not enclosed in a root element"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "log_types",
+						"list": {
+							"computed_optional_required": "required",
+							"element_type": {
+								"string": {}
+							},
+							"description": "The log types for parsing ingested data"
+						}
+					},
+					{
+						"name": "project_id",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "The GCP project ID containing the Pub/Sub subscription"
+						}
+					},
+					{
+						"name": "subscription_id",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "The GCP Pub/Sub subscription ID"
+						}
+					},
+					{
+						"name": "credentials_type",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "The type of credentials: service_account or external_account. Read-only, derived from credentials."
+						}
+					},
+					{
+						"name": "user_email",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "The email associated with the credentials. For service accounts, this is the client_email from the keyfile. Read-only, derived from credentials."
+						}
+					},
+					{
+						"name": "id",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "ID of the pubsub source to fetch"
+						}
+					}
+				]
+			}
 		}
 	],
 	"version": "0.1"

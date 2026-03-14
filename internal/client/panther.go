@@ -32,6 +32,11 @@ type RestClient interface {
 	UpdateHttpSource(ctx context.Context, input UpdateHttpSourceInput) (HttpSource, error)
 	GetHttpSource(ctx context.Context, id string) (HttpSource, error)
 	DeleteHttpSource(ctx context.Context, id string) error
+
+	CreatePubSubSource(ctx context.Context, input CreatePubSubSourceInput) (PubSubSource, error)
+	UpdatePubSubSource(ctx context.Context, input UpdatePubSubSourceInput) (PubSubSource, error)
+	GetPubSubSource(ctx context.Context, id string) (PubSubSource, error)
+	DeletePubSubSource(ctx context.Context, id string) error
 }
 
 // CreateS3SourceInput Input for the createS3LogSource mutation
@@ -174,4 +179,41 @@ type UpdateHttpSourceInput struct {
 
 type HttpErrorResponse struct {
 	Message string
+}
+
+// PubSubSource represents a GCP Pub/Sub log source integration (API response)
+type PubSubSource struct {
+	IntegrationId   string `json:"integrationId"`
+	CredentialsType string `json:"credentialsType"`
+	UserEmail       string `json:"userEmail"`
+	PubSubSourceModifiableAttributes
+}
+
+// PubSubSourceModifiableAttributes attributes that can be modified on a Pub/Sub log source
+type PubSubSourceModifiableAttributes struct {
+	IntegrationLabel         string                      `json:"integrationLabel"`
+	SubscriptionId           string                      `json:"subscriptionId"`
+	ProjectId                string                      `json:"projectId"`
+	Credentials              string                      `json:"credentials,omitempty"`
+	LogTypes                 []string                    `json:"logTypes"`
+	LogStreamType            string                      `json:"logStreamType"`
+	LogStreamTypeOptions     *PubSubLogStreamTypeOptions `json:"logStreamTypeOptions,omitempty"`
+	EnforcedRegionalEndpoint string                      `json:"enforcedRegionalEndpoint,omitempty"`
+}
+
+// PubSubLogStreamTypeOptions contains options specific to the log stream type for Pub/Sub sources
+type PubSubLogStreamTypeOptions struct {
+	JsonArrayEnvelopeField string `json:"jsonArrayEnvelopeField,omitempty"`
+	XmlRootElement         string `json:"xmlRootElement,omitempty"`
+}
+
+// CreatePubSubSourceInput input for creating a Pub/Sub log source
+type CreatePubSubSourceInput struct {
+	PubSubSourceModifiableAttributes
+}
+
+// UpdatePubSubSourceInput input for updating a Pub/Sub log source
+type UpdatePubSubSourceInput struct {
+	IntegrationId string `json:"-"`
+	PubSubSourceModifiableAttributes
 }
