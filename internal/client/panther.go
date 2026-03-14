@@ -185,6 +185,7 @@ type HttpErrorResponse struct {
 type PubSubSource struct {
 	IntegrationId   string `json:"integrationId"`
 	CredentialsType string `json:"credentialsType"`
+	UserEmail       string `json:"userEmail"`
 	PubSubSourceModifiableAttributes
 }
 

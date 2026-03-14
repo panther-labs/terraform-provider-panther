@@ -71,6 +71,11 @@ func (r *pubsubsourceResource) Schema(ctx context.Context, req resource.SchemaRe
 	credentialsType.PlanModifiers = append(credentialsType.PlanModifiers, stringplanmodifier.UseStateForUnknown())
 	resp.Schema.Attributes["credentials_type"] = credentialsType
 
+	// user_email: UseStateForUnknown — server-derived from credentials, stable after create
+	userEmail := resp.Schema.Attributes["user_email"].(schema.StringAttribute)
+	userEmail.PlanModifiers = append(userEmail.PlanModifiers, stringplanmodifier.UseStateForUnknown())
+	resp.Schema.Attributes["user_email"] = userEmail
+
 	// enforced_regional_endpoint: default "" to avoid unknown when not set
 	enforcedRegionalEndpoint := resp.Schema.Attributes["enforced_regional_endpoint"].(schema.StringAttribute)
 	enforcedRegionalEndpoint.Default = stringdefault.StaticString("")
@@ -150,6 +155,7 @@ func (r *pubsubsourceResource) Create(ctx context.Context, req resource.CreateRe
 	// Set server-assigned computed fields from the API response
 	data.Id = types.StringValue(pubsubSource.IntegrationId)
 	data.CredentialsType = types.StringValue(pubsubSource.CredentialsType)
+	data.UserEmail = types.StringValue(pubsubSource.UserEmail)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -181,6 +187,7 @@ func (r *pubsubsourceResource) Read(ctx context.Context, req resource.ReadReques
 	data.SubscriptionId = types.StringValue(pubsubSource.SubscriptionId)
 	data.ProjectId = types.StringValue(pubsubSource.ProjectId)
 	data.CredentialsType = types.StringValue(pubsubSource.CredentialsType)
+	data.UserEmail = types.StringValue(pubsubSource.UserEmail)
 	data.LogTypes = convertFromLogTypes(ctx, pubsubSource.LogTypes, resp.Diagnostics)
 	data.LogStreamType = types.StringValue(pubsubSource.LogStreamType)
 	data.EnforcedRegionalEndpoint = types.StringValue(pubsubSource.EnforcedRegionalEndpoint)
@@ -241,6 +248,7 @@ func (r *pubsubsourceResource) Update(ctx context.Context, req resource.UpdateRe
 
 	// Use API response for server-computed fields (credentials_type may change if credentials changed)
 	data.CredentialsType = types.StringValue(pubsubSource.CredentialsType)
+	data.UserEmail = types.StringValue(pubsubSource.UserEmail)
 
 	// Save plan data to state (not full API response — credentials would be lost)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
