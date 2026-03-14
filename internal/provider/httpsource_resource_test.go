@@ -23,7 +23,6 @@ import (
 	"os"
 	"regexp"
 	"strings"
-	"terraform-provider-panther/internal/client/panther"
 	"testing"
 	"time"
 
@@ -127,7 +126,7 @@ func manuallyDeleteSource(t *testing.T) resource.TestCheckFunc {
 		if httpSource.Primary.ID == "" {
 			return errors.New("http source ID is not set")
 		}
-		url := os.Getenv("PANTHER_API_URL") + panther.RestHttpSourcePath + "/" + httpSource.Primary.ID
+		url := os.Getenv("PANTHER_API_URL") + httpSourcePath + "/" + httpSource.Primary.ID
 		client := http.DefaultClient
 		req, err := http.NewRequest(http.MethodDelete, url, nil)
 		if err != nil {

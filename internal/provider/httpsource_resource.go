@@ -21,11 +21,9 @@ import (
 	"fmt"
 	"strings"
 	"terraform-provider-panther/internal/client"
-	"terraform-provider-panther/internal/client/panther"
 	"terraform-provider-panther/internal/provider/resource_httpsource"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -35,6 +33,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
+
+const httpSourcePath = "/log-sources/http"
 
 var (
 	_ resource.Resource              = (*httpsourceResource)(nil)
@@ -46,7 +46,7 @@ func NewHttpsourceResource() resource.Resource {
 }
 
 type httpsourceResource struct {
-	client client.RestClient
+	api *client.RESTResource[client.CreateHttpSourceInput, client.UpdateHttpSourceInput, client.HttpSource]
 }
 
 func (r *httpsourceResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -113,23 +113,14 @@ func (r *httpsourceResource) Schema(ctx context.Context, req resource.SchemaRequ
 }
 
 func (r *httpsourceResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	// Prevent panic if the provider has not been configured.
-	if req.ProviderData == nil {
+	c := providerClients(req, resp)
+	if c == nil {
 		return
 	}
-
-	c, ok := req.ProviderData.(*panther.APIClient)
-
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *panther.APIClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-		)
-
-		return
-	}
-
-	r.client = c.RestClient
+	r.api = client.NewRESTResource[client.CreateHttpSourceInput, client.UpdateHttpSourceInput, client.HttpSource](
+		c.REST, httpSourcePath,
+		func(u client.UpdateHttpSourceInput) string { return u.IntegrationId },
+	)
 }
 
 func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -162,7 +153,7 @@ func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequ
 		}
 	}
 
-	httpSource, err := r.client.CreateHttpSource(ctx, input)
+	httpSource, err := r.api.Create(ctx, input)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error creating HTTP Source",
@@ -189,7 +180,7 @@ func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest,
 		return
 	}
 
-	httpSource, err := r.client.GetHttpSource(ctx, data.Id.ValueString())
+	httpSource, err := r.api.Get(ctx, data.Id.ValueString())
 	if err != nil {
 		if strings.Contains(err.Error(), "status: 404") {
 			tflog.Warn(ctx, fmt.Sprintf("HTTP Source %s not found, removing from state", data.Id.ValueString()))
@@ -271,7 +262,7 @@ func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequ
 		}
 	}
 
-	_, err := r.client.UpdateHttpSource(ctx, input)
+	_, err := r.api.Update(ctx, input)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating HTTP Source",
@@ -297,7 +288,7 @@ func (r *httpsourceResource) Delete(ctx context.Context, req resource.DeleteRequ
 		return
 	}
 
-	err := r.client.DeleteHttpSource(ctx, data.Id.ValueString())
+	err := r.api.Delete(ctx, data.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error deleting HTTP Source",
@@ -312,16 +303,4 @@ func (r *httpsourceResource) Delete(ctx context.Context, req resource.DeleteRequ
 
 func (r *httpsourceResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
-}
-
-func convertLogTypes(ctx context.Context, logTypes types.List) []string {
-	var result []string
-	logTypes.ElementsAs(ctx, &result, false)
-	return result
-}
-
-func convertFromLogTypes(ctx context.Context, logTypes []string, diagnostics diag.Diagnostics) types.List {
-	from, d := types.ListValueFrom(ctx, types.StringType, logTypes)
-	diagnostics.Append(d...)
-	return from
 }

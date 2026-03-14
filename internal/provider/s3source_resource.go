@@ -18,14 +18,11 @@ package provider
 
 import (
 	"context"
-	"fmt"
 	"regexp"
-	"strings"
-	"terraform-provider-panther/internal/client/panther"
+	"terraform-provider-panther/internal/client"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
-
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -36,9 +33,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-
-	"terraform-provider-panther/internal/client"
-
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
@@ -185,23 +179,11 @@ To manage the notification-related infrastructure through terraform, refer to [t
 }
 
 func (r *S3SourceResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	// Prevent panic if the provider has not been configured.
-	if req.ProviderData == nil {
+	c := providerClients(req, resp)
+	if c == nil {
 		return
 	}
-
-	c, ok := req.ProviderData.(*panther.APIClient)
-
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *panther.APIClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-		)
-
-		return
-	}
-
-	r.client = c.GraphQLClient
+	r.client = c.GraphQL
 }
 
 func (r *S3SourceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

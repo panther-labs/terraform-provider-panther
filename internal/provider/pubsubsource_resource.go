@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"strings"
 	"terraform-provider-panther/internal/client"
-	"terraform-provider-panther/internal/client/panther"
 	"terraform-provider-panther/internal/provider/resource_pubsubsource"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -35,6 +34,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
+const pubsubSourcePath = "/log-sources/pubsub"
+
 var (
 	_ resource.Resource              = (*pubsubsourceResource)(nil)
 	_ resource.ResourceWithConfigure = (*pubsubsourceResource)(nil)
@@ -45,7 +46,7 @@ func NewPubsubsourceResource() resource.Resource {
 }
 
 type pubsubsourceResource struct {
-	client client.RestClient
+	api *client.RESTResource[client.CreatePubSubSourceInput, client.UpdatePubSubSourceInput, client.PubSubSource]
 }
 
 func (r *pubsubsourceResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -100,20 +101,14 @@ func (r *pubsubsourceResource) Schema(ctx context.Context, req resource.SchemaRe
 }
 
 func (r *pubsubsourceResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	if req.ProviderData == nil {
+	c := providerClients(req, resp)
+	if c == nil {
 		return
 	}
-
-	c, ok := req.ProviderData.(*panther.APIClient)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *panther.APIClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-		)
-		return
-	}
-
-	r.client = c.RestClient
+	r.api = client.NewRESTResource[client.CreatePubSubSourceInput, client.UpdatePubSubSourceInput, client.PubSubSource](
+		c.REST, pubsubSourcePath,
+		func(u client.UpdatePubSubSourceInput) string { return u.IntegrationId },
+	)
 }
 
 func (r *pubsubsourceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -138,7 +133,7 @@ func (r *pubsubsourceResource) Create(ctx context.Context, req resource.CreateRe
 
 	input.PubSubSourceModifiableAttributes.LogStreamTypeOptions = pubsubLogStreamTypeOptions(data.LogStreamTypeOptions)
 
-	pubsubSource, err := r.client.CreatePubSubSource(ctx, input)
+	pubsubSource, err := r.api.Create(ctx, input)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error creating Pub/Sub Source",
@@ -168,7 +163,7 @@ func (r *pubsubsourceResource) Read(ctx context.Context, req resource.ReadReques
 		return
 	}
 
-	pubsubSource, err := r.client.GetPubSubSource(ctx, data.Id.ValueString())
+	pubsubSource, err := r.api.Get(ctx, data.Id.ValueString())
 	if err != nil {
 		if strings.Contains(err.Error(), "status: 404") {
 			tflog.Warn(ctx, fmt.Sprintf("Pub/Sub Source %s not found, removing from state", data.Id.ValueString()))
@@ -240,7 +235,7 @@ func (r *pubsubsourceResource) Update(ctx context.Context, req resource.UpdateRe
 
 	input.PubSubSourceModifiableAttributes.LogStreamTypeOptions = pubsubLogStreamTypeOptions(data.LogStreamTypeOptions)
 
-	_, err := r.client.UpdatePubSubSource(ctx, input)
+	pubsubSource, err := r.api.Update(ctx, input)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating Pub/Sub Source",
@@ -263,7 +258,7 @@ func (r *pubsubsourceResource) Delete(ctx context.Context, req resource.DeleteRe
 		return
 	}
 
-	err := r.client.DeletePubSubSource(ctx, data.Id.ValueString())
+	err := r.api.Delete(ctx, data.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error deleting Pub/Sub Source",

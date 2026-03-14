@@ -1,0 +1,164 @@
+/*
+Copyright 2023 Panther Labs, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package client
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+)
+
+// Doer abstracts HTTP request execution for testability.
+type Doer interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
+// RESTClient holds the shared HTTP transport and base URL for REST API calls.
+type RESTClient struct {
+	Doer    Doer
+	BaseURL string
+}
+
+// RESTResource provides typed CRUD operations for a single REST API resource.
+// Type parameters:
+//
+//	CreateIn — the input type for Create (e.g. CreatePubSubSourceInput)
+//	UpdateIn — the input type for Update (e.g. UpdatePubSubSourceInput)
+//	Resp     — the response type from Create/Get/Update (e.g. PubSubSource)
+type RESTResource[CreateIn, UpdateIn, Resp any] struct {
+	client   *RESTClient
+	path     string // relative path, e.g. "/log-sources/pubsub"
+	updateID func(UpdateIn) string
+}
+
+// NewRESTResource constructs a RESTResource for a specific API endpoint.
+// The path is relative to the RESTClient's BaseURL.
+func NewRESTResource[CreateIn, UpdateIn, Resp any](
+	rc *RESTClient,
+	path string,
+	updateID func(UpdateIn) string,
+) *RESTResource[CreateIn, UpdateIn, Resp] {
+	return &RESTResource[CreateIn, UpdateIn, Resp]{
+		client:   rc,
+		path:     path,
+		updateID: updateID,
+	}
+}
+
+func (r *RESTResource[C, U, Resp]) url(segments ...string) string {
+	u := r.client.BaseURL + r.path
+	for _, s := range segments {
+		u += "/" + s
+	}
+	return u
+}
+
+func (r *RESTResource[C, U, Resp]) Create(ctx context.Context, input C) (Resp, error) {
+	return restDo[Resp](ctx, r.client.Doer, http.MethodPost, r.url(), http.StatusCreated, input)
+}
+
+func (r *RESTResource[C, U, Resp]) Get(ctx context.Context, id string) (Resp, error) {
+	return restDo[Resp](ctx, r.client.Doer, http.MethodGet, r.url(id), http.StatusOK, nil)
+}
+
+func (r *RESTResource[C, U, Resp]) Update(ctx context.Context, input U) (Resp, error) {
+	return restDo[Resp](ctx, r.client.Doer, http.MethodPut, r.url(r.updateID(input)), http.StatusOK, input)
+}
+
+func (r *RESTResource[C, U, Resp]) Delete(ctx context.Context, id string) error {
+	return restDelete(ctx, r.client.Doer, r.url(id))
+}
+
+// restDo is a generic helper that handles the common REST pattern:
+// marshal request body → send HTTP request → check status → unmarshal typed response.
+func restDo[Resp any](ctx context.Context, doer Doer, method, url string, expectedStatus int, body any) (Resp, error) {
+	var zero Resp
+	var reqBody io.Reader
+	if body != nil {
+		jsonData, err := json.Marshal(body)
+		if err != nil {
+			return zero, fmt.Errorf("error marshaling data: %w", err)
+		}
+		reqBody = bytes.NewReader(jsonData)
+	}
+	req, err := http.NewRequestWithContext(ctx, method, url, reqBody)
+	if err != nil {
+		return zero, fmt.Errorf("failed to create http request: %w", err)
+	}
+	resp, err := doer.Do(req)
+	if err != nil {
+		return zero, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != expectedStatus {
+		return zero, fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, getErrorResponseMsg(resp))
+	}
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return zero, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	var response Resp
+	if err = json.Unmarshal(respBody, &response); err != nil {
+		return zero, fmt.Errorf("failed to unmarshal response body: %w", err)
+	}
+
+	return response, nil
+}
+
+// restDelete is a helper for DELETE requests that return no response body.
+func restDelete(ctx context.Context, doer Doer, url string) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create http request: %w", err)
+	}
+	resp, err := doer.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, getErrorResponseMsg(resp))
+	}
+
+	return nil
+}
+
+// httpErrorResponse represents an error returned by the Panther REST API.
+type httpErrorResponse struct {
+	Message string `json:"message"`
+}
+
+func getErrorResponseMsg(resp *http.Response) string {
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Sprintf("failed to read response body: %s", err.Error())
+	}
+
+	var errResponse httpErrorResponse
+	if err = json.Unmarshal(body, &errResponse); err != nil {
+		return fmt.Sprintf("failed to unmarshal response body to get error response: %s", err.Error())
+	}
+
+	return errResponse.Message
+}
