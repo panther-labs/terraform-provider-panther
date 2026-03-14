@@ -29,7 +29,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -37,8 +36,9 @@ import (
 const httpSourcePath = "/log-sources/http"
 
 var (
-	_ resource.Resource              = (*httpsourceResource)(nil)
-	_ resource.ResourceWithConfigure = (*httpsourceResource)(nil)
+	_ resource.Resource                = (*httpsourceResource)(nil)
+	_ resource.ResourceWithConfigure   = (*httpsourceResource)(nil)
+	_ resource.ResourceWithImportState = (*httpsourceResource)(nil)
 )
 
 func NewHttpsourceResource() resource.Resource {
@@ -57,10 +57,7 @@ func (r *httpsourceResource) Schema(ctx context.Context, req resource.SchemaRequ
 	// We are overriding the schema here with some settings that are not supported by the schema generator.
 	// We opt to do it here in order to be able to keep generating it without our changes getting overwritten in the generated file
 	resp.Schema = resource_httpsource.HttpsourceResourceSchema(ctx)
-	// we add the UseStateForUnknown plan modifier to the id attribute manually because it is not supported by the schema generator
-	idAttr := resp.Schema.Attributes["id"].(schema.StringAttribute)
-	idAttr.PlanModifiers = append(idAttr.PlanModifiers, stringplanmodifier.UseStateForUnknown())
-	resp.Schema.Attributes["id"] = idAttr
+	patchIDAttribute(&resp.Schema)
 
 	// override default value for optional values
 	// this is necessary because the code generator creates these fields as optional and computed, which means that if they are not provided
@@ -181,16 +178,7 @@ func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest,
 	}
 
 	httpSource, err := r.api.Get(ctx, data.Id.ValueString())
-	if err != nil {
-		if strings.Contains(err.Error(), "status: 404") {
-			tflog.Warn(ctx, fmt.Sprintf("HTTP Source %s not found, removing from state", data.Id.ValueString()))
-			resp.State.RemoveResource(ctx)
-			return
-		}
-		resp.Diagnostics.AddError(
-			"Error reading HTTP Source",
-			fmt.Sprintf("Could not read HTTP Source with id %s, unexpected error: %s", data.Id.ValueString(), err.Error()),
-		)
+	if handleReadError(ctx, resp, "HTTP Source", data.Id.ValueString(), err) {
 		return
 	}
 	tflog.Debug(ctx, "Got HTTP Source", map[string]any{
@@ -289,11 +277,7 @@ func (r *httpsourceResource) Delete(ctx context.Context, req resource.DeleteRequ
 	}
 
 	err := r.api.Delete(ctx, data.Id.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error deleting HTTP Source",
-			fmt.Sprintf("Could not delete HTTP Source with id %s, unexpected error: %s", data.Id.ValueString(), err.Error()),
-		)
+	if handleDeleteError(resp, "HTTP Source", data.Id.ValueString(), err) {
 		return
 	}
 	tflog.Debug(ctx, "Deleted HTTP Source", map[string]any{

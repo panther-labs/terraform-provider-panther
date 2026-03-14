@@ -153,8 +153,12 @@ func TestRESTResource_Create_WrongStatus(t *testing.T) {
 	_, err := r.Create(context.Background(), createInput{Name: "x"})
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "status: 400")
+	assert.Contains(t, err.Error(), "status 400")
 	assert.Contains(t, err.Error(), "bad input")
+
+	var apiErr *APIError
+	require.ErrorAs(t, err, &apiErr)
+	assert.Equal(t, http.StatusBadRequest, apiErr.StatusCode)
 }
 
 func TestRESTResource_Delete_WrongStatus(t *testing.T) {
@@ -166,8 +170,9 @@ func TestRESTResource_Delete_WrongStatus(t *testing.T) {
 	err := r.Delete(context.Background(), "id-missing")
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "status: 404")
+	assert.Contains(t, err.Error(), "status 404")
 	assert.Contains(t, err.Error(), "not found")
+	assert.True(t, IsNotFound(err))
 }
 
 func TestRESTResource_NetworkError(t *testing.T) {

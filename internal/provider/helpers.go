@@ -20,11 +20,15 @@ import (
 	"context"
 	"fmt"
 
+	"terraform-provider-panther/internal/client"
 	"terraform-provider-panther/internal/client/panther"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // providerClients extracts *panther.ProviderClients from the Terraform provider data.
@@ -42,6 +46,47 @@ func providerClients(req resource.ConfigureRequest, resp *resource.ConfigureResp
 		return nil
 	}
 	return c
+}
+
+// handleReadError handles API errors in Read operations.
+// Returns true if the error was handled (caller should return).
+// 404 errors remove the resource from state (drift detection); other errors add a diagnostic.
+func handleReadError(ctx context.Context, resp *resource.ReadResponse, resourceName, id string, err error) bool {
+	if err == nil {
+		return false
+	}
+	if client.IsNotFound(err) {
+		tflog.Warn(ctx, fmt.Sprintf("%s %s not found, removing from state", resourceName, id))
+		resp.State.RemoveResource(ctx)
+		return true
+	}
+	resp.Diagnostics.AddError(
+		fmt.Sprintf("Error reading %s", resourceName),
+		fmt.Sprintf("Could not read %s (id=%s): %s", resourceName, id, err.Error()),
+	)
+	return true
+}
+
+// handleDeleteError handles API errors in Delete operations.
+// Returns true if the error was handled (caller should return).
+// 404 is treated as success (resource already deleted).
+func handleDeleteError(resp *resource.DeleteResponse, resourceName, id string, err error) bool {
+	if err == nil || client.IsNotFound(err) {
+		return false
+	}
+	resp.Diagnostics.AddError(
+		fmt.Sprintf("Error deleting %s", resourceName),
+		fmt.Sprintf("Could not delete %s (id=%s): %s", resourceName, id, err.Error()),
+	)
+	return true
+}
+
+// patchIDAttribute adds UseStateForUnknown to the generated "id" attribute.
+// Every resource needs this because the code generator doesn't support plan modifiers.
+func patchIDAttribute(s *schema.Schema) {
+	idAttr := s.Attributes["id"].(schema.StringAttribute)
+	idAttr.PlanModifiers = append(idAttr.PlanModifiers, stringplanmodifier.UseStateForUnknown())
+	s.Attributes["id"] = idAttr
 }
 
 func convertLogTypes(ctx context.Context, logTypes types.List) []string {

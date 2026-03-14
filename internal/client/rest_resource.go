@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -28,6 +29,24 @@ import (
 // Doer abstracts HTTP request execution for testability.
 type Doer interface {
 	Do(req *http.Request) (*http.Response, error)
+}
+
+// APIError represents an HTTP API error with a status code for programmatic handling.
+type APIError struct {
+	StatusCode int
+	Message    string
+	Method     string
+	URL        string
+}
+
+func (e *APIError) Error() string {
+	return fmt.Sprintf("%s %s returned status %d: %s", e.Method, e.URL, e.StatusCode, e.Message)
+}
+
+// IsNotFound returns true if the error is an HTTP 404.
+func IsNotFound(err error) bool {
+	var apiErr *APIError
+	return errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusNotFound
 }
 
 // RESTClient holds the shared HTTP transport and base URL for REST API calls.
@@ -109,7 +128,12 @@ func restDo[Resp any](ctx context.Context, doer Doer, method, url string, expect
 	defer resp.Body.Close()
 
 	if resp.StatusCode != expectedStatus {
-		return zero, fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, getErrorResponseMsg(resp))
+		return zero, &APIError{
+			StatusCode: resp.StatusCode,
+			Message:    getErrorResponseMsg(resp),
+			Method:     method,
+			URL:        url,
+		}
 	}
 
 	respBody, err := io.ReadAll(resp.Body)
@@ -138,7 +162,12 @@ func restDelete(ctx context.Context, doer Doer, url string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusNoContent {
-		return fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, getErrorResponseMsg(resp))
+		return &APIError{
+			StatusCode: resp.StatusCode,
+			Message:    getErrorResponseMsg(resp),
+			Method:     http.MethodDelete,
+			URL:        url,
+		}
 	}
 
 	return nil

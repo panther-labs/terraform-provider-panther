@@ -38,14 +38,6 @@ type GraphQLClient struct {
 	*graphql.Client
 }
 
-func newGraphQLClient(url string, httpClient *AuthorizedHTTPClient) *GraphQLClient {
-	return &GraphQLClient{
-		graphql.NewClient(
-			fmt.Sprintf("%s%s", url, GraphQLPath),
-			httpClient),
-	}
-}
-
 func NewProviderClients(url, token string) *ProviderClients {
 	// url in previous versions was provided including graphql endpoint,
 	// we strip it here to keep it backwards compatible
@@ -53,7 +45,9 @@ func NewProviderClients(url, token string) *ProviderClients {
 	httpClient := NewAuthorizedHTTPClient(token)
 
 	return &ProviderClients{
-		GraphQL: newGraphQLClient(pantherURL, httpClient),
+		GraphQL: &GraphQLClient{
+			graphql.NewClient(pantherURL+GraphQLPath, httpClient),
+		},
 		REST: &client.RESTClient{
 			Doer:    httpClient,
 			BaseURL: pantherURL,

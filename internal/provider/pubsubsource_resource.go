@@ -37,8 +37,9 @@ import (
 const pubsubSourcePath = "/log-sources/pubsub"
 
 var (
-	_ resource.Resource              = (*pubsubsourceResource)(nil)
-	_ resource.ResourceWithConfigure = (*pubsubsourceResource)(nil)
+	_ resource.Resource                = (*pubsubsourceResource)(nil)
+	_ resource.ResourceWithConfigure   = (*pubsubsourceResource)(nil)
+	_ resource.ResourceWithImportState = (*pubsubsourceResource)(nil)
 )
 
 func NewPubsubsourceResource() resource.Resource {
@@ -56,11 +57,7 @@ func (r *pubsubsourceResource) Metadata(ctx context.Context, req resource.Metada
 func (r *pubsubsourceResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	// Start from the generated schema and apply overrides that the generator can't express
 	resp.Schema = resource_pubsubsource.PubsubsourceResourceSchema(ctx)
-
-	// id: UseStateForUnknown tells Terraform the server assigns the ID on create and it won't change
-	idAttr := resp.Schema.Attributes["id"].(schema.StringAttribute)
-	idAttr.PlanModifiers = append(idAttr.PlanModifiers, stringplanmodifier.UseStateForUnknown())
-	resp.Schema.Attributes["id"] = idAttr
+	patchIDAttribute(&resp.Schema)
 
 	// credentials: sensitive (the API returns "" on read) + default "" to avoid unknown on omission
 	credentials := resp.Schema.Attributes["credentials"].(schema.StringAttribute)
@@ -164,16 +161,7 @@ func (r *pubsubsourceResource) Read(ctx context.Context, req resource.ReadReques
 	}
 
 	pubsubSource, err := r.api.Get(ctx, data.Id.ValueString())
-	if err != nil {
-		if strings.Contains(err.Error(), "status: 404") {
-			tflog.Warn(ctx, fmt.Sprintf("Pub/Sub Source %s not found, removing from state", data.Id.ValueString()))
-			resp.State.RemoveResource(ctx)
-			return
-		}
-		resp.Diagnostics.AddError(
-			"Error reading Pub/Sub Source",
-			fmt.Sprintf("Could not read Pub/Sub Source with id %s, unexpected error: %s", data.Id.ValueString(), err.Error()),
-		)
+	if handleReadError(ctx, resp, "Pub/Sub Source", data.Id.ValueString(), err) {
 		return
 	}
 	tflog.Debug(ctx, "Got Pub/Sub Source", map[string]any{
@@ -259,11 +247,7 @@ func (r *pubsubsourceResource) Delete(ctx context.Context, req resource.DeleteRe
 	}
 
 	err := r.api.Delete(ctx, data.Id.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error deleting Pub/Sub Source",
-			fmt.Sprintf("Could not delete Pub/Sub Source with id %s, unexpected error: %s", data.Id.ValueString(), err.Error()),
-		)
+	if handleDeleteError(resp, "Pub/Sub Source", data.Id.ValueString(), err) {
 		return
 	}
 	tflog.Debug(ctx, "Deleted Pub/Sub Source", map[string]any{
