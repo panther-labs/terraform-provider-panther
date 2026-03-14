@@ -102,6 +102,11 @@ func PubsubsourceResourceSchema(ctx context.Context) schema.Schema {
 				Description:         "The GCP Pub/Sub subscription ID",
 				MarkdownDescription: "The GCP Pub/Sub subscription ID",
 			},
+			"user_email": schema.StringAttribute{
+				Computed:            true,
+				Description:         "The email associated with the credentials. For service accounts, this is the client_email from the keyfile. Read-only, derived from credentials.",
+				MarkdownDescription: "The email associated with the credentials. For service accounts, this is the client_email from the keyfile. Read-only, derived from credentials.",
+			},
 		},
 	}
 }
@@ -117,6 +122,7 @@ type PubsubsourceModel struct {
 	LogTypes                 types.List                `tfsdk:"log_types"`
 	ProjectId                types.String              `tfsdk:"project_id"`
 	SubscriptionId           types.String              `tfsdk:"subscription_id"`
+	UserEmail                types.String              `tfsdk:"user_email"`
 }
 
 var _ basetypes.ObjectTypable = LogStreamTypeOptionsType{}

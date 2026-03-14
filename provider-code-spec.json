@@ -234,6 +234,13 @@
 						}
 					},
 					{
+						"name": "user_email",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "The email associated with the credentials. For service accounts, this is the client_email from the keyfile. Read-only, derived from credentials."
+						}
+					},
+					{
 						"name": "id",
 						"string": {
 							"computed_optional_required": "computed_optional",

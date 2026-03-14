@@ -45,6 +45,7 @@ resource "panther_pubsubsource" "example_pubsub_source" {
 ### Read-Only
 
 - `credentials_type` (String) The type of credentials: service_account or external_account. Read-only, derived from credentials.
+- `user_email` (String) The email associated with the credentials. For service accounts, this is the client_email from the keyfile. Read-only, derived from credentials.
 
 <a id="nestedatt--log_stream_type_options"></a>
 ### Nested Schema for `log_stream_type_options`
