@@ -49,6 +49,12 @@ func IsNotFound(err error) bool {
 	return errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusNotFound
 }
 
+// IsConflict returns true if the error is an HTTP 409 (e.g. duplicate integration label).
+func IsConflict(err error) bool {
+	var apiErr *APIError
+	return errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusConflict
+}
+
 // RESTClient holds the shared HTTP transport and base URL for REST API calls.
 type RESTClient struct {
 	Doer    Doer

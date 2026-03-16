@@ -18,8 +18,6 @@ package provider
 
 import (
 	"context"
-	"fmt"
-	"strings"
 	"terraform-provider-panther/internal/client"
 	"terraform-provider-panther/internal/provider/resource_pubsubsource"
 
@@ -131,11 +129,7 @@ func (r *pubsubsourceResource) Create(ctx context.Context, req resource.CreateRe
 	input.PubSubSourceModifiableAttributes.LogStreamTypeOptions = pubsubLogStreamTypeOptions(data.LogStreamTypeOptions)
 
 	pubsubSource, err := r.api.Create(ctx, input)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error creating Pub/Sub Source",
-			"Could not create Pub/Sub Source, unexpected error: "+err.Error(),
-		)
+	if handleCreateError(resp, "Pub/Sub Source", err) {
 		return
 	}
 	tflog.Debug(ctx, "Created Pub/Sub Source", map[string]any{
@@ -224,11 +218,7 @@ func (r *pubsubsourceResource) Update(ctx context.Context, req resource.UpdateRe
 	input.PubSubSourceModifiableAttributes.LogStreamTypeOptions = pubsubLogStreamTypeOptions(data.LogStreamTypeOptions)
 
 	pubsubSource, err := r.api.Update(ctx, input)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error updating Pub/Sub Source",
-			fmt.Sprintf("Could not update Pub/Sub Source with id %s, unexpected error: %s", data.Id.ValueString(), err.Error()),
-		)
+	if handleUpdateError(resp, "Pub/Sub Source", data.Id.ValueString(), err) {
 		return
 	}
 	tflog.Debug(ctx, "Updated Pub/Sub Source", map[string]any{

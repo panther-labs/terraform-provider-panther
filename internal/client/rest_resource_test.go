@@ -218,6 +218,30 @@ func TestRESTResource_URL(t *testing.T) {
 	}
 }
 
+func TestIsConflict(t *testing.T) {
+	conflictErr := &APIError{StatusCode: http.StatusConflict, Message: "already exists"}
+	assert.True(t, IsConflict(conflictErr))
+
+	notFoundErr := &APIError{StatusCode: http.StatusNotFound, Message: "not found"}
+	assert.False(t, IsConflict(notFoundErr))
+
+	genericErr := assert.AnError
+	assert.False(t, IsConflict(genericErr))
+}
+
+func TestRESTResource_Create_Conflict(t *testing.T) {
+	doer := &mockDoer{handler: func(req *http.Request) (*http.Response, error) {
+		return jsonResponse(http.StatusConflict, httpErrorResponse{Message: "label already exists"}), nil
+	}}
+
+	r := newTestResource(doer)
+	_, err := r.Create(context.Background(), createInput{Name: "dup"})
+
+	require.Error(t, err)
+	assert.True(t, IsConflict(err))
+	assert.Contains(t, err.Error(), "label already exists")
+}
+
 func TestGetErrorResponseMsg_MalformedJSON(t *testing.T) {
 	resp := &http.Response{
 		Body: io.NopCloser(bytes.NewReader([]byte("not json"))),

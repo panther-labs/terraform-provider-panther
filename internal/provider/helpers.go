@@ -67,6 +67,51 @@ func handleReadError(ctx context.Context, resp *resource.ReadResponse, resourceN
 	return true
 }
 
+// handleCreateError handles API errors in Create operations.
+// Returns true if the error was handled (caller should return).
+// 409 conflicts produce a user-friendly message guiding toward `terraform import`.
+func handleCreateError(resp *resource.CreateResponse, resourceName string, err error) bool {
+	if err == nil {
+		return false
+	}
+	if client.IsConflict(err) {
+		resp.Diagnostics.AddError(
+			fmt.Sprintf("%s already exists", resourceName),
+			fmt.Sprintf("A %s with these attributes already exists. "+
+				"Use `terraform import` to adopt the existing resource into Terraform state.\n\nAPI error: %s",
+				resourceName, err.Error()),
+		)
+		return true
+	}
+	resp.Diagnostics.AddError(
+		fmt.Sprintf("Error creating %s", resourceName),
+		fmt.Sprintf("Could not create %s: %s", resourceName, err.Error()),
+	)
+	return true
+}
+
+// handleUpdateError handles API errors in Update operations.
+// Returns true if the error was handled (caller should return).
+// 409 conflicts produce a user-friendly message about duplicate labels.
+func handleUpdateError(resp *resource.UpdateResponse, resourceName, id string, err error) bool {
+	if err == nil {
+		return false
+	}
+	if client.IsConflict(err) {
+		resp.Diagnostics.AddError(
+			fmt.Sprintf("Conflict updating %s", resourceName),
+			fmt.Sprintf("Cannot update %s (id=%s): the update conflicts with an existing resource.\n\nAPI error: %s",
+				resourceName, id, err.Error()),
+		)
+		return true
+	}
+	resp.Diagnostics.AddError(
+		fmt.Sprintf("Error updating %s", resourceName),
+		fmt.Sprintf("Could not update %s (id=%s): %s", resourceName, id, err.Error()),
+	)
+	return true
+}
+
 // handleDeleteError handles API errors in Delete operations.
 // Returns true if the error was handled (caller should return).
 // 404 is treated as success (resource already deleted).

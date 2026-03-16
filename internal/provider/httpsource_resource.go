@@ -18,8 +18,6 @@ package provider
 
 import (
 	"context"
-	"fmt"
-	"strings"
 	"terraform-provider-panther/internal/client"
 	"terraform-provider-panther/internal/provider/resource_httpsource"
 
@@ -151,11 +149,7 @@ func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequ
 	}
 
 	httpSource, err := r.api.Create(ctx, input)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error creating HTTP Source",
-			"Could not create HTTP Source, unexpected error: "+err.Error(),
-		)
+	if handleCreateError(resp, "HTTP Source", err) {
 		return
 	}
 	tflog.Debug(ctx, "Created HTTP Source", map[string]any{
@@ -251,11 +245,7 @@ func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequ
 	}
 
 	_, err := r.api.Update(ctx, input)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error updating HTTP Source",
-			fmt.Sprintf("Could not update HTTP Source with id %s, unexpected error: %s", data.Id.ValueString(), err.Error()),
-		)
+	if handleUpdateError(resp, "HTTP Source", data.Id.ValueString(), err) {
 		return
 	}
 	tflog.Debug(ctx, "Updated HTTP Source", map[string]any{
