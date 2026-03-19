@@ -19,6 +19,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strings"
 	"terraform-provider-panther/internal/client"
 	"terraform-provider-panther/internal/client/panther"
 	"terraform-provider-panther/internal/provider/resource_pubsubsource"
@@ -151,8 +152,11 @@ func (r *pubsubsourceResource) Create(ctx context.Context, req resource.CreateRe
 
 	// Set server-assigned/derived fields from the API response
 	data.Id = types.StringValue(pubsubSource.IntegrationId)
-	// project_id may be derived from SA keyfile when omitted by the user
-	data.ProjectId = types.StringValue(pubsubSource.ProjectId)
+	// project_id: if unknown or null in the plan (user omitted it), resolve from the API response.
+	// If the user provided a value, keep the plan value — Terraform rejects plan→apply changes.
+	if data.ProjectId.IsUnknown() || data.ProjectId.IsNull() {
+		data.ProjectId = types.StringValue(pubsubSource.ProjectId)
+	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -166,6 +170,11 @@ func (r *pubsubsourceResource) Read(ctx context.Context, req resource.ReadReques
 
 	pubsubSource, err := r.client.GetPubSubSource(ctx, data.Id.ValueString())
 	if err != nil {
+		if strings.Contains(err.Error(), "status: 404") {
+			tflog.Warn(ctx, fmt.Sprintf("Pub/Sub Source %s not found, removing from state", data.Id.ValueString()))
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.AddError(
 			"Error reading Pub/Sub Source",
 			fmt.Sprintf("Could not read Pub/Sub Source with id %s, unexpected error: %s", data.Id.ValueString(), err.Error()),
@@ -255,7 +264,7 @@ func (r *pubsubsourceResource) Delete(ctx context.Context, req resource.DeleteRe
 	}
 
 	err := r.client.DeletePubSubSource(ctx, data.Id.ValueString())
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "status: 404") {
 		resp.Diagnostics.AddError(
 			"Error deleting Pub/Sub Source",
 			fmt.Sprintf("Could not delete Pub/Sub Source with id %s, unexpected error: %s", data.Id.ValueString(), err.Error()),

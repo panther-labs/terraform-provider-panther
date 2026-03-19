@@ -19,6 +19,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strings"
 	"terraform-provider-panther/internal/client"
 	"terraform-provider-panther/internal/client/panther"
 	"terraform-provider-panther/internal/provider/resource_httpsource"
@@ -187,6 +188,11 @@ func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest,
 
 	httpSource, err := r.client.GetHttpSource(ctx, data.Id.ValueString())
 	if err != nil {
+		if strings.Contains(err.Error(), "status: 404") {
+			tflog.Warn(ctx, fmt.Sprintf("HTTP Source %s not found, removing from state", data.Id.ValueString()))
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.AddError(
 			"Error reading HTTP Source",
 			fmt.Sprintf("Could not read HTTP Source with id %s, unexpected error: %s", data.Id.ValueString(), err.Error()),
@@ -289,7 +295,7 @@ func (r *httpsourceResource) Delete(ctx context.Context, req resource.DeleteRequ
 	}
 
 	err := r.client.DeleteHttpSource(ctx, data.Id.ValueString())
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "status: 404") {
 		resp.Diagnostics.AddError(
 			"Error deleting HTTP Source",
 			fmt.Sprintf("Could not delete HTTP Source with id %s, unexpected error: %s", data.Id.ValueString(), err.Error()),

@@ -227,17 +227,16 @@ func runPubSubSourceTest(t *testing.T, credentials, projectId, subscriptionId, e
 			// fields reflect the new values.
 			{
 				PreConfig: func() {
-					t.Logf("Step 3/4: Update (PUT /log-sources/pubsub/{id})\n  label=%s, log_stream_type=JSON, +log_stream_type_options", integrationUpdatedLabel)
+					t.Logf("Step 3/4: Update (PUT /log-sources/pubsub/{id})\n  label=%s, log_stream_type=JsonArray, +log_stream_type_options", integrationUpdatedLabel)
 				},
 				Config: providerConfig + testUpdatedPubSubSourceResourceConfig(integrationUpdatedLabel, subscriptionId, projectId, credentials, expectedCredentialsType),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("panther_pubsubsource.test", "integration_label", integrationUpdatedLabel),
 					resource.TestCheckResourceAttr("panther_pubsubsource.test", "subscription_id", subscriptionId),
 					resource.TestCheckResourceAttr("panther_pubsubsource.test", "project_id", projectId),
-					resource.TestCheckResourceAttr("panther_pubsubsource.test", "log_stream_type", "JSON"),
+					resource.TestCheckResourceAttr("panther_pubsubsource.test", "log_stream_type", "JsonArray"),
 					resource.TestCheckResourceAttr("panther_pubsubsource.test", "log_types.0", "GCP.AuditLog"),
 					resource.TestCheckResourceAttr("panther_pubsubsource.test", "log_stream_type_options.json_array_envelope_field", "records"),
-					resource.TestCheckResourceAttr("panther_pubsubsource.test", "log_stream_type_options.xml_root_element", "root"),
 					resource.TestCheckResourceAttr("panther_pubsubsource.test", "credentials_type", expectedCredentialsType),
 					resource.TestCheckResourceAttr("panther_pubsubsource.test", "regional_endpoint", ""),
 				),
@@ -274,10 +273,9 @@ resource "panther_pubsubsource" "test" {
   credentials       = %q
   credentials_type  = "%s"
   log_types         = ["GCP.AuditLog"]
-  log_stream_type   = "JSON"
+  log_stream_type   = "JsonArray"
   log_stream_type_options = {
     json_array_envelope_field = "records"
-    xml_root_element          = "root"
   }
 }
 `, name, subscriptionId, projectId, credentials, credentialsType)
