@@ -79,7 +79,7 @@
 						"name": "log_stream_type",
 						"string": {
 							"computed_optional_required": "required",
-							"description": "The log stream type. Supported log stream types: Auto, JSON, JsonArray, Lines, CloudWatchLogs, XML",
+							"description": "The log stream type. Supported log stream types: Auto, JSON, JsonArray, Lines, XML",
 							"validators": [
 								{
 									"custom": {
@@ -88,7 +88,7 @@
 												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 											}
 										],
-										"schema_definition": "stringvalidator.OneOf(\n\"Auto\",\n\"JSON\",\n\"JsonArray\",\n\"Lines\",\n\"CloudWatchLogs\",\n\"XML\",\n)"
+										"schema_definition": "stringvalidator.OneOf(\n\"Auto\",\n\"JSON\",\n\"JsonArray\",\n\"Lines\",\n\"XML\",\n)"
 									}
 								}
 							]
@@ -148,10 +148,22 @@
 						}
 					},
 					{
-						"name": "enforced_regional_endpoint",
+						"name": "credentials_type",
 						"string": {
-							"computed_optional_required": "computed_optional",
-							"description": "Optional regional endpoint override (e.g. europe-west3). If not set, the global endpoint is used."
+							"computed_optional_required": "required",
+							"description": "The type of credentials being used: service_account or wif (Workload Identity Federation).",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.OneOf(\n\"service_account\",\n\"wif\",\n)"
+									}
+								}
+							]
 						}
 					},
 					{
@@ -165,7 +177,7 @@
 						"name": "log_stream_type",
 						"string": {
 							"computed_optional_required": "required",
-							"description": "The log stream type. Supported log stream types: Auto, JSON, JsonArray, Lines, CloudWatchLogs, XML",
+							"description": "The log stream type. Supported log stream types: Auto, JSON, JsonArray, Lines, XML",
 							"validators": [
 								{
 									"custom": {
@@ -174,7 +186,7 @@
 												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 											}
 										],
-										"schema_definition": "stringvalidator.OneOf(\n\"Auto\",\n\"JSON\",\n\"JsonArray\",\n\"Lines\",\n\"CloudWatchLogs\",\n\"XML\",\n)"
+										"schema_definition": "stringvalidator.OneOf(\n\"Auto\",\n\"JSON\",\n\"JsonArray\",\n\"Lines\",\n\"XML\",\n)"
 									}
 								}
 							]
@@ -215,8 +227,15 @@
 					{
 						"name": "project_id",
 						"string": {
-							"computed_optional_required": "required",
-							"description": "The GCP project ID containing the Pub/Sub subscription"
+							"computed_optional_required": "computed_optional",
+							"description": "The GCP project ID. Optional for service_account credentials (derived from the keyfile). Required for WIF."
+						}
+					},
+					{
+						"name": "regional_endpoint",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Optional regional endpoint override (e.g. europe-west3). If not set, the global endpoint is used."
 						}
 					},
 					{
@@ -224,20 +243,6 @@
 						"string": {
 							"computed_optional_required": "required",
 							"description": "The GCP Pub/Sub subscription ID"
-						}
-					},
-					{
-						"name": "credentials_type",
-						"string": {
-							"computed_optional_required": "computed",
-							"description": "The type of credentials: service_account or external_account. Read-only, derived from credentials."
-						}
-					},
-					{
-						"name": "user_email",
-						"string": {
-							"computed_optional_required": "computed",
-							"description": "The email associated with the credentials. For service accounts, this is the client_email from the keyfile. Read-only, derived from credentials."
 						}
 					},
 					{

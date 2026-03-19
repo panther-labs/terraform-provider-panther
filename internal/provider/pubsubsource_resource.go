@@ -66,20 +66,16 @@ func (r *pubsubsourceResource) Schema(ctx context.Context, req resource.SchemaRe
 	credentials.Default = stringdefault.StaticString("")
 	resp.Schema.Attributes["credentials"] = credentials
 
-	// credentials_type: UseStateForUnknown avoids showing (known after apply) on every plan
-	credentialsType := resp.Schema.Attributes["credentials_type"].(schema.StringAttribute)
-	credentialsType.PlanModifiers = append(credentialsType.PlanModifiers, stringplanmodifier.UseStateForUnknown())
-	resp.Schema.Attributes["credentials_type"] = credentialsType
+	// project_id: UseStateForUnknown — optional for SA (API derives from keyfile), required for WIF.
+	// On create the API returns the derived value; on subsequent plans, prior state is reused.
+	projectId := resp.Schema.Attributes["project_id"].(schema.StringAttribute)
+	projectId.PlanModifiers = append(projectId.PlanModifiers, stringplanmodifier.UseStateForUnknown())
+	resp.Schema.Attributes["project_id"] = projectId
 
-	// user_email: UseStateForUnknown — server-derived from credentials, stable after create
-	userEmail := resp.Schema.Attributes["user_email"].(schema.StringAttribute)
-	userEmail.PlanModifiers = append(userEmail.PlanModifiers, stringplanmodifier.UseStateForUnknown())
-	resp.Schema.Attributes["user_email"] = userEmail
-
-	// enforced_regional_endpoint: default "" to avoid unknown when not set
-	enforcedRegionalEndpoint := resp.Schema.Attributes["enforced_regional_endpoint"].(schema.StringAttribute)
-	enforcedRegionalEndpoint.Default = stringdefault.StaticString("")
-	resp.Schema.Attributes["enforced_regional_endpoint"] = enforcedRegionalEndpoint
+	// regional_endpoint: default "" to avoid unknown when not set
+	regionalEndpoint := resp.Schema.Attributes["regional_endpoint"].(schema.StringAttribute)
+	regionalEndpoint.Default = stringdefault.StaticString("")
+	resp.Schema.Attributes["regional_endpoint"] = regionalEndpoint
 
 	// log_stream_type_options: default "" for inner fields, null object default for the block itself
 	logStreamTypeOptions := resp.Schema.Attributes["log_stream_type_options"].(schema.SingleNestedAttribute)
@@ -128,13 +124,14 @@ func (r *pubsubsourceResource) Create(ctx context.Context, req resource.CreateRe
 
 	input := client.CreatePubSubSourceInput{
 		PubSubSourceModifiableAttributes: client.PubSubSourceModifiableAttributes{
-			IntegrationLabel:         data.IntegrationLabel.ValueString(),
-			SubscriptionId:           data.SubscriptionId.ValueString(),
-			ProjectId:                data.ProjectId.ValueString(),
-			Credentials:              data.Credentials.ValueString(),
-			LogTypes:                 convertLogTypes(ctx, data.LogTypes),
-			LogStreamType:            data.LogStreamType.ValueString(),
-			EnforcedRegionalEndpoint: data.EnforcedRegionalEndpoint.ValueString(),
+			IntegrationLabel: data.IntegrationLabel.ValueString(),
+			SubscriptionId:   data.SubscriptionId.ValueString(),
+			ProjectId:        data.ProjectId.ValueString(),
+			Credentials:      data.Credentials.ValueString(),
+			CredentialsType:  data.CredentialsType.ValueString(),
+			LogTypes:         convertLogTypes(ctx, data.LogTypes),
+			LogStreamType:    data.LogStreamType.ValueString(),
+			RegionalEndpoint: data.RegionalEndpoint.ValueString(),
 		},
 	}
 
@@ -152,10 +149,10 @@ func (r *pubsubsourceResource) Create(ctx context.Context, req resource.CreateRe
 		"id": pubsubSource.IntegrationId,
 	})
 
-	// Set server-assigned computed fields from the API response
+	// Set server-assigned/derived fields from the API response
 	data.Id = types.StringValue(pubsubSource.IntegrationId)
-	data.CredentialsType = types.StringValue(pubsubSource.CredentialsType)
-	data.UserEmail = types.StringValue(pubsubSource.UserEmail)
+	// project_id may be derived from SA keyfile when omitted by the user
+	data.ProjectId = types.StringValue(pubsubSource.ProjectId)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -187,10 +184,9 @@ func (r *pubsubsourceResource) Read(ctx context.Context, req resource.ReadReques
 	data.SubscriptionId = types.StringValue(pubsubSource.SubscriptionId)
 	data.ProjectId = types.StringValue(pubsubSource.ProjectId)
 	data.CredentialsType = types.StringValue(pubsubSource.CredentialsType)
-	data.UserEmail = types.StringValue(pubsubSource.UserEmail)
 	data.LogTypes = convertFromLogTypes(ctx, pubsubSource.LogTypes, resp.Diagnostics)
 	data.LogStreamType = types.StringValue(pubsubSource.LogStreamType)
-	data.EnforcedRegionalEndpoint = types.StringValue(pubsubSource.EnforcedRegionalEndpoint)
+	data.RegionalEndpoint = types.StringValue(pubsubSource.RegionalEndpoint)
 
 	if pubsubSource.LogStreamTypeOptions != nil {
 		attributeTypes := map[string]attr.Type{
@@ -222,19 +218,20 @@ func (r *pubsubsourceResource) Update(ctx context.Context, req resource.UpdateRe
 	input := client.UpdatePubSubSourceInput{
 		IntegrationId: data.Id.ValueString(),
 		PubSubSourceModifiableAttributes: client.PubSubSourceModifiableAttributes{
-			IntegrationLabel:         data.IntegrationLabel.ValueString(),
-			SubscriptionId:           data.SubscriptionId.ValueString(),
-			ProjectId:                data.ProjectId.ValueString(),
-			Credentials:              data.Credentials.ValueString(),
-			LogTypes:                 convertLogTypes(ctx, data.LogTypes),
-			LogStreamType:            data.LogStreamType.ValueString(),
-			EnforcedRegionalEndpoint: data.EnforcedRegionalEndpoint.ValueString(),
+			IntegrationLabel: data.IntegrationLabel.ValueString(),
+			SubscriptionId:   data.SubscriptionId.ValueString(),
+			ProjectId:        data.ProjectId.ValueString(),
+			Credentials:      data.Credentials.ValueString(),
+			CredentialsType:  data.CredentialsType.ValueString(),
+			LogTypes:         convertLogTypes(ctx, data.LogTypes),
+			LogStreamType:    data.LogStreamType.ValueString(),
+			RegionalEndpoint: data.RegionalEndpoint.ValueString(),
 		},
 	}
 
 	input.PubSubSourceModifiableAttributes.LogStreamTypeOptions = pubsubLogStreamTypeOptions(data.LogStreamTypeOptions)
 
-	pubsubSource, err := r.client.UpdatePubSubSource(ctx, input)
+	_, err := r.client.UpdatePubSubSource(ctx, input)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating Pub/Sub Source",
@@ -245,10 +242,6 @@ func (r *pubsubsourceResource) Update(ctx context.Context, req resource.UpdateRe
 	tflog.Debug(ctx, "Updated Pub/Sub Source", map[string]any{
 		"id": data.Id.ValueString(),
 	})
-
-	// Use API response for server-computed fields (credentials_type may change if credentials changed)
-	data.CredentialsType = types.StringValue(pubsubSource.CredentialsType)
-	data.UserEmail = types.StringValue(pubsubSource.UserEmail)
 
 	// Save plan data to state (not full API response — credentials would be lost)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

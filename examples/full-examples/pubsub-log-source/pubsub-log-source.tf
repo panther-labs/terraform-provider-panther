@@ -3,6 +3,7 @@ resource "panther_pubsubsource" "example_pubsub_source" {
   subscription_id   = var.subscription_id
   project_id        = var.project_id
   credentials       = file(var.credentials_file)
+  credentials_type  = var.credentials_type
   log_types         = var.log_types
   log_stream_type   = var.log_stream_type
   log_stream_type_options = {

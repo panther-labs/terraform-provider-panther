@@ -27,15 +27,15 @@ func PubsubsourceResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "The GCP credentials JSON content (service account key or WIF config). Required on create, optional on update.",
 			},
 			"credentials_type": schema.StringAttribute{
-				Computed:            true,
-				Description:         "The type of credentials: service_account or external_account. Read-only, derived from credentials.",
-				MarkdownDescription: "The type of credentials: service_account or external_account. Read-only, derived from credentials.",
-			},
-			"enforced_regional_endpoint": schema.StringAttribute{
-				Optional:            true,
-				Computed:            true,
-				Description:         "Optional regional endpoint override (e.g. europe-west3). If not set, the global endpoint is used.",
-				MarkdownDescription: "Optional regional endpoint override (e.g. europe-west3). If not set, the global endpoint is used.",
+				Required:            true,
+				Description:         "The type of credentials being used: service_account or wif (Workload Identity Federation).",
+				MarkdownDescription: "The type of credentials being used: service_account or wif (Workload Identity Federation).",
+				Validators: []validator.String{
+					stringvalidator.OneOf(
+						"service_account",
+						"wif",
+					),
+				},
 			},
 			"id": schema.StringAttribute{
 				Optional:            true,
@@ -50,15 +50,14 @@ func PubsubsourceResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"log_stream_type": schema.StringAttribute{
 				Required:            true,
-				Description:         "The log stream type. Supported log stream types: Auto, JSON, JsonArray, Lines, CloudWatchLogs, XML",
-				MarkdownDescription: "The log stream type. Supported log stream types: Auto, JSON, JsonArray, Lines, CloudWatchLogs, XML",
+				Description:         "The log stream type. Supported log stream types: Auto, JSON, JsonArray, Lines, XML",
+				MarkdownDescription: "The log stream type. Supported log stream types: Auto, JSON, JsonArray, Lines, XML",
 				Validators: []validator.String{
 					stringvalidator.OneOf(
 						"Auto",
 						"JSON",
 						"JsonArray",
 						"Lines",
-						"CloudWatchLogs",
 						"XML",
 					),
 				},
@@ -93,36 +92,37 @@ func PubsubsourceResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "The log types for parsing ingested data",
 			},
 			"project_id": schema.StringAttribute{
-				Required:            true,
-				Description:         "The GCP project ID containing the Pub/Sub subscription",
-				MarkdownDescription: "The GCP project ID containing the Pub/Sub subscription",
+				Optional:            true,
+				Computed:            true,
+				Description:         "The GCP project ID. Optional for service_account credentials (derived from the keyfile). Required for WIF.",
+				MarkdownDescription: "The GCP project ID. Optional for service_account credentials (derived from the keyfile). Required for WIF.",
+			},
+			"regional_endpoint": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				Description:         "Optional regional endpoint override (e.g. europe-west3). If not set, the global endpoint is used.",
+				MarkdownDescription: "Optional regional endpoint override (e.g. europe-west3). If not set, the global endpoint is used.",
 			},
 			"subscription_id": schema.StringAttribute{
 				Required:            true,
 				Description:         "The GCP Pub/Sub subscription ID",
 				MarkdownDescription: "The GCP Pub/Sub subscription ID",
 			},
-			"user_email": schema.StringAttribute{
-				Computed:            true,
-				Description:         "The email associated with the credentials. For service accounts, this is the client_email from the keyfile. Read-only, derived from credentials.",
-				MarkdownDescription: "The email associated with the credentials. For service accounts, this is the client_email from the keyfile. Read-only, derived from credentials.",
-			},
 		},
 	}
 }
 
 type PubsubsourceModel struct {
-	Credentials              types.String              `tfsdk:"credentials"`
-	CredentialsType          types.String              `tfsdk:"credentials_type"`
-	EnforcedRegionalEndpoint types.String              `tfsdk:"enforced_regional_endpoint"`
-	Id                       types.String              `tfsdk:"id"`
-	IntegrationLabel         types.String              `tfsdk:"integration_label"`
-	LogStreamType            types.String              `tfsdk:"log_stream_type"`
-	LogStreamTypeOptions     LogStreamTypeOptionsValue `tfsdk:"log_stream_type_options"`
-	LogTypes                 types.List                `tfsdk:"log_types"`
-	ProjectId                types.String              `tfsdk:"project_id"`
-	SubscriptionId           types.String              `tfsdk:"subscription_id"`
-	UserEmail                types.String              `tfsdk:"user_email"`
+	Credentials          types.String              `tfsdk:"credentials"`
+	CredentialsType      types.String              `tfsdk:"credentials_type"`
+	Id                   types.String              `tfsdk:"id"`
+	IntegrationLabel     types.String              `tfsdk:"integration_label"`
+	LogStreamType        types.String              `tfsdk:"log_stream_type"`
+	LogStreamTypeOptions LogStreamTypeOptionsValue `tfsdk:"log_stream_type_options"`
+	LogTypes             types.List                `tfsdk:"log_types"`
+	ProjectId            types.String              `tfsdk:"project_id"`
+	RegionalEndpoint     types.String              `tfsdk:"regional_endpoint"`
+	SubscriptionId       types.String              `tfsdk:"subscription_id"`
 }
 
 var _ basetypes.ObjectTypable = LogStreamTypeOptionsType{}

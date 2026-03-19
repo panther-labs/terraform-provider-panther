@@ -4,6 +4,6 @@ output "log-source-id" {
 }
 
 output "credentials-type" {
-  description = "Derived credentials type (service_account or external_account)"
+  description = "Credentials type (service_account or wif)"
   value       = panther_pubsubsource.example_pubsub_source.credentials_type
 }

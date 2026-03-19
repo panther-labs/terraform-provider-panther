@@ -19,6 +19,7 @@ resource "panther_pubsubsource" "example_pubsub_source" {
   subscription_id   = "my-subscription"
   project_id        = "my-gcp-project"
   credentials       = file("gcp-credentials.json")
+  credentials_type  = "service_account"
   log_types         = ["GCP.AuditLog"]
   log_stream_type   = "Auto"
 }
@@ -29,23 +30,19 @@ resource "panther_pubsubsource" "example_pubsub_source" {
 
 ### Required
 
+- `credentials_type` (String) The type of credentials being used: service_account or wif (Workload Identity Federation).
 - `integration_label` (String) The integration label (name)
-- `log_stream_type` (String) The log stream type. Supported log stream types: Auto, JSON, JsonArray, Lines, CloudWatchLogs, XML
+- `log_stream_type` (String) The log stream type. Supported log stream types: Auto, JSON, JsonArray, Lines, XML
 - `log_types` (List of String) The log types for parsing ingested data
-- `project_id` (String) The GCP project ID containing the Pub/Sub subscription
 - `subscription_id` (String) The GCP Pub/Sub subscription ID
 
 ### Optional
 
 - `credentials` (String, Sensitive) The GCP credentials JSON content (service account key or WIF config). Required on create, optional on update.
-- `enforced_regional_endpoint` (String) Optional regional endpoint override (e.g. europe-west3). If not set, the global endpoint is used.
 - `id` (String) ID of the pubsub source to fetch
 - `log_stream_type_options` (Attributes) (see [below for nested schema](#nestedatt--log_stream_type_options))
-
-### Read-Only
-
-- `credentials_type` (String) The type of credentials: service_account or external_account. Read-only, derived from credentials.
-- `user_email` (String) The email associated with the credentials. For service accounts, this is the client_email from the keyfile. Read-only, derived from credentials.
+- `project_id` (String) The GCP project ID. Optional for service_account credentials (derived from the keyfile). Required for WIF.
+- `regional_endpoint` (String) Optional regional endpoint override (e.g. europe-west3). If not set, the global endpoint is used.
 
 <a id="nestedatt--log_stream_type_options"></a>
 ### Nested Schema for `log_stream_type_options`

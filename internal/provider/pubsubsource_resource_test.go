@@ -43,7 +43,7 @@ import (
 //   - TestPubSubSourceResource_ServiceAccount: creates a source with a GCP service account key
 //     → expects credentials_type = "service_account"
 //   - TestPubSubSourceResource_WIF: creates a source with Workload Identity Federation config
-//     → expects credentials_type = "external_account"
+//     → expects credentials_type = "wif"
 //
 // Required env vars: see .env.test and .env.pubsub.test
 
@@ -122,8 +122,48 @@ func TestPubSubSourceResource_ServiceAccount(t *testing.T) {
 	runPubSubSourceTest(t, credentials, projectId, subscriptionId, "service_account")
 }
 
+// TestPubSubSourceResource_SA_DerivedProjectId tests that project_id can be omitted for service
+// account credentials — the API derives it from the keyfile's project_id field.
+func TestPubSubSourceResource_SA_DerivedProjectId(t *testing.T) {
+	t.Parallel()
+	credentials, _, subscriptionId, ok := loadPubSubTestConfig(t,
+		"PANTHER_PUBSUB_SA_CREDENTIALS_FILE",
+		"PANTHER_PUBSUB_SA_PROJECT_ID",
+		"PANTHER_PUBSUB_SA_SUBSCRIPTION_ID",
+	)
+	if !ok {
+		t.Skip("Skipping: PANTHER_PUBSUB_SA_* env vars must be set")
+	}
+
+	integrationLabel := "tf-test-pubsub-sa-no-project"
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: providerConfig + fmt.Sprintf(`
+resource "panther_pubsubsource" "test" {
+  integration_label = "%s"
+  subscription_id   = "%s"
+  credentials       = %q
+  credentials_type  = "service_account"
+  log_types         = ["GCP.AuditLog"]
+  log_stream_type   = "Auto"
+}
+`, integrationLabel, subscriptionId, credentials),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("panther_pubsubsource.test", "integration_label", integrationLabel),
+					// project_id was not provided — API should derive it from the SA keyfile
+					resource.TestCheckResourceAttrSet("panther_pubsubsource.test", "project_id"),
+					resource.TestCheckResourceAttr("panther_pubsubsource.test", "credentials_type", "service_account"),
+				),
+			},
+		},
+	})
+}
+
 // TestPubSubSourceResource_WIF tests the full CRUD lifecycle using Workload Identity Federation.
-// Creates a real Pub/Sub source in Panther, verifies credentials_type = "external_account",
+// Creates a real Pub/Sub source in Panther, verifies credentials_type = "wif",
 // then updates and deletes it.
 func TestPubSubSourceResource_WIF(t *testing.T) {
 	t.Parallel()
@@ -136,7 +176,7 @@ func TestPubSubSourceResource_WIF(t *testing.T) {
 		t.Skip("Skipping: PANTHER_PUBSUB_WIF_CREDENTIALS_FILE, PANTHER_PUBSUB_WIF_PROJECT_ID, and PANTHER_PUBSUB_WIF_SUBSCRIPTION_ID must be set")
 	}
 
-	runPubSubSourceTest(t, credentials, projectId, subscriptionId, "external_account")
+	runPubSubSourceTest(t, credentials, projectId, subscriptionId, "wif")
 }
 
 func runPubSubSourceTest(t *testing.T, credentials, projectId, subscriptionId, expectedCredentialsType string) {
@@ -144,8 +184,6 @@ func runPubSubSourceTest(t *testing.T, credentials, projectId, subscriptionId, e
 	credType := expectedCredentialsType
 	if credType == "service_account" {
 		credType = "sa"
-	} else if credType == "external_account" {
-		credType = "wif"
 	}
 	integrationLabel := fmt.Sprintf("tf-automated-test-pubsub-%s", credType)
 	integrationUpdatedLabel := fmt.Sprintf("tf-automated-test-pubsub-%s-updated", credType)
@@ -160,7 +198,7 @@ func runPubSubSourceTest(t *testing.T, credentials, projectId, subscriptionId, e
 			// credentials against GCP (health check), then returns the integration ID and
 			// derived credentials_type. Verifies all fields match the config.
 			{
-				Config:    providerConfig + testPubSubSourceResourceConfig(integrationLabel, subscriptionId, projectId, credentials),
+				Config:    providerConfig + testPubSubSourceResourceConfig(integrationLabel, subscriptionId, projectId, credentials, expectedCredentialsType),
 				PreConfig: func() { t.Log("Step 1/4: Create (POST /log-sources/pubsub)") },
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("panther_pubsubsource.test", "integration_label", integrationLabel),
@@ -169,6 +207,7 @@ func runPubSubSourceTest(t *testing.T, credentials, projectId, subscriptionId, e
 					resource.TestCheckResourceAttr("panther_pubsubsource.test", "log_stream_type", "Auto"),
 					resource.TestCheckResourceAttr("panther_pubsubsource.test", "log_types.0", "GCP.AuditLog"),
 					resource.TestCheckResourceAttr("panther_pubsubsource.test", "credentials_type", expectedCredentialsType),
+					resource.TestCheckResourceAttr("panther_pubsubsource.test", "regional_endpoint", ""),
 					resource.TestCheckResourceAttrSet("panther_pubsubsource.test", "id"),
 				),
 			},
@@ -190,7 +229,7 @@ func runPubSubSourceTest(t *testing.T, credentials, projectId, subscriptionId, e
 				PreConfig: func() {
 					t.Logf("Step 3/4: Update (PUT /log-sources/pubsub/{id})\n  label=%s, log_stream_type=JSON, +log_stream_type_options", integrationUpdatedLabel)
 				},
-				Config: providerConfig + testUpdatedPubSubSourceResourceConfig(integrationUpdatedLabel, subscriptionId, projectId, credentials),
+				Config: providerConfig + testUpdatedPubSubSourceResourceConfig(integrationUpdatedLabel, subscriptionId, projectId, credentials, expectedCredentialsType),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("panther_pubsubsource.test", "integration_label", integrationUpdatedLabel),
 					resource.TestCheckResourceAttr("panther_pubsubsource.test", "subscription_id", subscriptionId),
@@ -200,6 +239,7 @@ func runPubSubSourceTest(t *testing.T, credentials, projectId, subscriptionId, e
 					resource.TestCheckResourceAttr("panther_pubsubsource.test", "log_stream_type_options.json_array_envelope_field", "records"),
 					resource.TestCheckResourceAttr("panther_pubsubsource.test", "log_stream_type_options.xml_root_element", "root"),
 					resource.TestCheckResourceAttr("panther_pubsubsource.test", "credentials_type", expectedCredentialsType),
+					resource.TestCheckResourceAttr("panther_pubsubsource.test", "regional_endpoint", ""),
 				),
 			},
 			// Step 4: Delete — DELETE /log-sources/pubsub/{id}
@@ -211,26 +251,28 @@ func runPubSubSourceTest(t *testing.T, credentials, projectId, subscriptionId, e
 	t.Log("Step 4/4: Delete (DELETE /log-sources/pubsub/{id})")
 }
 
-func testPubSubSourceResourceConfig(name, subscriptionId, projectId, credentials string) string {
+func testPubSubSourceResourceConfig(name, subscriptionId, projectId, credentials, credentialsType string) string {
 	return fmt.Sprintf(`
 resource "panther_pubsubsource" "test" {
   integration_label = "%s"
   subscription_id   = "%s"
   project_id        = "%s"
   credentials       = %q
+  credentials_type  = "%s"
   log_types         = ["GCP.AuditLog"]
   log_stream_type   = "Auto"
 }
-`, name, subscriptionId, projectId, credentials)
+`, name, subscriptionId, projectId, credentials, credentialsType)
 }
 
-func testUpdatedPubSubSourceResourceConfig(name, subscriptionId, projectId, credentials string) string {
+func testUpdatedPubSubSourceResourceConfig(name, subscriptionId, projectId, credentials, credentialsType string) string {
 	return fmt.Sprintf(`
 resource "panther_pubsubsource" "test" {
   integration_label = "%s"
   subscription_id   = "%s"
   project_id        = "%s"
   credentials       = %q
+  credentials_type  = "%s"
   log_types         = ["GCP.AuditLog"]
   log_stream_type   = "JSON"
   log_stream_type_options = {
@@ -238,5 +280,5 @@ resource "panther_pubsubsource" "test" {
     xml_root_element          = "root"
   }
 }
-`, name, subscriptionId, projectId, credentials)
+`, name, subscriptionId, projectId, credentials, credentialsType)
 }

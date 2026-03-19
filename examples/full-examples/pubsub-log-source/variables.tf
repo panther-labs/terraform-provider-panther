@@ -29,6 +29,11 @@ variable "credentials_file" {
   sensitive   = true
 }
 
+variable "credentials_type" {
+  description = "The type of GCP credentials: service_account or wif."
+  type        = string
+}
+
 variable "log_types" {
   description = "List of log types for the Pub/Sub source."
   type        = list(string)
