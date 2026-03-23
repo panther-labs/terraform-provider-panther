@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 	"terraform-provider-panther/internal/client/panther"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -122,16 +123,16 @@ func (r *S3SourceResource) Schema(ctx context.Context, req resource.SchemaReques
 			"log_stream_type_options": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
 					"json_array_envelope_field": schema.StringAttribute{
-						Optional:            true,
-						Description:         "Path to the array value to extract elements from, only applicable if logStreamType is JsonArray. Leave empty if the input JSON is an array itself",
+						Optional:    true,
+						Description: "Path to the array value to extract elements from, only applicable if logStreamType is JsonArray. Leave empty if the input JSON is an array itself",
 					},
 					"retain_envelope_fields": schema.BoolAttribute{
 						Optional:    true,
 						Description: "When enabled, envelope metadata from CloudWatch Logs is preserved in a p_header column on each unpacked event (only relevant when stream type is CloudWatchLogs).",
 					},
 					"xml_root_element": schema.StringAttribute{
-						Optional:            true,
-						Description:         "The root element name for XML streams, only applicable if logStreamType is XML. Leave empty if the XML events are not enclosed in a root element",
+						Optional:    true,
+						Description: "The root element name for XML streams, only applicable if logStreamType is XML. Leave empty if the XML events are not enclosed in a root element",
 					},
 				},
 				Optional: true,
@@ -273,6 +274,11 @@ func (r *S3SourceResource) Read(ctx context.Context, req resource.ReadRequest, r
 
 	source, err := r.client.GetS3Source(ctx, data.Id.ValueString())
 	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			tflog.Warn(ctx, fmt.Sprintf("S3 Source %s not found, removing from state", data.Id.ValueString()))
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.AddError(
 			"Error reading S3 Source",
 			"Could not read S3 Source, unexpected error: "+err.Error(),
@@ -292,7 +298,7 @@ func (r *S3SourceResource) Read(ctx context.Context, req resource.ReadRequest, r
 
 	// the grapqhl response always returns a non-nil object for logStreamTypeOptions, so we need to check if the fields are not empty
 	// and only then set the field in our state
-	if source.LogStreamTypeOptions != nil && (source.LogStreamTypeOptions.JsonArrayEnvelopeField != nil || 
+	if source.LogStreamTypeOptions != nil && (source.LogStreamTypeOptions.JsonArrayEnvelopeField != nil ||
 		source.LogStreamTypeOptions.XmlRootElement != nil || source.LogStreamTypeOptions.RetainEnvelopeFields != nil) {
 		attributeTypes := map[string]attr.Type{
 			"json_array_envelope_field": types.StringType,
@@ -378,7 +384,7 @@ func (r *S3SourceResource) Delete(ctx context.Context, req resource.DeleteReques
 	}
 
 	_, err := r.client.DeleteSource(ctx, client.DeleteSourceInput{ID: data.Id.ValueString()})
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "not found") {
 		resp.Diagnostics.AddError(
 			"Error Deleting S3 Source",
 			"Could not delete S3 Source, unexpected error: "+err.Error(),
