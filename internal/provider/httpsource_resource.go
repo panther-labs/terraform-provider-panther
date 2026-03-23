@@ -298,7 +298,7 @@ func (r *httpsourceResource) Delete(ctx context.Context, req resource.DeleteRequ
 	}
 
 	err := r.client.DeleteHttpSource(ctx, data.Id.ValueString())
-	if err != nil && !strings.Contains(err.Error(), "status: 404") {
+	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error deleting HTTP Source",
 			fmt.Sprintf("Could not delete HTTP Source with id %s, unexpected error: %s", data.Id.ValueString(), err.Error()),

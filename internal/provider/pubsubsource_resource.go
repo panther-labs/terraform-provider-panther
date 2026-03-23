@@ -264,7 +264,7 @@ func (r *pubsubsourceResource) Delete(ctx context.Context, req resource.DeleteRe
 	}
 
 	err := r.client.DeletePubSubSource(ctx, data.Id.ValueString())
-	if err != nil && !strings.Contains(err.Error(), "status: 404") {
+	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error deleting Pub/Sub Source",
 			fmt.Sprintf("Could not delete Pub/Sub Source with id %s, unexpected error: %s", data.Id.ValueString(), err.Error()),
