@@ -75,10 +75,12 @@ func (r *httpsourceResource) Schema(ctx context.Context, req resource.SchemaRequ
 
 	authPass := resp.Schema.Attributes["auth_password"].(schema.StringAttribute)
 	authPass.Default = stringdefault.StaticString("")
+	authPass.Sensitive = true
 	resp.Schema.Attributes["auth_password"] = authPass
 
 	authSecVal := resp.Schema.Attributes["auth_secret_value"].(schema.StringAttribute)
 	authSecVal.Default = stringdefault.StaticString("")
+	authSecVal.Sensitive = true
 	resp.Schema.Attributes["auth_secret_value"] = authSecVal
 
 	authUser := resp.Schema.Attributes["auth_username"].(schema.StringAttribute)
@@ -87,6 +89,7 @@ func (r *httpsourceResource) Schema(ctx context.Context, req resource.SchemaRequ
 
 	bearerToken := resp.Schema.Attributes["auth_bearer_token"].(schema.StringAttribute)
 	bearerToken.Default = stringdefault.StaticString("")
+	bearerToken.Sensitive = true
 	resp.Schema.Attributes["auth_bearer_token"] = bearerToken
 
 	logStreamTypeOptions := resp.Schema.Attributes["log_stream_type_options"].(schema.SingleNestedAttribute)
