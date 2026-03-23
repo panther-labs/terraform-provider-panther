@@ -3,7 +3,7 @@ terraform {
   required_providers {
     panther = {
       source  = "panther-labs/panther"
-      version = ">=0.2.4"
+      version = ">=0.2.10"
     }
   }
 }

@@ -51,9 +51,3 @@ variable "json_array_envelope_field" {
   type        = string
   default     = ""
 }
-
-variable "xml_root_element" {
-  description = "Root element for xml stream"
-  type        = string
-  default     = ""
-}

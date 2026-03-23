@@ -8,6 +8,5 @@ resource "panther_pubsubsource" "example_pubsub_source" {
   log_stream_type   = var.log_stream_type
   log_stream_type_options = {
     json_array_envelope_field = var.json_array_envelope_field
-    xml_root_element          = var.xml_root_element
   }
 }
