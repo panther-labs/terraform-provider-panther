@@ -45,7 +45,19 @@ import (
 //   - TestPubSubSourceResource_WIF: creates a source with Workload Identity Federation config
 //     → expects credentials_type = "wif"
 //
-// Required env vars: see .env.test and .env.pubsub.test
+// Required env vars (in addition to PANTHER_API_URL and PANTHER_API_TOKEN):
+//
+//	Service Account tests:
+//	  PANTHER_PUBSUB_SA_CREDENTIALS_FILE  — path to a GCP service account JSON keyfile
+//	  PANTHER_PUBSUB_SA_PROJECT_ID        — GCP project ID containing the subscription
+//	  PANTHER_PUBSUB_SA_SUBSCRIPTION_ID   — GCP Pub/Sub subscription ID
+//
+//	WIF tests:
+//	  PANTHER_PUBSUB_WIF_CREDENTIALS_FILE — path to a GCP WIF credential config JSON
+//	  PANTHER_PUBSUB_WIF_PROJECT_ID       — GCP project ID containing the subscription
+//	  PANTHER_PUBSUB_WIF_SUBSCRIPTION_ID  — GCP Pub/Sub subscription ID
+//
+// Tests are skipped when the corresponding env vars are not set.
 
 // loadPubSubTestConfig reads credentials from a file and returns the test configuration.
 // Returns empty strings if any required env var is missing.
@@ -242,8 +254,6 @@ func runPubSubSourceTest(t *testing.T, credentials, projectId, subscriptionId, e
 				),
 			},
 			// Step 4: Delete — DELETE /log-sources/pubsub/{id}
-			// Automatic cleanup by the test framework. Pub/Sub deletion is immediate
-			// (no Firehose delay like httpsource), so no manual retry is needed.
 		},
 	})
 	// resource.Test deletes the resource before returning — log for completeness
