@@ -61,6 +61,7 @@ func TestS3SourceResource(t *testing.T) {
 					resource.TestCheckResourceAttr("panther_s3_source.test", "log_processing_role_arn", "arn:aws:iam::111122223333:role/TestRole"),
 					resource.TestCheckResourceAttr("panther_s3_source.test", "log_stream_type", "JSON"),
 					resource.TestCheckResourceAttr("panther_s3_source.test", "log_stream_type_options.json_array_envelope_field", "records"),
+					resource.TestCheckResourceAttr("panther_s3_source.test", "log_stream_type_options.retain_envelope_fields", "true"),
 					resource.TestCheckResourceAttr("panther_s3_source.test", "log_stream_type_options.xml_root_element", "root"),
 					resource.TestCheckResourceAttr("panther_s3_source.test", "panther_managed_bucket_notifications_enabled", "true"),
 					resource.TestCheckResourceAttr("panther_s3_source.test", "bucket_name", "test_bucket"),
@@ -153,6 +154,7 @@ resource "panther_s3_source" "test" {
   log_stream_type = "JSON"
   log_stream_type_options = {
     json_array_envelope_field = "records"
+    retain_envelope_fields = true
     xml_root_element = "root"
   }
   panther_managed_bucket_notifications_enabled = true
