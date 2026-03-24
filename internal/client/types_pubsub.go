@@ -18,22 +18,21 @@ package client
 
 // PubSubSource represents a GCP Pub/Sub log source integration (API response)
 type PubSubSource struct {
-	IntegrationId   string `json:"integrationId"`
-	CredentialsType string `json:"credentialsType"`
-	UserEmail       string `json:"userEmail"`
+	IntegrationId string `json:"integrationId"`
 	PubSubSourceModifiableAttributes
 }
 
 // PubSubSourceModifiableAttributes attributes that can be modified on a Pub/Sub log source
 type PubSubSourceModifiableAttributes struct {
-	IntegrationLabel         string                      `json:"integrationLabel"`
-	SubscriptionId           string                      `json:"subscriptionId"`
-	ProjectId                string                      `json:"projectId"`
-	Credentials              string                      `json:"credentials,omitempty"`
-	LogTypes                 []string                    `json:"logTypes"`
-	LogStreamType            string                      `json:"logStreamType"`
-	LogStreamTypeOptions     *PubSubLogStreamTypeOptions `json:"logStreamTypeOptions,omitempty"`
-	EnforcedRegionalEndpoint string                      `json:"enforcedRegionalEndpoint,omitempty"`
+	IntegrationLabel     string                      `json:"integrationLabel"`
+	SubscriptionId       string                      `json:"subscriptionId"`
+	ProjectId            string                      `json:"projectId,omitempty"`
+	Credentials          string                      `json:"credentials,omitempty"`
+	CredentialsType      string                      `json:"credentialsType"`
+	LogTypes             []string                    `json:"logTypes"`
+	LogStreamType        string                      `json:"logStreamType"`
+	LogStreamTypeOptions *PubSubLogStreamTypeOptions `json:"logStreamTypeOptions,omitempty"`
+	RegionalEndpoint     string                      `json:"regionalEndpoint,omitempty"`
 }
 
 // PubSubLogStreamTypeOptions contains options specific to the log stream type for Pub/Sub sources

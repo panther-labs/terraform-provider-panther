@@ -217,7 +217,7 @@ func (r *pubsubsourceResource) Update(ctx context.Context, req resource.UpdateRe
 
 	input.PubSubSourceModifiableAttributes.LogStreamTypeOptions = pubsubLogStreamTypeOptions(data.LogStreamTypeOptions)
 
-	pubsubSource, err := r.api.Update(ctx, input)
+	_, err := r.api.Update(ctx, input)
 	if handleUpdateError(resp, "Pub/Sub Source", data.Id.ValueString(), err) {
 		return
 	}

@@ -18,7 +18,9 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"regexp"
+	"strings"
 	"terraform-provider-panther/internal/client"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
