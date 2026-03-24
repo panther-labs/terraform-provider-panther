@@ -21,15 +21,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/hasura/go-graphql-client"
 	"io"
 	"net/http"
 	"strings"
 	"terraform-provider-panther/internal/client"
+
+	"github.com/hasura/go-graphql-client"
 )
 
 const GraphqlPath = "/public/graphql"
 const RestHttpSourcePath = "/log-sources/http"
+const RestPubSubSourcePath = "/log-sources/pubsub"
 
 var _ client.GraphQLClient = (*GraphQLClient)(nil)
 
@@ -49,7 +51,7 @@ type GraphQLClient struct {
 }
 
 type RestClient struct {
-	url string
+	baseURL string
 	Doer
 }
 
@@ -63,8 +65,8 @@ func NewGraphQLClient(url, token string) *GraphQLClient {
 
 func NewRestClient(url, token string) *RestClient {
 	return &RestClient{
-		url:  fmt.Sprintf("%s%s", url, RestHttpSourcePath),
-		Doer: NewAuthorizedHTTPClient(token),
+		baseURL: url,
+		Doer:    NewAuthorizedHTTPClient(token),
 	}
 }
 
@@ -90,7 +92,7 @@ func (c *RestClient) CreateHttpSource(ctx context.Context, input client.CreateHt
 	if err != nil {
 		return client.HttpSource{}, fmt.Errorf("error marshaling data: %w", err)
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.url, bytes.NewReader(jsonData))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+RestHttpSourcePath, bytes.NewReader(jsonData))
 	if err != nil {
 		return client.HttpSource{}, fmt.Errorf("failed to create http request: %w", err)
 	}
@@ -118,7 +120,7 @@ func (c *RestClient) CreateHttpSource(ctx context.Context, input client.CreateHt
 }
 
 func (c *RestClient) UpdateHttpSource(ctx context.Context, input client.UpdateHttpSourceInput) (client.HttpSource, error) {
-	reqURL := fmt.Sprintf("%s/%s", c.url, input.IntegrationId)
+	reqURL := fmt.Sprintf("%s%s/%s", c.baseURL, RestHttpSourcePath, input.IntegrationId)
 	jsonData, err := json.Marshal(input)
 	if err != nil {
 		return client.HttpSource{}, fmt.Errorf("error marshaling data: %w", err)
@@ -151,7 +153,7 @@ func (c *RestClient) UpdateHttpSource(ctx context.Context, input client.UpdateHt
 }
 
 func (c *RestClient) GetHttpSource(ctx context.Context, id string) (client.HttpSource, error) {
-	reqURL := fmt.Sprintf("%s/%s", c.url, id)
+	reqURL := fmt.Sprintf("%s%s/%s", c.baseURL, RestHttpSourcePath, id)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
 	if err != nil {
 		return client.HttpSource{}, fmt.Errorf("failed to create http request: %w", err)
@@ -180,7 +182,120 @@ func (c *RestClient) GetHttpSource(ctx context.Context, id string) (client.HttpS
 }
 
 func (c *RestClient) DeleteHttpSource(ctx context.Context, id string) error {
-	reqURL := fmt.Sprintf("%s/%s", c.url, id)
+	reqURL := fmt.Sprintf("%s%s/%s", c.baseURL, RestHttpSourcePath, id)
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, reqURL, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create http request: %w", err)
+	}
+	resp, err := c.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, getErrorResponseMsg(resp))
+	}
+
+	return nil
+}
+
+func (c *RestClient) CreatePubSubSource(ctx context.Context, input client.CreatePubSubSourceInput) (client.PubSubSource, error) {
+	jsonData, err := json.Marshal(input)
+	if err != nil {
+		return client.PubSubSource{}, fmt.Errorf("error marshaling data: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+RestPubSubSourcePath, bytes.NewReader(jsonData))
+	if err != nil {
+		return client.PubSubSource{}, fmt.Errorf("failed to create http request: %w", err)
+	}
+	resp, err := c.Do(req)
+	if err != nil {
+		return client.PubSubSource{}, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		return client.PubSubSource{}, fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, getErrorResponseMsg(resp))
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return client.PubSubSource{}, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	var response client.PubSubSource
+	if err = json.Unmarshal(body, &response); err != nil {
+		return client.PubSubSource{}, fmt.Errorf("failed to unmarshal response body: %w", err)
+	}
+
+	return response, nil
+}
+
+func (c *RestClient) UpdatePubSubSource(ctx context.Context, input client.UpdatePubSubSourceInput) (client.PubSubSource, error) {
+	reqURL := fmt.Sprintf("%s%s/%s", c.baseURL, RestPubSubSourcePath, input.IntegrationId)
+	jsonData, err := json.Marshal(input)
+	if err != nil {
+		return client.PubSubSource{}, fmt.Errorf("error marshaling data: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, reqURL, bytes.NewReader(jsonData))
+	if err != nil {
+		return client.PubSubSource{}, fmt.Errorf("failed to create http request: %w", err)
+	}
+	resp, err := c.Do(req)
+	if err != nil {
+		return client.PubSubSource{}, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return client.PubSubSource{}, fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, getErrorResponseMsg(resp))
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return client.PubSubSource{}, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	var response client.PubSubSource
+	if err = json.Unmarshal(body, &response); err != nil {
+		return client.PubSubSource{}, fmt.Errorf("failed to unmarshal response body: %w", err)
+	}
+
+	return response, nil
+}
+
+func (c *RestClient) GetPubSubSource(ctx context.Context, id string) (client.PubSubSource, error) {
+	reqURL := fmt.Sprintf("%s%s/%s", c.baseURL, RestPubSubSourcePath, id)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
+	if err != nil {
+		return client.PubSubSource{}, fmt.Errorf("failed to create http request: %w", err)
+	}
+	resp, err := c.Do(req)
+	if err != nil {
+		return client.PubSubSource{}, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return client.PubSubSource{}, fmt.Errorf("failed to make request, status: %d, message: %s", resp.StatusCode, getErrorResponseMsg(resp))
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return client.PubSubSource{}, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	var response client.PubSubSource
+	if err = json.Unmarshal(body, &response); err != nil {
+		return client.PubSubSource{}, fmt.Errorf("failed to unmarshal response body: %w", err)
+	}
+
+	return response, nil
+}
+
+func (c *RestClient) DeletePubSubSource(ctx context.Context, id string) error {
+	reqURL := fmt.Sprintf("%s%s/%s", c.baseURL, RestPubSubSourcePath, id)
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, reqURL, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create http request: %w", err)

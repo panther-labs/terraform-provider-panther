@@ -63,7 +63,12 @@ go install github.com/hashicorp/terraform-plugin-codegen-framework/cmd/tfpluging
 go install github.com/hashicorp/terraform-plugin-codegen-openapi/cmd/tfplugingen-openapi@latest
 ```
 
-The binaries install to `$(go env GOPATH)/bin`. If they're not on your PATH (e.g. when using asdf), invoke them with full path: `"$(go env GOPATH)/bin/tfplugingen-openapi"`.
+The binaries install to `$(go env GOBIN)` (or `$(go env GOPATH)/bin`). If the tools aren't on your PATH (e.g. when using asdf), invoke them with:
+
+```sh
+"$(go env GOBIN)/tfplugingen-framework"
+"$(go env GOBIN)/tfplugingen-openapi"
+```
 
 Download the Panther OpenAPI spec (`panther_open_api_v3_spec.yaml`) from the Panther docs:
 https://docs.panther.com/panther-developer-workflows/api/rest#openapi-specification

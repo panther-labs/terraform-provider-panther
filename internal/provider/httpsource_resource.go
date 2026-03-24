@@ -19,6 +19,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strings"
 	"terraform-provider-panther/internal/client"
 	"terraform-provider-panther/internal/client/panther"
 	"terraform-provider-panther/internal/provider/resource_httpsource"
@@ -74,10 +75,12 @@ func (r *httpsourceResource) Schema(ctx context.Context, req resource.SchemaRequ
 
 	authPass := resp.Schema.Attributes["auth_password"].(schema.StringAttribute)
 	authPass.Default = stringdefault.StaticString("")
+	authPass.Sensitive = true
 	resp.Schema.Attributes["auth_password"] = authPass
 
 	authSecVal := resp.Schema.Attributes["auth_secret_value"].(schema.StringAttribute)
 	authSecVal.Default = stringdefault.StaticString("")
+	authSecVal.Sensitive = true
 	resp.Schema.Attributes["auth_secret_value"] = authSecVal
 
 	authUser := resp.Schema.Attributes["auth_username"].(schema.StringAttribute)
@@ -86,6 +89,7 @@ func (r *httpsourceResource) Schema(ctx context.Context, req resource.SchemaRequ
 
 	bearerToken := resp.Schema.Attributes["auth_bearer_token"].(schema.StringAttribute)
 	bearerToken.Default = stringdefault.StaticString("")
+	bearerToken.Sensitive = true
 	resp.Schema.Attributes["auth_bearer_token"] = bearerToken
 
 	logStreamTypeOptions := resp.Schema.Attributes["log_stream_type_options"].(schema.SingleNestedAttribute)
@@ -187,6 +191,11 @@ func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest,
 
 	httpSource, err := r.client.GetHttpSource(ctx, data.Id.ValueString())
 	if err != nil {
+		if strings.Contains(err.Error(), "status: 404") {
+			tflog.Warn(ctx, fmt.Sprintf("HTTP Source %s not found, removing from state", data.Id.ValueString()))
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.AddError(
 			"Error reading HTTP Source",
 			fmt.Sprintf("Could not read HTTP Source with id %s, unexpected error: %s", data.Id.ValueString(), err.Error()),

@@ -17,3 +17,19 @@ resources:
     schema:
       ignores:
         - integrationId
+  pubsubsource:
+    create:
+      path: /log-sources/pubsub
+      method: POST
+    read:
+      path: /log-sources/pubsub/{id}
+      method: GET
+    update:
+      path: /log-sources/pubsub/{id}
+      method: PUT
+    delete:
+      path: /log-sources/pubsub/{id}
+      method: DELETE
+    schema:
+      ignores:
+        - integrationId
