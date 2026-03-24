@@ -139,6 +139,7 @@ func manuallyDeleteSource(t *testing.T) resource.TestCheckFunc {
 				t.Logf("Error deleting http source %s: error: %v, retry: %d\n", httpSource.Primary.ID, err, retry)
 				return fmt.Errorf("could not delete http source: %w", err)
 			}
+			response.Body.Close()
 			if response.StatusCode == http.StatusNoContent {
 				return nil
 			}

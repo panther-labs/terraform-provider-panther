@@ -129,14 +129,21 @@ func handleDeleteError(resp *resource.DeleteResponse, resourceName, id string, e
 // patchIDAttribute adds UseStateForUnknown to the generated "id" attribute.
 // Every resource needs this because the code generator doesn't support plan modifiers.
 func patchIDAttribute(s *schema.Schema) {
-	idAttr := s.Attributes["id"].(schema.StringAttribute)
+	raw, ok := s.Attributes["id"]
+	if !ok {
+		return
+	}
+	idAttr, ok := raw.(schema.StringAttribute)
+	if !ok {
+		return
+	}
 	idAttr.PlanModifiers = append(idAttr.PlanModifiers, stringplanmodifier.UseStateForUnknown())
 	s.Attributes["id"] = idAttr
 }
 
-func convertLogTypes(ctx context.Context, logTypes types.List) []string {
+func convertLogTypes(ctx context.Context, logTypes types.List, diagnostics diag.Diagnostics) []string {
 	var result []string
-	logTypes.ElementsAs(ctx, &result, false)
+	diagnostics.Append(logTypes.ElementsAs(ctx, &result, false)...)
 	return result
 }
 

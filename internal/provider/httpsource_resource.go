@@ -98,10 +98,7 @@ func (r *httpsourceResource) Schema(ctx context.Context, req resource.SchemaRequ
 	logStreamTypeOptions.Attributes["xml_root_element"] = xmlRootElement
 
 	logStreamTypeOptions.Default = objectdefault.StaticValue(types.ObjectNull(
-		map[string]attr.Type{
-			"json_array_envelope_field": types.StringType,
-			"xml_root_element":          types.StringType,
-		},
+		resource_httpsource.LogStreamTypeOptionsValue{}.AttributeTypes(ctx),
 	))
 
 	resp.Schema.Attributes["log_stream_type_options"] = logStreamTypeOptions
@@ -130,7 +127,7 @@ func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequ
 		HttpSourceModifiableAttributes: client.HttpSourceModifiableAttributes{
 			IntegrationLabel: data.IntegrationLabel.ValueString(),
 			LogStreamType:    data.LogStreamType.ValueString(),
-			LogTypes:         convertLogTypes(ctx, data.LogTypes),
+			LogTypes:         convertLogTypes(ctx, data.LogTypes, resp.Diagnostics),
 			AuthHmacAlg:      data.AuthHmacAlg.ValueString(),
 			AuthHeaderKey:    data.AuthHeaderKey.ValueString(),
 			AuthPassword:     data.AuthPassword.ValueString(),
@@ -190,11 +187,7 @@ func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest,
 	data.AuthUsername = types.StringValue(httpSource.AuthUsername)
 
 	if httpSource.LogStreamTypeOptions != nil {
-		attributeTypes := map[string]attr.Type{
-			"json_array_envelope_field": types.StringType,
-			"xml_root_element":          types.StringType,
-		}
-
+		attributeTypes := resource_httpsource.LogStreamTypeOptionsValue{}.AttributeTypes(ctx)
 		attributeValues := map[string]attr.Value{
 			"json_array_envelope_field": types.StringValue(httpSource.LogStreamTypeOptions.JsonArrayEnvelopeField),
 			"xml_root_element":          types.StringValue(httpSource.LogStreamTypeOptions.XmlRootElement),
@@ -226,7 +219,7 @@ func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequ
 		HttpSourceModifiableAttributes: client.HttpSourceModifiableAttributes{
 			IntegrationLabel: data.IntegrationLabel.ValueString(),
 			LogStreamType:    data.LogStreamType.ValueString(),
-			LogTypes:         convertLogTypes(ctx, data.LogTypes),
+			LogTypes:         convertLogTypes(ctx, data.LogTypes, resp.Diagnostics),
 			AuthHmacAlg:      data.AuthHmacAlg.ValueString(),
 			AuthHeaderKey:    data.AuthHeaderKey.ValueString(),
 			AuthPassword:     data.AuthPassword.ValueString(),

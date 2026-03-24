@@ -86,10 +86,7 @@ func (r *pubsubsourceResource) Schema(ctx context.Context, req resource.SchemaRe
 	logStreamTypeOptions.Attributes["xml_root_element"] = xmlRootElement
 
 	logStreamTypeOptions.Default = objectdefault.StaticValue(types.ObjectNull(
-		map[string]attr.Type{
-			"json_array_envelope_field": types.StringType,
-			"xml_root_element":          types.StringType,
-		},
+		resource_pubsubsource.LogStreamTypeOptionsValue{}.AttributeTypes(ctx),
 	))
 
 	resp.Schema.Attributes["log_stream_type_options"] = logStreamTypeOptions
@@ -120,7 +117,7 @@ func (r *pubsubsourceResource) Create(ctx context.Context, req resource.CreateRe
 			ProjectId:        data.ProjectId.ValueString(),
 			Credentials:      data.Credentials.ValueString(),
 			CredentialsType:  data.CredentialsType.ValueString(),
-			LogTypes:         convertLogTypes(ctx, data.LogTypes),
+			LogTypes:         convertLogTypes(ctx, data.LogTypes, resp.Diagnostics),
 			LogStreamType:    data.LogStreamType.ValueString(),
 			RegionalEndpoint: data.RegionalEndpoint.ValueString(),
 		},
@@ -175,10 +172,7 @@ func (r *pubsubsourceResource) Read(ctx context.Context, req resource.ReadReques
 	data.RegionalEndpoint = types.StringValue(pubsubSource.RegionalEndpoint)
 
 	if pubsubSource.LogStreamTypeOptions != nil {
-		attributeTypes := map[string]attr.Type{
-			"json_array_envelope_field": types.StringType,
-			"xml_root_element":          types.StringType,
-		}
+		attributeTypes := resource_pubsubsource.LogStreamTypeOptionsValue{}.AttributeTypes(ctx)
 		attributeValues := map[string]attr.Value{
 			"json_array_envelope_field": types.StringValue(pubsubSource.LogStreamTypeOptions.JsonArrayEnvelopeField),
 			"xml_root_element":          types.StringValue(pubsubSource.LogStreamTypeOptions.XmlRootElement),
@@ -209,7 +203,7 @@ func (r *pubsubsourceResource) Update(ctx context.Context, req resource.UpdateRe
 			ProjectId:        data.ProjectId.ValueString(),
 			Credentials:      data.Credentials.ValueString(),
 			CredentialsType:  data.CredentialsType.ValueString(),
-			LogTypes:         convertLogTypes(ctx, data.LogTypes),
+			LogTypes:         convertLogTypes(ctx, data.LogTypes, resp.Diagnostics),
 			LogStreamType:    data.LogStreamType.ValueString(),
 			RegionalEndpoint: data.RegionalEndpoint.ValueString(),
 		},
