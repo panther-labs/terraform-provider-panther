@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -75,14 +74,14 @@ func TestHttpSourceResource(t *testing.T) {
 					resource.TestCheckResourceAttr("panther_httpsource.test", "log_stream_type_options.xml_root_element", "root"),
 				),
 			},
-			// Provide an unchanged configuration and manually delete the resource
+			// Drift detection: manually delete the resource, then verify Read detects 404
+			// and removes it from state, causing a non-empty refresh plan (recreate).
 			{
-				Config:      providerConfig + testUpdatedHttpSourceResourceConfig(integrationUpdatedLabel),
-				Check:       manuallyDeleteSource(t),
-				ExpectError: regexp.MustCompile("Error running post-apply refresh plan"),
+				Config:             providerConfig + testUpdatedHttpSourceResourceConfig(integrationUpdatedLabel),
+				Check:              manuallyDeleteSource(t),
+				ExpectNonEmptyPlan: true,
 			},
-			// Delete testing automatically occurs in TestCase, in our case it is already deleted and the delete step
-			// succeeds as the method is idempotent
+			// TestCase cleanup calls Delete automatically — succeeds because 404 is treated as success.
 		},
 	})
 }
