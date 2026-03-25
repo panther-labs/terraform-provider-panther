@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"testing"
@@ -218,15 +219,39 @@ func TestRESTResource_URL(t *testing.T) {
 	}
 }
 
-func TestIsConflict(t *testing.T) {
-	conflictErr := &APIError{StatusCode: http.StatusConflict, Message: "already exists"}
-	assert.True(t, IsConflict(conflictErr))
+func TestAPIError_Error(t *testing.T) {
+	err := &APIError{
+		StatusCode: 404,
+		Method:     "GET",
+		URL:        "https://api.example.com/things/id-1",
+		Message:    "not found",
+	}
+	assert.Equal(t, "GET https://api.example.com/things/id-1 returned status 404: not found", err.Error())
+}
 
-	notFoundErr := &APIError{StatusCode: http.StatusNotFound, Message: "not found"}
-	assert.False(t, IsConflict(notFoundErr))
+func TestAPIErrorPredicates(t *testing.T) {
+	tests := []struct {
+		name      string
+		predicate func(error) bool
+		match     *APIError
+		noMatch   *APIError
+	}{
+		{"IsNotFound", IsNotFound, &APIError{StatusCode: http.StatusNotFound}, &APIError{StatusCode: http.StatusConflict}},
+		{"IsConflict", IsConflict, &APIError{StatusCode: http.StatusConflict}, &APIError{StatusCode: http.StatusNotFound}},
+		{"IsUnauthorized", IsUnauthorized, &APIError{StatusCode: http.StatusUnauthorized}, &APIError{StatusCode: http.StatusForbidden}},
+		{"IsForbidden", IsForbidden, &APIError{StatusCode: http.StatusForbidden}, &APIError{StatusCode: http.StatusUnauthorized}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.True(t, tt.predicate(tt.match))
+			assert.False(t, tt.predicate(tt.noMatch))
+			assert.False(t, tt.predicate(assert.AnError))
+			assert.False(t, tt.predicate(nil))
 
-	genericErr := assert.AnError
-	assert.False(t, IsConflict(genericErr))
+			wrapped := fmt.Errorf("context: %w", tt.match)
+			assert.True(t, tt.predicate(wrapped))
+		})
+	}
 }
 
 func TestRESTResource_Create_Conflict(t *testing.T) {
@@ -242,37 +267,75 @@ func TestRESTResource_Create_Conflict(t *testing.T) {
 	assert.Contains(t, err.Error(), "label already exists")
 }
 
-func TestGetErrorResponseMsg_MalformedJSON(t *testing.T) {
-	resp := &http.Response{
-		Body: io.NopCloser(bytes.NewReader([]byte("not json"))),
+func TestGetErrorResponseMsg(t *testing.T) {
+	tests := []struct {
+		name         string
+		body         string
+		wantExact    string // exact match; empty means use wantContains
+		wantContains string
+	}{
+		{"ValidJSON", `{"message": "resource not found"}`, "resource not found", ""},
+		{"EmptyJSONMessage", `{"message": ""}`, `{"message": ""}`, ""},
+		{"MalformedJSON", "not json", "not json", ""},
+		{"EmptyBody", "", "(empty response body)", ""},
+		{"HTMLBody", "<html><body><h1>502 Bad Gateway</h1></body></html>", "", "502 Bad Gateway"},
 	}
-	msg := getErrorResponseMsg(resp)
-	// Non-JSON body is returned as-is (raw fallback)
-	assert.Equal(t, "not json", msg)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp := &http.Response{
+				Body: io.NopCloser(bytes.NewReader([]byte(tt.body))),
+			}
+			msg := getErrorResponseMsg(resp)
+			if tt.wantExact != "" {
+				assert.Equal(t, tt.wantExact, msg)
+			} else {
+				assert.Contains(t, msg, tt.wantContains)
+			}
+		})
+	}
 }
 
-func TestGetErrorResponseMsg_HTMLBody(t *testing.T) {
-	html := "<html><body><h1>502 Bad Gateway</h1></body></html>"
+func TestGetErrorResponseMsg_LargeBody(t *testing.T) {
+	largeBody := bytes.Repeat([]byte("x"), 2<<20) // 2 MB
 	resp := &http.Response{
-		Body: io.NopCloser(bytes.NewReader([]byte(html))),
+		Body: io.NopCloser(bytes.NewReader(largeBody)),
 	}
 	msg := getErrorResponseMsg(resp)
-	assert.Contains(t, msg, "502 Bad Gateway")
+	assert.LessOrEqual(t, len(msg), 600)
+	assert.Contains(t, msg, "... (truncated)")
 }
 
-func TestGetErrorResponseMsg_EmptyBody(t *testing.T) {
-	resp := &http.Response{
-		Body: io.NopCloser(bytes.NewReader(nil)),
-	}
-	msg := getErrorResponseMsg(resp)
-	assert.Equal(t, "(empty response body)", msg)
+func TestRestDo_UnmarshalError(t *testing.T) {
+	doer := &mockDoer{handler: func(req *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(bytes.NewReader([]byte("not valid json"))),
+		}, nil
+	}}
+	r := newTestResource(doer)
+	_, err := r.Get(context.Background(), "id-1")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to unmarshal response body")
 }
 
-func TestGetErrorResponseMsg_EmptyJSONMessage(t *testing.T) {
-	resp := &http.Response{
-		Body: io.NopCloser(bytes.NewReader([]byte(`{"message": ""}`))),
-	}
-	msg := getErrorResponseMsg(resp)
-	// Empty message field falls through to raw body
-	assert.Equal(t, `{"message": ""}`, msg)
+func TestRestDo_TransportError(t *testing.T) {
+	doer := &mockDoer{handler: func(req *http.Request) (*http.Response, error) {
+		return nil, fmt.Errorf("connection refused")
+	}}
+	r := newTestResource(doer)
+	_, err := r.Get(context.Background(), "id-1")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to make request")
+	assert.Contains(t, err.Error(), "connection refused")
+}
+
+func TestRestDo_CancelledContext(t *testing.T) {
+	doer := &mockDoer{handler: func(req *http.Request) (*http.Response, error) {
+		return nil, req.Context().Err()
+	}}
+	r := newTestResource(doer)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := r.Get(ctx, "id-1")
+	require.Error(t, err)
 }

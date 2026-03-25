@@ -24,13 +24,16 @@ import (
 
 	"terraform-provider-panther/internal/client"
 
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestProviderClients_NilProviderData(t *testing.T) {
@@ -54,141 +57,152 @@ func TestProviderClients_WrongType(t *testing.T) {
 	assert.Contains(t, resp.Diagnostics.Errors()[0].Summary(), "Unexpected Resource Configure Type")
 }
 
-func TestHandleReadError_Nil(t *testing.T) {
-	resp := &resource.ReadResponse{}
-	handled := handleReadError(context.Background(), resp, "Test", "id-1", nil)
-	assert.False(t, handled)
-	assert.False(t, resp.Diagnostics.HasError())
-}
-
-func TestHandleReadError_NotFound(t *testing.T) {
-	resp := &resource.ReadResponse{}
-	// Initialize state with a minimal schema so RemoveResource doesn't panic
-	resp.State = tfsdk.State{
-		Schema: schema.Schema{
-			Attributes: map[string]schema.Attribute{
-				"id": schema.StringAttribute{Computed: true},
-			},
-		},
+func TestHandleReadError(t *testing.T) {
+	tests := []struct {
+		name                string
+		err                 error
+		initState           bool
+		wantHandled         bool
+		wantHasError        bool
+		wantSummaryContains string
+		wantDetailContains  string
+	}{
+		{"Nil", nil, false, false, false, "", ""},
+		{"NotFound",
+			&client.APIError{StatusCode: http.StatusNotFound, Message: "not found"},
+			true, true, false, "", ""},
+		{"OtherError",
+			fmt.Errorf("connection refused"),
+			false, true, true, "Error reading Test", ""},
+		{"Unauthorized",
+			&client.APIError{StatusCode: http.StatusUnauthorized, Message: "unauthorized"},
+			false, true, true, "Authentication failed", "PANTHER_API_TOKEN"},
+		{"Forbidden",
+			&client.APIError{StatusCode: http.StatusForbidden, Message: "forbidden"},
+			false, true, true, "Insufficient permissions", "permission"},
 	}
-	err := &client.APIError{StatusCode: http.StatusNotFound, Message: "not found"}
-	handled := handleReadError(context.Background(), resp, "Test", "id-1", err)
-	assert.True(t, handled)
-	assert.False(t, resp.Diagnostics.HasError()) // 404 removes from state, not an error diagnostic
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp := &resource.ReadResponse{}
+			if tt.initState {
+				// RemoveResource needs a schema to avoid panic
+				resp.State = tfsdk.State{
+					Schema: schema.Schema{
+						Attributes: map[string]schema.Attribute{
+							"id": schema.StringAttribute{Computed: true},
+						},
+					},
+				}
+			}
+			handled := handleReadError(context.Background(), resp, "Test", "id-1", tt.err)
+			assert.Equal(t, tt.wantHandled, handled)
+			assert.Equal(t, tt.wantHasError, resp.Diagnostics.HasError())
+			if tt.wantSummaryContains != "" {
+				assert.Contains(t, resp.Diagnostics.Errors()[0].Summary(), tt.wantSummaryContains)
+			}
+			if tt.wantDetailContains != "" {
+				assert.Contains(t, resp.Diagnostics.Errors()[0].Detail(), tt.wantDetailContains)
+			}
+		})
+	}
 }
 
-func TestHandleReadError_OtherError(t *testing.T) {
-	resp := &resource.ReadResponse{}
-	err := fmt.Errorf("connection refused")
-	handled := handleReadError(context.Background(), resp, "Test", "id-1", err)
-	assert.True(t, handled)
-	assert.True(t, resp.Diagnostics.HasError())
-	assert.Contains(t, resp.Diagnostics.Errors()[0].Summary(), "Error reading Test")
+func TestHandleCreateError(t *testing.T) {
+	tests := []struct {
+		name                string
+		err                 error
+		wantHandled         bool
+		wantHasError        bool
+		wantSummaryContains string
+		wantDetailContains  string
+	}{
+		{"Nil", nil, false, false, "", ""},
+		{"Unauthorized",
+			&client.APIError{StatusCode: http.StatusUnauthorized, Message: "unauthorized"},
+			true, true, "Authentication failed", ""},
+		{"Conflict",
+			&client.APIError{StatusCode: http.StatusConflict, Message: "label already exists"},
+			true, true, "already exists", "terraform import"},
+		{"OtherError",
+			fmt.Errorf("connection refused"),
+			true, true, "Error creating Test", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp := &resource.CreateResponse{}
+			handled := handleCreateError(resp, "Test", tt.err)
+			assert.Equal(t, tt.wantHandled, handled)
+			assert.Equal(t, tt.wantHasError, resp.Diagnostics.HasError())
+			if tt.wantSummaryContains != "" {
+				assert.Contains(t, resp.Diagnostics.Errors()[0].Summary(), tt.wantSummaryContains)
+			}
+			if tt.wantDetailContains != "" {
+				assert.Contains(t, resp.Diagnostics.Errors()[0].Detail(), tt.wantDetailContains)
+			}
+		})
+	}
 }
 
-func TestHandleReadError_Unauthorized(t *testing.T) {
-	resp := &resource.ReadResponse{}
-	err := &client.APIError{StatusCode: http.StatusUnauthorized, Message: "unauthorized"}
-	handled := handleReadError(context.Background(), resp, "Test", "id-1", err)
-	assert.True(t, handled)
-	assert.True(t, resp.Diagnostics.HasError())
-	assert.Contains(t, resp.Diagnostics.Errors()[0].Summary(), "Authentication failed")
-	assert.Contains(t, resp.Diagnostics.Errors()[0].Detail(), "PANTHER_API_TOKEN")
+func TestHandleUpdateError(t *testing.T) {
+	tests := []struct {
+		name                string
+		err                 error
+		wantHandled         bool
+		wantHasError        bool
+		wantSummaryContains string
+		wantDetailContains  string
+	}{
+		{"Nil", nil, false, false, "", ""},
+		{"Conflict",
+			&client.APIError{StatusCode: http.StatusConflict, Message: "label already exists"},
+			true, true, "Conflict updating Test", "conflicts with an existing resource"},
+		{"OtherError",
+			fmt.Errorf("connection refused"),
+			true, true, "Error updating Test", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp := &resource.UpdateResponse{}
+			handled := handleUpdateError(resp, "Test", "id-1", tt.err)
+			assert.Equal(t, tt.wantHandled, handled)
+			assert.Equal(t, tt.wantHasError, resp.Diagnostics.HasError())
+			if tt.wantSummaryContains != "" {
+				assert.Contains(t, resp.Diagnostics.Errors()[0].Summary(), tt.wantSummaryContains)
+			}
+			if tt.wantDetailContains != "" {
+				assert.Contains(t, resp.Diagnostics.Errors()[0].Detail(), tt.wantDetailContains)
+			}
+		})
+	}
 }
 
-func TestHandleReadError_Forbidden(t *testing.T) {
-	resp := &resource.ReadResponse{}
-	err := &client.APIError{StatusCode: http.StatusForbidden, Message: "forbidden"}
-	handled := handleReadError(context.Background(), resp, "Test", "id-1", err)
-	assert.True(t, handled)
-	assert.True(t, resp.Diagnostics.HasError())
-	assert.Contains(t, resp.Diagnostics.Errors()[0].Summary(), "Insufficient permissions")
-	assert.Contains(t, resp.Diagnostics.Errors()[0].Detail(), "permission")
-}
-
-func TestHandleCreateError_Unauthorized(t *testing.T) {
-	resp := &resource.CreateResponse{}
-	err := &client.APIError{StatusCode: http.StatusUnauthorized, Message: "unauthorized"}
-	handled := handleCreateError(resp, "Test", err)
-	assert.True(t, handled)
-	assert.True(t, resp.Diagnostics.HasError())
-	assert.Contains(t, resp.Diagnostics.Errors()[0].Summary(), "Authentication failed")
-}
-
-func TestHandleCreateError_Nil(t *testing.T) {
-	resp := &resource.CreateResponse{}
-	handled := handleCreateError(resp, "Test", nil)
-	assert.False(t, handled)
-	assert.False(t, resp.Diagnostics.HasError())
-}
-
-func TestHandleCreateError_Conflict(t *testing.T) {
-	resp := &resource.CreateResponse{}
-	err := &client.APIError{StatusCode: http.StatusConflict, Message: "label already exists"}
-	handled := handleCreateError(resp, "Test", err)
-	assert.True(t, handled)
-	assert.True(t, resp.Diagnostics.HasError())
-	assert.Contains(t, resp.Diagnostics.Errors()[0].Summary(), "already exists")
-	assert.Contains(t, resp.Diagnostics.Errors()[0].Detail(), "terraform import")
-	assert.Contains(t, resp.Diagnostics.Errors()[0].Detail(), "already exists")
-}
-
-func TestHandleCreateError_OtherError(t *testing.T) {
-	resp := &resource.CreateResponse{}
-	err := fmt.Errorf("connection refused")
-	handled := handleCreateError(resp, "Test", err)
-	assert.True(t, handled)
-	assert.True(t, resp.Diagnostics.HasError())
-	assert.Contains(t, resp.Diagnostics.Errors()[0].Summary(), "Error creating Test")
-}
-
-func TestHandleUpdateError_Nil(t *testing.T) {
-	resp := &resource.UpdateResponse{}
-	handled := handleUpdateError(resp, "Test", "id-1", nil)
-	assert.False(t, handled)
-	assert.False(t, resp.Diagnostics.HasError())
-}
-
-func TestHandleUpdateError_Conflict(t *testing.T) {
-	resp := &resource.UpdateResponse{}
-	err := &client.APIError{StatusCode: http.StatusConflict, Message: "label already exists"}
-	handled := handleUpdateError(resp, "Test", "id-1", err)
-	assert.True(t, handled)
-	assert.True(t, resp.Diagnostics.HasError())
-	assert.Contains(t, resp.Diagnostics.Errors()[0].Summary(), "Conflict updating Test")
-	assert.Contains(t, resp.Diagnostics.Errors()[0].Detail(), "conflicts with an existing resource")
-}
-
-func TestHandleUpdateError_OtherError(t *testing.T) {
-	resp := &resource.UpdateResponse{}
-	err := fmt.Errorf("connection refused")
-	handled := handleUpdateError(resp, "Test", "id-1", err)
-	assert.True(t, handled)
-	assert.True(t, resp.Diagnostics.HasError())
-	assert.Contains(t, resp.Diagnostics.Errors()[0].Summary(), "Error updating Test")
-}
-
-func TestHandleDeleteError_Nil(t *testing.T) {
-	resp := &resource.DeleteResponse{}
-	handled := handleDeleteError(resp, "Test", "id-1", nil)
-	assert.False(t, handled)
-}
-
-func TestHandleDeleteError_NotFound(t *testing.T) {
-	resp := &resource.DeleteResponse{}
-	err := &client.APIError{StatusCode: http.StatusNotFound, Message: "not found"}
-	handled := handleDeleteError(resp, "Test", "id-1", err)
-	assert.False(t, handled) // 404 on delete = success, not handled as error
-	assert.False(t, resp.Diagnostics.HasError())
-}
-
-func TestHandleDeleteError_OtherError(t *testing.T) {
-	resp := &resource.DeleteResponse{}
-	err := fmt.Errorf("connection refused")
-	handled := handleDeleteError(resp, "Test", "id-1", err)
-	assert.True(t, handled)
-	assert.True(t, resp.Diagnostics.HasError())
-	assert.Contains(t, resp.Diagnostics.Errors()[0].Summary(), "Error deleting Test")
+func TestHandleDeleteError(t *testing.T) {
+	tests := []struct {
+		name                string
+		err                 error
+		wantHandled         bool
+		wantHasError        bool
+		wantSummaryContains string
+	}{
+		{"Nil", nil, false, false, ""},
+		{"NotFound",
+			&client.APIError{StatusCode: http.StatusNotFound, Message: "not found"},
+			false, false, ""},
+		{"OtherError",
+			fmt.Errorf("connection refused"),
+			true, true, "Error deleting Test"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp := &resource.DeleteResponse{}
+			handled := handleDeleteError(resp, "Test", "id-1", tt.err)
+			assert.Equal(t, tt.wantHandled, handled)
+			assert.Equal(t, tt.wantHasError, resp.Diagnostics.HasError())
+			if tt.wantSummaryContains != "" {
+				assert.Contains(t, resp.Diagnostics.Errors()[0].Summary(), tt.wantSummaryContains)
+			}
+		})
+	}
 }
 
 func TestApplySchemaOverrides_Default(t *testing.T) {
@@ -293,6 +307,80 @@ func assertNoOptionalComputedWithoutDefault(t *testing.T, s schema.Schema) {
 			t.Errorf("attribute %q is Optional+Computed without a Default or PlanModifier — add it to applySchemaOverrides or set a default in the generated schema", name)
 		}
 	}
+}
+
+func TestAssertNoOptionalComputedWithoutDefault_CatchesMissingDefault(t *testing.T) {
+	s := schema.Schema{
+		Attributes: map[string]schema.Attribute{
+			"good": schema.StringAttribute{Optional: true, Computed: true, Default: stringdefault.StaticString("")},
+			"bad":  schema.StringAttribute{Optional: true, Computed: true}, // no Default, no PlanModifiers
+		},
+	}
+	mockT := &testing.T{}
+	assertNoOptionalComputedWithoutDefault(mockT, s)
+	assert.True(t, mockT.Failed(), "expected the assertion to fail for the 'bad' attribute")
+}
+
+func TestPatchIDAttribute_Normal(t *testing.T) {
+	s := schema.Schema{
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{Computed: true},
+		},
+	}
+	patchIDAttribute(&s)
+	attr := s.Attributes["id"].(schema.StringAttribute)
+	assert.Len(t, attr.PlanModifiers, 1)
+}
+
+func TestPatchIDAttribute_MissingID(t *testing.T) {
+	s := schema.Schema{
+		Attributes: map[string]schema.Attribute{},
+	}
+	patchIDAttribute(&s) // should not panic
+}
+
+func TestPatchIDAttribute_WrongType(t *testing.T) {
+	s := schema.Schema{
+		Attributes: map[string]schema.Attribute{
+			"id": schema.Int64Attribute{Computed: true},
+		},
+	}
+	patchIDAttribute(&s) // should not panic; attribute unchanged
+	_, ok := s.Attributes["id"].(schema.Int64Attribute)
+	assert.True(t, ok)
+}
+
+func TestConvertLogTypes(t *testing.T) {
+	ctx := context.Background()
+	diags := diag.Diagnostics{}
+
+	list, d := types.ListValueFrom(ctx, types.StringType, []string{"AWS.CloudTrail", "AWS.S3"})
+	diags.Append(d...)
+	require.False(t, diags.HasError())
+
+	result := convertLogTypes(ctx, list, diags)
+	assert.Equal(t, []string{"AWS.CloudTrail", "AWS.S3"}, result)
+}
+
+func TestConvertLogTypes_Empty(t *testing.T) {
+	ctx := context.Background()
+	diags := diag.Diagnostics{}
+
+	list, d := types.ListValueFrom(ctx, types.StringType, []string{})
+	diags.Append(d...)
+
+	result := convertLogTypes(ctx, list, diags)
+	assert.Empty(t, result)
+}
+
+func TestConvertFromLogTypes(t *testing.T) {
+	ctx := context.Background()
+	diags := diag.Diagnostics{}
+
+	list := convertFromLogTypes(ctx, []string{"AWS.CloudTrail"}, diags)
+	assert.False(t, diags.HasError())
+	assert.False(t, list.IsNull())
+	assert.Equal(t, 1, len(list.Elements()))
 }
 
 func TestHttpsourceSchema_AllOptionalComputedHaveDefaults(t *testing.T) {
