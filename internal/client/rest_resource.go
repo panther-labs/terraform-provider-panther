@@ -191,7 +191,7 @@ type httpErrorResponse struct {
 }
 
 func getErrorResponseMsg(resp *http.Response) string {
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20)) // 1 MB max
 	if err != nil {
 		return fmt.Sprintf("failed to read response body: %s", err.Error())
 	}
