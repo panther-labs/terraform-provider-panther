@@ -26,6 +26,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/stretchr/testify/assert"
 )
@@ -157,4 +160,127 @@ func TestHandleDeleteError_OtherError(t *testing.T) {
 	assert.True(t, handled)
 	assert.True(t, resp.Diagnostics.HasError())
 	assert.Contains(t, resp.Diagnostics.Errors()[0].Summary(), "Error deleting Test")
+}
+
+func TestApplySchemaOverrides_Default(t *testing.T) {
+	s := schema.Schema{
+		Attributes: map[string]schema.Attribute{
+			"field1": schema.StringAttribute{Optional: true, Computed: true},
+		},
+	}
+	applySchemaOverrides(&s, []SchemaOverride{
+		{Name: "field1", Default: stringdefault.StaticString("")},
+	})
+	attr := s.Attributes["field1"].(schema.StringAttribute)
+	assert.NotNil(t, attr.Default)
+}
+
+func TestApplySchemaOverrides_Sensitive(t *testing.T) {
+	s := schema.Schema{
+		Attributes: map[string]schema.Attribute{
+			"secret": schema.StringAttribute{Optional: true, Computed: true},
+		},
+	}
+	applySchemaOverrides(&s, []SchemaOverride{
+		{Name: "secret", Default: stringdefault.StaticString(""), Sensitive: true},
+	})
+	attr := s.Attributes["secret"].(schema.StringAttribute)
+	assert.True(t, attr.Sensitive)
+	assert.NotNil(t, attr.Default)
+}
+
+func TestApplySchemaOverrides_PlanModifiers(t *testing.T) {
+	s := schema.Schema{
+		Attributes: map[string]schema.Attribute{
+			"derived": schema.StringAttribute{Optional: true, Computed: true},
+		},
+	}
+	applySchemaOverrides(&s, []SchemaOverride{
+		{Name: "derived", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+	})
+	attr := s.Attributes["derived"].(schema.StringAttribute)
+	assert.Len(t, attr.PlanModifiers, 1)
+}
+
+func TestApplySchemaOverrides_MissingAttribute(t *testing.T) {
+	s := schema.Schema{
+		Attributes: map[string]schema.Attribute{},
+	}
+	// Should not panic
+	applySchemaOverrides(&s, []SchemaOverride{
+		{Name: "nonexistent", Default: stringdefault.StaticString("")},
+	})
+}
+
+func TestApplySchemaOverrides_NonStringAttribute(t *testing.T) {
+	s := schema.Schema{
+		Attributes: map[string]schema.Attribute{
+			"count": schema.Int64Attribute{Optional: true},
+		},
+	}
+	// Should skip non-string attributes without panic
+	applySchemaOverrides(&s, []SchemaOverride{
+		{Name: "count", Default: stringdefault.StaticString("")},
+	})
+	// Attribute should be unchanged
+	_, ok := s.Attributes["count"].(schema.Int64Attribute)
+	assert.True(t, ok)
+}
+
+func TestApplySchemaOverrides_MultipleOverrides(t *testing.T) {
+	s := schema.Schema{
+		Attributes: map[string]schema.Attribute{
+			"field_a":     schema.StringAttribute{Optional: true, Computed: true},
+			"field_b":     schema.StringAttribute{Optional: true, Computed: true},
+			"nonexistent": schema.Int64Attribute{Optional: true}, // wrong type, should be skipped
+		},
+	}
+	applySchemaOverrides(&s, []SchemaOverride{
+		{Name: "field_a", Default: stringdefault.StaticString(""), Sensitive: true},
+		{Name: "field_b", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+		{Name: "nonexistent", Default: stringdefault.StaticString("")}, // skipped (Int64, not String)
+		{Name: "missing", Default: stringdefault.StaticString("")},     // skipped (doesn't exist)
+	})
+
+	attrA := s.Attributes["field_a"].(schema.StringAttribute)
+	assert.NotNil(t, attrA.Default)
+	assert.True(t, attrA.Sensitive)
+	assert.Empty(t, attrA.PlanModifiers) // not set for field_a
+
+	attrB := s.Attributes["field_b"].(schema.StringAttribute)
+	assert.Nil(t, attrB.Default)     // not set for field_b
+	assert.False(t, attrB.Sensitive) // not set for field_b
+	assert.Len(t, attrB.PlanModifiers, 1)
+}
+
+// assertNoOptionalComputedWithoutDefault checks that every Optional+Computed string attribute
+// in the schema has a Default set. Call this in tests after Schema() to catch missing overrides
+// when the generated schema adds new fields.
+func assertNoOptionalComputedWithoutDefault(t *testing.T, s schema.Schema) {
+	t.Helper()
+	for name, raw := range s.Attributes {
+		attr, ok := raw.(schema.StringAttribute)
+		if !ok {
+			continue
+		}
+		if attr.Optional && attr.Computed && attr.Default == nil && len(attr.PlanModifiers) == 0 {
+			t.Errorf("attribute %q is Optional+Computed without a Default or PlanModifier — add it to applySchemaOverrides or set a default in the generated schema", name)
+		}
+	}
+}
+
+func TestHttpsourceSchema_AllOptionalComputedHaveDefaults(t *testing.T) {
+	r := &httpsourceResource{}
+	req := resource.SchemaRequest{}
+	resp := &resource.SchemaResponse{}
+	r.Schema(context.Background(), req, resp)
+	assertNoOptionalComputedWithoutDefault(t, resp.Schema)
+}
+
+func TestPubsubsourceSchema_AllOptionalComputedHaveDefaults(t *testing.T) {
+	r := &pubsubsourceResource{}
+	req := resource.SchemaRequest{}
+	resp := &resource.SchemaResponse{}
+	r.Schema(context.Background(), req, resp)
+	assertNoOptionalComputedWithoutDefault(t, resp.Schema)
 }

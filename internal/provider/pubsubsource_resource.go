@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -53,26 +54,15 @@ func (r *pubsubsourceResource) Metadata(ctx context.Context, req resource.Metada
 }
 
 func (r *pubsubsourceResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
-	// Start from the generated schema and apply overrides that the generator can't express
 	resp.Schema = resource_pubsubsource.PubsubsourceResourceSchema(ctx)
 	patchIDAttribute(&resp.Schema)
 
-	// credentials: sensitive (the API returns "" on read) + default "" to avoid unknown on omission
-	credentials := resp.Schema.Attributes["credentials"].(schema.StringAttribute)
-	credentials.Sensitive = true
-	credentials.Default = stringdefault.StaticString("")
-	resp.Schema.Attributes["credentials"] = credentials
-
-	// project_id: UseStateForUnknown — optional for SA (API derives from keyfile), required for WIF.
-	// On create the API returns the derived value; on subsequent plans, prior state is reused.
-	projectId := resp.Schema.Attributes["project_id"].(schema.StringAttribute)
-	projectId.PlanModifiers = append(projectId.PlanModifiers, stringplanmodifier.UseStateForUnknown())
-	resp.Schema.Attributes["project_id"] = projectId
-
-	// regional_endpoint: default "" to avoid unknown when not set
-	regionalEndpoint := resp.Schema.Attributes["regional_endpoint"].(schema.StringAttribute)
-	regionalEndpoint.Default = stringdefault.StaticString("")
-	resp.Schema.Attributes["regional_endpoint"] = regionalEndpoint
+	// Override Optional+Computed string attributes that the generator can't fully configure
+	applySchemaOverrides(&resp.Schema, []SchemaOverride{
+		{Name: "credentials", Default: stringdefault.StaticString(""), Sensitive: true},
+		{Name: "project_id", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+		{Name: "regional_endpoint", Default: stringdefault.StaticString("")},
+	})
 
 	// log_stream_type_options: default "" for inner fields, null object default for the block itself
 	logStreamTypeOptions := resp.Schema.Attributes["log_stream_type_options"].(schema.SingleNestedAttribute)

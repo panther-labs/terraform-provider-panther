@@ -26,6 +26,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/defaults"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -139,6 +141,41 @@ func patchIDAttribute(s *schema.Schema) {
 	}
 	idAttr.PlanModifiers = append(idAttr.PlanModifiers, stringplanmodifier.UseStateForUnknown())
 	s.Attributes["id"] = idAttr
+}
+
+// SchemaOverride describes a patch to apply to a generated string schema attribute.
+// Only non-zero/non-nil fields are applied, so omitted fields leave the attribute unchanged.
+type SchemaOverride struct {
+	Name          string                // attribute name in the generated schema
+	Default       defaults.String       // if non-nil, sets the attribute's Default
+	Sensitive     bool                  // if true, marks the attribute as sensitive
+	PlanModifiers []planmodifier.String // if non-empty, appended to existing plan modifiers
+}
+
+// applySchemaOverrides patches generated string attributes that the code generator can't
+// fully configure (defaults, sensitivity, plan modifiers). Attributes that don't exist
+// or aren't StringAttributes are silently skipped.
+func applySchemaOverrides(s *schema.Schema, overrides []SchemaOverride) {
+	for _, o := range overrides {
+		raw, ok := s.Attributes[o.Name]
+		if !ok {
+			continue
+		}
+		attr, ok := raw.(schema.StringAttribute)
+		if !ok {
+			continue
+		}
+		if o.Default != nil {
+			attr.Default = o.Default
+		}
+		if o.Sensitive {
+			attr.Sensitive = true
+		}
+		if len(o.PlanModifiers) > 0 {
+			attr.PlanModifiers = append(attr.PlanModifiers, o.PlanModifiers...)
+		}
+		s.Attributes[o.Name] = attr
+	}
 }
 
 func convertLogTypes(ctx context.Context, logTypes types.List, diagnostics diag.Diagnostics) []string {

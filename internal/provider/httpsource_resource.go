@@ -52,41 +52,20 @@ func (r *httpsourceResource) Metadata(ctx context.Context, req resource.Metadata
 }
 
 func (r *httpsourceResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
-	// We are overriding the schema here with some settings that are not supported by the schema generator.
-	// We opt to do it here in order to be able to keep generating it without our changes getting overwritten in the generated file
 	resp.Schema = resource_httpsource.HttpsourceResourceSchema(ctx)
 	patchIDAttribute(&resp.Schema)
 
-	// override default value for optional values
-	// this is necessary because the code generator creates these fields as optional and computed, which means that if they are not provided
-	// by the user they will be unknown values.
-	hmacAlg := resp.Schema.Attributes["auth_hmac_alg"].(schema.StringAttribute)
-	hmacAlg.Default = stringdefault.StaticString("")
-	resp.Schema.Attributes["auth_hmac_alg"] = hmacAlg
+	// Override Optional+Computed string attributes that the generator can't fully configure
+	applySchemaOverrides(&resp.Schema, []SchemaOverride{
+		{Name: "auth_hmac_alg", Default: stringdefault.StaticString("")},
+		{Name: "auth_header_key", Default: stringdefault.StaticString("")},
+		{Name: "auth_password", Default: stringdefault.StaticString(""), Sensitive: true},
+		{Name: "auth_secret_value", Default: stringdefault.StaticString(""), Sensitive: true},
+		{Name: "auth_username", Default: stringdefault.StaticString("")},
+		{Name: "auth_bearer_token", Default: stringdefault.StaticString(""), Sensitive: true},
+	})
 
-	authHeadKey := resp.Schema.Attributes["auth_header_key"].(schema.StringAttribute)
-	authHeadKey.Default = stringdefault.StaticString("")
-	resp.Schema.Attributes["auth_header_key"] = authHeadKey
-
-	authPass := resp.Schema.Attributes["auth_password"].(schema.StringAttribute)
-	authPass.Default = stringdefault.StaticString("")
-	authPass.Sensitive = true
-	resp.Schema.Attributes["auth_password"] = authPass
-
-	authSecVal := resp.Schema.Attributes["auth_secret_value"].(schema.StringAttribute)
-	authSecVal.Default = stringdefault.StaticString("")
-	authSecVal.Sensitive = true
-	resp.Schema.Attributes["auth_secret_value"] = authSecVal
-
-	authUser := resp.Schema.Attributes["auth_username"].(schema.StringAttribute)
-	authUser.Default = stringdefault.StaticString("")
-	resp.Schema.Attributes["auth_username"] = authUser
-
-	bearerToken := resp.Schema.Attributes["auth_bearer_token"].(schema.StringAttribute)
-	bearerToken.Default = stringdefault.StaticString("")
-	bearerToken.Sensitive = true
-	resp.Schema.Attributes["auth_bearer_token"] = bearerToken
-
+	// logStreamTypeOptions: nested object needs inner defaults + null object default
 	logStreamTypeOptions := resp.Schema.Attributes["log_stream_type_options"].(schema.SingleNestedAttribute)
 
 	jsonArrayEnvelopeField := logStreamTypeOptions.Attributes["json_array_envelope_field"].(schema.StringAttribute)
