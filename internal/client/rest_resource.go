@@ -129,8 +129,7 @@ func (r *RESTResource[C, U, Resp]) Delete(ctx context.Context, id string) error 
 	return restDelete(ctx, r.client.Doer, r.url(id))
 }
 
-// restDo is a generic helper that handles the common REST pattern:
-// marshal request body → send HTTP request → check status → unmarshal typed response.
+// restDo marshals input, sends an HTTP request, checks the expected status, and unmarshals the response.
 func restDo[Resp any](ctx context.Context, doer Doer, method, url string, expectedStatus int, body any) (Resp, error) {
 	var zero Resp
 	var reqBody io.Reader
@@ -216,11 +215,10 @@ func getErrorResponseMsg(resp *http.Response) string {
 	if err = json.Unmarshal(body, &errResponse); err != nil || errResponse.Message == "" {
 		// Non-JSON response (e.g. HTML from a load balancer) — return raw body truncated
 		const maxDisplay = 512
-		raw := string(body)
-		if len(raw) > maxDisplay {
-			raw = raw[:maxDisplay] + "... (truncated)"
+		if len(body) > maxDisplay {
+			return string(body[:maxDisplay]) + "... (truncated)"
 		}
-		return raw
+		return string(body)
 	}
 
 	return errResponse.Message

@@ -122,7 +122,6 @@ func handleCreateError(resp *resource.CreateResponse, resourceName string, err e
 
 // handleUpdateError handles API errors in Update operations.
 // Returns true if the error was handled (caller should return).
-// 409 conflicts produce a user-friendly message about duplicate labels.
 func handleUpdateError(resp *resource.UpdateResponse, resourceName, id string, err error) bool {
 	if err == nil {
 		return false

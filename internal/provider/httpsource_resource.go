@@ -96,7 +96,6 @@ func (r *httpsourceResource) Configure(_ context.Context, req resource.Configure
 
 func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data resource_httpsource.HttpsourceModel
-	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -127,17 +126,12 @@ func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequ
 		"id": httpSource.IntegrationId,
 	})
 	data.Id = types.StringValue(httpSource.IntegrationId)
-
-	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
 func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var data resource_httpsource.HttpsourceModel
-
-	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -149,8 +143,8 @@ func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest,
 	tflog.Debug(ctx, "Got HTTP Source", map[string]any{
 		"id": httpSource.IntegrationId,
 	})
-	// We need to set all the values from the API response into the data model, except for the sensitive values
-	// which are returned always as empty strings
+	// Sensitive fields (auth_password, auth_secret_value, auth_bearer_token) are returned as ""
+	// by the API — don't overwrite state for those.
 	data.Id = types.StringValue(httpSource.IntegrationId)
 	data.IntegrationLabel = types.StringValue(httpSource.IntegrationLabel)
 	data.LogStreamType = types.StringValue(httpSource.LogStreamType)
@@ -174,16 +168,12 @@ func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest,
 			data.LogStreamTypeOptions = logStreamTypeOptionsValue
 		}
 	}
-	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
 func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data resource_httpsource.HttpsourceModel
-
-	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -214,16 +204,12 @@ func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequ
 		"id": data.Id.ValueString(),
 	})
 
-	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
 func (r *httpsourceResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var data resource_httpsource.HttpsourceModel
-
-	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}

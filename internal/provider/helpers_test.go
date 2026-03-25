@@ -235,7 +235,6 @@ func TestApplySchemaOverrides_MissingAttribute(t *testing.T) {
 	s := schema.Schema{
 		Attributes: map[string]schema.Attribute{},
 	}
-	// Should not panic
 	applySchemaOverrides(&s, []SchemaOverride{
 		{Name: "nonexistent", Default: stringdefault.StaticString("")},
 	})
@@ -247,11 +246,9 @@ func TestApplySchemaOverrides_NonStringAttribute(t *testing.T) {
 			"count": schema.Int64Attribute{Optional: true},
 		},
 	}
-	// Should skip non-string attributes without panic
 	applySchemaOverrides(&s, []SchemaOverride{
 		{Name: "count", Default: stringdefault.StaticString("")},
 	})
-	// Attribute should be unchanged
 	_, ok := s.Attributes["count"].(schema.Int64Attribute)
 	assert.True(t, ok)
 }
@@ -261,14 +258,14 @@ func TestApplySchemaOverrides_MultipleOverrides(t *testing.T) {
 		Attributes: map[string]schema.Attribute{
 			"field_a":     schema.StringAttribute{Optional: true, Computed: true},
 			"field_b":     schema.StringAttribute{Optional: true, Computed: true},
-			"nonexistent": schema.Int64Attribute{Optional: true}, // wrong type, should be skipped
+			"nonexistent": schema.Int64Attribute{Optional: true},
 		},
 	}
 	applySchemaOverrides(&s, []SchemaOverride{
 		{Name: "field_a", Default: stringdefault.StaticString(""), Sensitive: true},
 		{Name: "field_b", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-		{Name: "nonexistent", Default: stringdefault.StaticString("")}, // skipped (Int64, not String)
-		{Name: "missing", Default: stringdefault.StaticString("")},     // skipped (doesn't exist)
+		{Name: "nonexistent", Default: stringdefault.StaticString("")},
+		{Name: "missing", Default: stringdefault.StaticString("")},
 	})
 
 	attrA := s.Attributes["field_a"].(schema.StringAttribute)
