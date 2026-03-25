@@ -196,9 +196,19 @@ func getErrorResponseMsg(resp *http.Response) string {
 		return fmt.Sprintf("failed to read response body: %s", err.Error())
 	}
 
+	if len(body) == 0 {
+		return "(empty response body)"
+	}
+
 	var errResponse httpErrorResponse
-	if err = json.Unmarshal(body, &errResponse); err != nil {
-		return fmt.Sprintf("failed to unmarshal response body to get error response: %s", err.Error())
+	if err = json.Unmarshal(body, &errResponse); err != nil || errResponse.Message == "" {
+		// Non-JSON response (e.g. HTML from a load balancer) — return raw body truncated
+		const maxDisplay = 512
+		raw := string(body)
+		if len(raw) > maxDisplay {
+			raw = raw[:maxDisplay] + "... (truncated)"
+		}
+		return raw
 	}
 
 	return errResponse.Message

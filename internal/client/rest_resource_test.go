@@ -247,7 +247,17 @@ func TestGetErrorResponseMsg_MalformedJSON(t *testing.T) {
 		Body: io.NopCloser(bytes.NewReader([]byte("not json"))),
 	}
 	msg := getErrorResponseMsg(resp)
-	assert.Contains(t, msg, "failed to unmarshal response body to get error response")
+	// Non-JSON body is returned as-is (raw fallback)
+	assert.Equal(t, "not json", msg)
+}
+
+func TestGetErrorResponseMsg_HTMLBody(t *testing.T) {
+	html := "<html><body><h1>502 Bad Gateway</h1></body></html>"
+	resp := &http.Response{
+		Body: io.NopCloser(bytes.NewReader([]byte(html))),
+	}
+	msg := getErrorResponseMsg(resp)
+	assert.Contains(t, msg, "502 Bad Gateway")
 }
 
 func TestGetErrorResponseMsg_EmptyBody(t *testing.T) {
@@ -255,6 +265,14 @@ func TestGetErrorResponseMsg_EmptyBody(t *testing.T) {
 		Body: io.NopCloser(bytes.NewReader(nil)),
 	}
 	msg := getErrorResponseMsg(resp)
-	// Empty body fails unmarshal
-	assert.Contains(t, msg, "failed to unmarshal response body to get error response")
+	assert.Equal(t, "(empty response body)", msg)
+}
+
+func TestGetErrorResponseMsg_EmptyJSONMessage(t *testing.T) {
+	resp := &http.Response{
+		Body: io.NopCloser(bytes.NewReader([]byte(`{"message": ""}`))),
+	}
+	msg := getErrorResponseMsg(resp)
+	// Empty message field falls through to raw body
+	assert.Equal(t, `{"message": ""}`, msg)
 }
