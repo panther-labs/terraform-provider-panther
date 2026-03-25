@@ -86,6 +86,35 @@ func TestHandleReadError_OtherError(t *testing.T) {
 	assert.Contains(t, resp.Diagnostics.Errors()[0].Summary(), "Error reading Test")
 }
 
+func TestHandleReadError_Unauthorized(t *testing.T) {
+	resp := &resource.ReadResponse{}
+	err := &client.APIError{StatusCode: http.StatusUnauthorized, Message: "unauthorized"}
+	handled := handleReadError(context.Background(), resp, "Test", "id-1", err)
+	assert.True(t, handled)
+	assert.True(t, resp.Diagnostics.HasError())
+	assert.Contains(t, resp.Diagnostics.Errors()[0].Summary(), "Authentication failed")
+	assert.Contains(t, resp.Diagnostics.Errors()[0].Detail(), "PANTHER_API_TOKEN")
+}
+
+func TestHandleReadError_Forbidden(t *testing.T) {
+	resp := &resource.ReadResponse{}
+	err := &client.APIError{StatusCode: http.StatusForbidden, Message: "forbidden"}
+	handled := handleReadError(context.Background(), resp, "Test", "id-1", err)
+	assert.True(t, handled)
+	assert.True(t, resp.Diagnostics.HasError())
+	assert.Contains(t, resp.Diagnostics.Errors()[0].Summary(), "Insufficient permissions")
+	assert.Contains(t, resp.Diagnostics.Errors()[0].Detail(), "permission")
+}
+
+func TestHandleCreateError_Unauthorized(t *testing.T) {
+	resp := &resource.CreateResponse{}
+	err := &client.APIError{StatusCode: http.StatusUnauthorized, Message: "unauthorized"}
+	handled := handleCreateError(resp, "Test", err)
+	assert.True(t, handled)
+	assert.True(t, resp.Diagnostics.HasError())
+	assert.Contains(t, resp.Diagnostics.Errors()[0].Summary(), "Authentication failed")
+}
+
 func TestHandleCreateError_Nil(t *testing.T) {
 	resp := &resource.CreateResponse{}
 	handled := handleCreateError(resp, "Test", nil)

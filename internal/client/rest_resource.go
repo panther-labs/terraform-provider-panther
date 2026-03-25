@@ -55,6 +55,18 @@ func IsConflict(err error) bool {
 	return errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusConflict
 }
 
+// IsUnauthorized returns true if the error is an HTTP 401 (bad or expired API token).
+func IsUnauthorized(err error) bool {
+	var apiErr *APIError
+	return errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusUnauthorized
+}
+
+// IsForbidden returns true if the error is an HTTP 403 (valid token, insufficient permissions).
+func IsForbidden(err error) bool {
+	var apiErr *APIError
+	return errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusForbidden
+}
+
 // RESTClient holds the shared HTTP transport and base URL for REST API calls.
 type RESTClient struct {
 	Doer    Doer

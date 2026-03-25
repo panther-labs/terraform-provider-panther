@@ -50,12 +50,37 @@ func providerClients(req resource.ConfigureRequest, resp *resource.ConfigureResp
 	return c
 }
 
+// addAuthDiagnostic checks for 401/403 errors and adds an actionable diagnostic.
+// Returns true if the error was an auth error.
+func addAuthDiagnostic(diagnostics *diag.Diagnostics, err error) bool {
+	if client.IsUnauthorized(err) {
+		diagnostics.AddError(
+			"Authentication failed",
+			"The API returned 401 Unauthorized. Check your PANTHER_API_TOKEN environment variable "+
+				"or the `token` field in your provider configuration.\n\nAPI error: "+err.Error(),
+		)
+		return true
+	}
+	if client.IsForbidden(err) {
+		diagnostics.AddError(
+			"Insufficient permissions",
+			"The API returned 403 Forbidden. Your API token may not have permission to manage this resource. "+
+				"Check the token's role and permissions in the Panther console.\n\nAPI error: "+err.Error(),
+		)
+		return true
+	}
+	return false
+}
+
 // handleReadError handles API errors in Read operations.
 // Returns true if the error was handled (caller should return).
 // 404 errors remove the resource from state (drift detection); other errors add a diagnostic.
 func handleReadError(ctx context.Context, resp *resource.ReadResponse, resourceName, id string, err error) bool {
 	if err == nil {
 		return false
+	}
+	if addAuthDiagnostic(&resp.Diagnostics, err) {
+		return true
 	}
 	if client.IsNotFound(err) {
 		tflog.Warn(ctx, fmt.Sprintf("%s %s not found, removing from state", resourceName, id))
@@ -75,6 +100,9 @@ func handleReadError(ctx context.Context, resp *resource.ReadResponse, resourceN
 func handleCreateError(resp *resource.CreateResponse, resourceName string, err error) bool {
 	if err == nil {
 		return false
+	}
+	if addAuthDiagnostic(&resp.Diagnostics, err) {
+		return true
 	}
 	if client.IsConflict(err) {
 		resp.Diagnostics.AddError(
@@ -99,6 +127,9 @@ func handleUpdateError(resp *resource.UpdateResponse, resourceName, id string, e
 	if err == nil {
 		return false
 	}
+	if addAuthDiagnostic(&resp.Diagnostics, err) {
+		return true
+	}
 	if client.IsConflict(err) {
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Conflict updating %s", resourceName),
@@ -120,6 +151,9 @@ func handleUpdateError(resp *resource.UpdateResponse, resourceName, id string, e
 func handleDeleteError(resp *resource.DeleteResponse, resourceName, id string, err error) bool {
 	if err == nil || client.IsNotFound(err) {
 		return false
+	}
+	if addAuthDiagnostic(&resp.Diagnostics, err) {
+		return true
 	}
 	resp.Diagnostics.AddError(
 		fmt.Sprintf("Error deleting %s", resourceName),
