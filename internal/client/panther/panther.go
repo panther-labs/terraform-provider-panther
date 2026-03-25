@@ -42,7 +42,7 @@ func NewProviderClients(url, token string) *ProviderClients {
 	// url in previous versions was provided including graphql endpoint,
 	// we strip it here to keep it backwards compatible
 	pantherURL := strings.TrimSuffix(url, GraphQLPath)
-	httpClient := NewAuthorizedHTTPClient(token)
+	httpClient := NewHTTPClient(token)
 
 	return &ProviderClients{
 		GraphQL: &GraphQLClient{
