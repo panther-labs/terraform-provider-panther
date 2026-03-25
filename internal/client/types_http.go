@@ -17,7 +17,7 @@ limitations under the License.
 package client
 
 type HttpSource struct {
-	IntegrationId string
+	IntegrationId string `json:"integrationId"`
 	HttpSourceModifiableAttributes
 }
 
@@ -29,17 +29,17 @@ type HttpLogStreamTypeOptions struct {
 
 // HttpSourceModifiableAttributes attributes that can be modified on an http log source
 type HttpSourceModifiableAttributes struct {
-	IntegrationLabel     string
-	LogStreamType        string
-	LogTypes             []string
-	LogStreamTypeOptions *HttpLogStreamTypeOptions
-	AuthHmacAlg          string
-	AuthHeaderKey        string
-	AuthPassword         string
-	AuthSecretValue      string
-	AuthMethod           string
-	AuthUsername         string
-	AuthBearerToken      string
+	IntegrationLabel     string                    `json:"integrationLabel"`
+	LogStreamType        string                    `json:"logStreamType"`
+	LogTypes             []string                  `json:"logTypes"`
+	LogStreamTypeOptions *HttpLogStreamTypeOptions `json:"logStreamTypeOptions,omitempty"`
+	AuthHmacAlg          string                    `json:"authHmacAlg,omitempty"`
+	AuthHeaderKey        string                    `json:"authHeaderKey,omitempty"`
+	AuthPassword         string                    `json:"authPassword,omitempty"`
+	AuthSecretValue      string                    `json:"authSecretValue,omitempty"`
+	AuthMethod           string                    `json:"authMethod"`
+	AuthUsername         string                    `json:"authUsername,omitempty"`
+	AuthBearerToken      string                    `json:"authBearerToken,omitempty"`
 }
 
 // CreateHttpSourceInput Input for creating an http log source
@@ -49,6 +49,6 @@ type CreateHttpSourceInput struct {
 
 // UpdateHttpSourceInput input for updating an http log source
 type UpdateHttpSourceInput struct {
-	IntegrationId string
+	IntegrationId string `json:"-"`
 	HttpSourceModifiableAttributes
 }

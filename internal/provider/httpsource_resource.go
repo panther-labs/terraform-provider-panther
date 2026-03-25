@@ -117,12 +117,7 @@ func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequ
 		},
 	}
 
-	if !data.LogStreamTypeOptions.IsNull() {
-		input.HttpSourceModifiableAttributes.LogStreamTypeOptions = &client.HttpLogStreamTypeOptions{
-			JsonArrayEnvelopeField: data.LogStreamTypeOptions.JsonArrayEnvelopeField.ValueString(),
-			XmlRootElement:         data.LogStreamTypeOptions.XmlRootElement.ValueString(),
-		}
-	}
+	input.HttpSourceModifiableAttributes.LogStreamTypeOptions = httpLogStreamTypeOptions(data.LogStreamTypeOptions)
 
 	httpSource, err := r.api.Create(ctx, input)
 	if handleCreateError(resp, "HTTP Source", err) {
@@ -209,12 +204,7 @@ func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequ
 		},
 	}
 
-	if !data.LogStreamTypeOptions.IsNull() {
-		input.HttpSourceModifiableAttributes.LogStreamTypeOptions = &client.HttpLogStreamTypeOptions{
-			JsonArrayEnvelopeField: data.LogStreamTypeOptions.JsonArrayEnvelopeField.ValueString(),
-			XmlRootElement:         data.LogStreamTypeOptions.XmlRootElement.ValueString(),
-		}
-	}
+	input.HttpSourceModifiableAttributes.LogStreamTypeOptions = httpLogStreamTypeOptions(data.LogStreamTypeOptions)
 
 	_, err := r.api.Update(ctx, input)
 	if handleUpdateError(resp, "HTTP Source", data.Id.ValueString(), err) {
@@ -249,4 +239,14 @@ func (r *httpsourceResource) Delete(ctx context.Context, req resource.DeleteRequ
 
 func (r *httpsourceResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+func httpLogStreamTypeOptions(opts resource_httpsource.LogStreamTypeOptionsValue) *client.HttpLogStreamTypeOptions {
+	if opts.IsNull() {
+		return nil
+	}
+	return &client.HttpLogStreamTypeOptions{
+		JsonArrayEnvelopeField: opts.JsonArrayEnvelopeField.ValueString(),
+		XmlRootElement:         opts.XmlRootElement.ValueString(),
+	}
 }
