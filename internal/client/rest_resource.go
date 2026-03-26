@@ -109,6 +109,8 @@ func RestDo[Resp any](ctx context.Context, c *RESTClient, method, path string, b
 		}
 	}
 
+	// Single-resource responses are typically < 10 KB. If list endpoints are added,
+	// consider using io.LimitReader here (the error path already limits to 1 MB).
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return zero, fmt.Errorf("failed to read response body (status %d): %w", resp.StatusCode, err)

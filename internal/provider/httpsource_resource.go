@@ -102,7 +102,7 @@ func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequ
 	input := client.HttpSourceInput{
 		IntegrationLabel:     data.IntegrationLabel.ValueString(),
 		LogStreamType:        data.LogStreamType.ValueString(),
-		LogTypes:             convertLogTypes(ctx, data.LogTypes, resp.Diagnostics),
+		LogTypes:             convertLogTypes(ctx, data.LogTypes, &resp.Diagnostics),
 		LogStreamTypeOptions: httpLogStreamTypeOptions(data.LogStreamTypeOptions),
 		AuthHmacAlg:          data.AuthHmacAlg.ValueString(),
 		AuthHeaderKey:        data.AuthHeaderKey.ValueString(),
@@ -143,7 +143,7 @@ func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest,
 	data.Id = types.StringValue(httpSource.IntegrationId)
 	data.IntegrationLabel = types.StringValue(httpSource.IntegrationLabel)
 	data.LogStreamType = types.StringValue(httpSource.LogStreamType)
-	data.LogTypes = convertFromLogTypes(ctx, httpSource.LogTypes, resp.Diagnostics)
+	data.LogTypes = convertFromLogTypes(ctx, httpSource.LogTypes, &resp.Diagnostics)
 	data.AuthMethod = types.StringValue(httpSource.AuthMethod)
 	data.AuthHmacAlg = types.StringValue(httpSource.AuthHmacAlg)
 	data.AuthHeaderKey = types.StringValue(httpSource.AuthHeaderKey)
@@ -176,7 +176,7 @@ func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequ
 	input := client.HttpSourceInput{
 		IntegrationLabel:     data.IntegrationLabel.ValueString(),
 		LogStreamType:        data.LogStreamType.ValueString(),
-		LogTypes:             convertLogTypes(ctx, data.LogTypes, resp.Diagnostics),
+		LogTypes:             convertLogTypes(ctx, data.LogTypes, &resp.Diagnostics),
 		LogStreamTypeOptions: httpLogStreamTypeOptions(data.LogStreamTypeOptions),
 		AuthHmacAlg:          data.AuthHmacAlg.ValueString(),
 		AuthHeaderKey:        data.AuthHeaderKey.ValueString(),
