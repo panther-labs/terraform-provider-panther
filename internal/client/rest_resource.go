@@ -80,11 +80,10 @@ type RESTClient struct {
 //	UpdateIn — the input type for Update (e.g. UpdatePubSubSourceInput)
 //	Resp     — the response type from Create/Get/Update (e.g. PubSubSource)
 //
-// Conventions assumed: POST (201) for Create, GET (200) for Read, PUT (200) for
-// Update, DELETE (204) for Delete, with a single path-segment ID. If a future
-// resource diverges (e.g. PATCH updates, 202 async creates, composite URLs),
-// extend via functional options on NewRESTResource or call restDo/restDelete
-// directly — those helpers have no opinion on method, URL shape, or status code.
+// Any 2xx response is treated as success. Non-2xx responses produce an APIError
+// with the actual status code, enabling programmatic classification via IsNotFound,
+// IsConflict, etc. Update uses PUT; resources that need POST (e.g. users, roles)
+// will require adding an updateMethod parameter when those resources are built.
 type RESTResource[CreateIn, UpdateIn, Resp any] struct {
 	client   *RESTClient
 	path     string // relative path, e.g. "/log-sources/pubsub"
@@ -114,23 +113,27 @@ func (r *RESTResource[C, U, Resp]) url(segments ...string) string {
 }
 
 func (r *RESTResource[C, U, Resp]) Create(ctx context.Context, input C) (Resp, error) {
-	return restDo[Resp](ctx, r.client.Doer, http.MethodPost, r.url(), http.StatusCreated, input)
+	return restDo[Resp](ctx, r.client.Doer, http.MethodPost, r.url(), input)
 }
 
 func (r *RESTResource[C, U, Resp]) Get(ctx context.Context, id string) (Resp, error) {
-	return restDo[Resp](ctx, r.client.Doer, http.MethodGet, r.url(id), http.StatusOK, nil)
+	return restDo[Resp](ctx, r.client.Doer, http.MethodGet, r.url(id), nil)
 }
 
 func (r *RESTResource[C, U, Resp]) Update(ctx context.Context, input U) (Resp, error) {
-	return restDo[Resp](ctx, r.client.Doer, http.MethodPut, r.url(r.updateID(input)), http.StatusOK, input)
+	return restDo[Resp](ctx, r.client.Doer, http.MethodPut, r.url(r.updateID(input)), input)
 }
 
 func (r *RESTResource[C, U, Resp]) Delete(ctx context.Context, id string) error {
 	return restDelete(ctx, r.client.Doer, r.url(id))
 }
 
-// restDo marshals input, sends an HTTP request, checks the expected status, and unmarshals the response.
-func restDo[Resp any](ctx context.Context, doer Doer, method, url string, expectedStatus int, body any) (Resp, error) {
+func isHTTPSuccess(statusCode int) bool {
+	return statusCode >= 200 && statusCode < 300
+}
+
+// restDo marshals input, sends an HTTP request, checks for 2xx success, and unmarshals the response.
+func restDo[Resp any](ctx context.Context, doer Doer, method, url string, body any) (Resp, error) {
 	var zero Resp
 	var reqBody io.Reader
 	if body != nil {
@@ -150,7 +153,7 @@ func restDo[Resp any](ctx context.Context, doer Doer, method, url string, expect
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != expectedStatus {
+	if !isHTTPSuccess(resp.StatusCode) {
 		return zero, &APIError{
 			StatusCode: resp.StatusCode,
 			Message:    getErrorResponseMsg(resp),
@@ -161,12 +164,12 @@ func restDo[Resp any](ctx context.Context, doer Doer, method, url string, expect
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return zero, fmt.Errorf("failed to read response body: %w", err)
+		return zero, fmt.Errorf("failed to read response body (status %d): %w", resp.StatusCode, err)
 	}
 
 	var response Resp
 	if err = json.Unmarshal(respBody, &response); err != nil {
-		return zero, fmt.Errorf("failed to unmarshal response body: %w", err)
+		return zero, fmt.Errorf("failed to unmarshal response body (status %d): %w", resp.StatusCode, err)
 	}
 
 	return response, nil
@@ -184,7 +187,7 @@ func restDelete(ctx context.Context, doer Doer, url string) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusNoContent {
+	if !isHTTPSuccess(resp.StatusCode) {
 		return &APIError{
 			StatusCode: resp.StatusCode,
 			Message:    getErrorResponseMsg(resp),

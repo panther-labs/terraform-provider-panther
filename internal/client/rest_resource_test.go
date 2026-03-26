@@ -316,6 +316,7 @@ func TestRestDo_UnmarshalError(t *testing.T) {
 	_, err := r.Get(context.Background(), "id-1")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to unmarshal response body")
+	assert.Contains(t, err.Error(), "status 200") // status code included for diagnostics
 }
 
 func TestRestDo_TransportError(t *testing.T) {
@@ -338,4 +339,38 @@ func TestRestDo_CancelledContext(t *testing.T) {
 	cancel()
 	_, err := r.Get(ctx, "id-1")
 	require.Error(t, err)
+}
+
+func TestAny2xxIsSuccess(t *testing.T) {
+	tests := []struct {
+		name   string
+		status int
+	}{
+		{"200 OK", http.StatusOK},
+		{"201 Created", http.StatusCreated},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			doer := &mockDoer{handler: func(req *http.Request) (*http.Response, error) {
+				return jsonResponse(tt.status, testResp{ID: "id-1"}), nil
+			}}
+			r := newTestResource(doer)
+			resp, err := r.Create(context.Background(), createInput{Name: "test"})
+			require.NoError(t, err)
+			assert.Equal(t, "id-1", resp.ID)
+		})
+	}
+}
+
+func TestDeleteAcceptsAny2xx(t *testing.T) {
+	for _, status := range []int{http.StatusOK, http.StatusNoContent} {
+		t.Run(fmt.Sprintf("status %d", status), func(t *testing.T) {
+			doer := &mockDoer{handler: func(req *http.Request) (*http.Response, error) {
+				return &http.Response{StatusCode: status, Body: http.NoBody}, nil
+			}}
+			r := newTestResource(doer)
+			err := r.Delete(context.Background(), "id-1")
+			require.NoError(t, err)
+		})
+	}
 }
