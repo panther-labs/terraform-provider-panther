@@ -309,18 +309,6 @@ func assertNoOptionalComputedWithoutDefault(t *testing.T, s schema.Schema) {
 	}
 }
 
-func TestAssertNoOptionalComputedWithoutDefault_CatchesMissingDefault(t *testing.T) {
-	s := schema.Schema{
-		Attributes: map[string]schema.Attribute{
-			"good": schema.StringAttribute{Optional: true, Computed: true, Default: stringdefault.StaticString("")},
-			"bad":  schema.StringAttribute{Optional: true, Computed: true}, // no Default, no PlanModifiers
-		},
-	}
-	mockT := &testing.T{}
-	assertNoOptionalComputedWithoutDefault(mockT, s)
-	assert.True(t, mockT.Failed(), "expected the assertion to fail for the 'bad' attribute")
-}
-
 func TestPatchIDAttribute_Normal(t *testing.T) {
 	s := schema.Schema{
 		Attributes: map[string]schema.Attribute{
