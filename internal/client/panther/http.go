@@ -19,6 +19,8 @@ package panther
 import (
 	"net/http"
 	"time"
+
+	"github.com/hashicorp/go-retryablehttp"
 )
 
 type AuthorizedHTTPClient struct {
@@ -27,11 +29,19 @@ type AuthorizedHTTPClient struct {
 }
 
 func NewAuthorizedHTTPClient(token string) *AuthorizedHTTPClient {
+	rc := retryablehttp.NewClient()
+	rc.RetryMax = 3
+	rc.RetryWaitMin = 500 * time.Millisecond
+	rc.RetryWaitMax = 2 * time.Second
+	// Quiet default logger to avoid noisy output in Terraform runs
+	rc.Logger = nil
+
+	std := rc.StandardClient()
+	std.Timeout = 10 * time.Second
+
 	return &AuthorizedHTTPClient{
-		Client: http.Client{
-			Timeout: 10 * time.Second,
-		},
-		token: token,
+		Client: *std,
+		token:  token,
 	}
 }
 
