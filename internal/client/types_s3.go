@@ -16,27 +16,16 @@ limitations under the License.
 
 package client
 
-import (
-	"context"
-)
+import "context"
 
+// GraphQLClient defines the GraphQL operations for S3 log source management.
+// Unlike REST resources (which use RestDo/RestDelete directly), GraphQL operations
+// require per-mutation struct tags, so an interface is used for testability.
 type GraphQLClient interface {
 	CreateS3Source(ctx context.Context, input CreateS3SourceInput) (CreateS3SourceOutput, error)
 	UpdateS3Source(ctx context.Context, input UpdateS3SourceInput) (UpdateS3SourceOutput, error)
 	GetS3Source(ctx context.Context, id string) (*S3LogIntegration, error)
 	DeleteSource(ctx context.Context, input DeleteSourceInput) (DeleteSourceOutput, error)
-}
-
-type RestClient interface {
-	CreateHttpSource(ctx context.Context, input CreateHttpSourceInput) (HttpSource, error)
-	UpdateHttpSource(ctx context.Context, input UpdateHttpSourceInput) (HttpSource, error)
-	GetHttpSource(ctx context.Context, id string) (HttpSource, error)
-	DeleteHttpSource(ctx context.Context, id string) error
-
-	CreatePubSubSource(ctx context.Context, input CreatePubSubSourceInput) (PubSubSource, error)
-	UpdatePubSubSource(ctx context.Context, input UpdatePubSubSourceInput) (PubSubSource, error)
-	GetPubSubSource(ctx context.Context, id string) (PubSubSource, error)
-	DeletePubSubSource(ctx context.Context, id string) error
 }
 
 // CreateS3SourceInput Input for the createS3LogSource mutation
@@ -133,86 +122,9 @@ type S3PrefixLogTypes struct {
 	Prefix string `graphql:"prefix"`
 }
 
-type HttpSource struct {
-	IntegrationId string `json:"integrationId"`
-	HttpSourceModifiableAttributes
-}
-
 // LogStreamTypeOptions contains options specific to the log stream type
 type LogStreamTypeOptions struct {
 	JsonArrayEnvelopeField *string `json:"jsonArrayEnvelopeField,omitempty"`
 	RetainEnvelopeFields   *bool   `json:"retainEnvelopeFields,omitempty"`
 	XmlRootElement         *string `json:"xmlRootElement,omitempty"`
-}
-
-// HttpLogStreamTypeOptions contains options specific to the log stream type for HTTP sources
-type HttpLogStreamTypeOptions struct {
-	JsonArrayEnvelopeField string `json:"jsonArrayEnvelopeField,omitempty"`
-	XmlRootElement         string `json:"xmlRootElement,omitempty"`
-}
-
-// HttpSourceModifiableAttributes attributes that can be modified on an http log source
-type HttpSourceModifiableAttributes struct {
-	IntegrationLabel     string                    `json:"integrationLabel"`
-	LogStreamType        string                    `json:"logStreamType"`
-	LogTypes             []string                  `json:"logTypes"`
-	LogStreamTypeOptions *HttpLogStreamTypeOptions `json:"logStreamTypeOptions,omitempty"`
-	AuthHmacAlg          string                    `json:"authHmacAlg,omitempty"`
-	AuthHeaderKey        string                    `json:"authHeaderKey,omitempty"`
-	AuthPassword         string                    `json:"authPassword,omitempty"`
-	AuthSecretValue      string                    `json:"authSecretValue,omitempty"`
-	AuthMethod           string                    `json:"authMethod"`
-	AuthUsername         string                    `json:"authUsername,omitempty"`
-	AuthBearerToken      string                    `json:"authBearerToken,omitempty"`
-}
-
-// CreateHttpSourceInput Input for creating an http log source
-type CreateHttpSourceInput struct {
-	HttpSourceModifiableAttributes
-}
-
-// UpdateHttpSourceInput input for updating an http log source
-type UpdateHttpSourceInput struct {
-	IntegrationId string `json:"-"`
-	HttpSourceModifiableAttributes
-}
-
-type HttpErrorResponse struct {
-	Message string
-}
-
-// PubSubSource represents a GCP Pub/Sub log source integration (API response)
-type PubSubSource struct {
-	IntegrationId string `json:"integrationId"`
-	PubSubSourceModifiableAttributes
-}
-
-// PubSubSourceModifiableAttributes attributes that can be modified on a Pub/Sub log source
-type PubSubSourceModifiableAttributes struct {
-	IntegrationLabel     string                      `json:"integrationLabel"`
-	SubscriptionId       string                      `json:"subscriptionId"`
-	ProjectId            string                      `json:"projectId,omitempty"`
-	Credentials          string                      `json:"credentials,omitempty"`
-	CredentialsType      string                      `json:"credentialsType"`
-	LogTypes             []string                    `json:"logTypes"`
-	LogStreamType        string                      `json:"logStreamType"`
-	LogStreamTypeOptions *PubSubLogStreamTypeOptions `json:"logStreamTypeOptions,omitempty"`
-	RegionalEndpoint     string                      `json:"regionalEndpoint,omitempty"`
-}
-
-// PubSubLogStreamTypeOptions contains options specific to the log stream type for Pub/Sub sources
-type PubSubLogStreamTypeOptions struct {
-	JsonArrayEnvelopeField string `json:"jsonArrayEnvelopeField,omitempty"`
-	XmlRootElement         string `json:"xmlRootElement,omitempty"`
-}
-
-// CreatePubSubSourceInput input for creating a Pub/Sub log source
-type CreatePubSubSourceInput struct {
-	PubSubSourceModifiableAttributes
-}
-
-// UpdatePubSubSourceInput input for updating a Pub/Sub log source
-type UpdatePubSubSourceInput struct {
-	IntegrationId string `json:"-"`
-	PubSubSourceModifiableAttributes
 }

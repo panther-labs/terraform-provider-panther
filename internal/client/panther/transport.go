@@ -21,24 +21,28 @@ import (
 	"time"
 )
 
-type AuthorizedHTTPClient struct {
-	http.Client
+type authTransport struct {
 	token string
+	next  http.RoundTripper
 }
 
-func NewAuthorizedHTTPClient(token string) *AuthorizedHTTPClient {
-	return &AuthorizedHTTPClient{
-		Client: http.Client{
-			Timeout: 10 * time.Second,
+func (t *authTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	r := req.Clone(req.Context())
+	r.Header.Set("X-API-Key", t.token)
+	if r.Body != nil {
+		r.Header.Set("Content-Type", "application/json")
+	}
+	return t.next.RoundTrip(r)
+}
+
+// NewHTTPClient returns an *http.Client that satisfies both client.Doer
+// and the go-graphql-client Doer interface.
+func NewHTTPClient(token string) *http.Client {
+	return &http.Client{
+		Timeout: 30 * time.Second,
+		Transport: &authTransport{
+			token: token,
+			next:  http.DefaultTransport,
 		},
-		token: token,
 	}
-}
-
-func (c *AuthorizedHTTPClient) Do(req *http.Request) (*http.Response, error) {
-	req.Header.Add("X-API-Key", c.token)
-	if req.Body != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
-	return c.Client.Do(req)
 }

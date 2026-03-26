@@ -21,9 +21,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"regexp"
 	"strings"
-	"terraform-provider-panther/internal/client/panther"
 	"testing"
 	"time"
 
@@ -76,14 +74,14 @@ func TestHttpSourceResource(t *testing.T) {
 					resource.TestCheckResourceAttr("panther_httpsource.test", "log_stream_type_options.xml_root_element", "root"),
 				),
 			},
-			// Provide an unchanged configuration and manually delete the resource
+			// Drift detection: manually delete the resource, then verify Read detects 404
+			// and removes it from state, causing a non-empty refresh plan (recreate).
 			{
-				Config:      providerConfig + testUpdatedHttpSourceResourceConfig(integrationUpdatedLabel),
-				Check:       manuallyDeleteSource(t),
-				ExpectError: regexp.MustCompile("Error running post-apply refresh plan"),
+				Config:             providerConfig + testUpdatedHttpSourceResourceConfig(integrationUpdatedLabel),
+				Check:              manuallyDeleteSource(t),
+				ExpectNonEmptyPlan: true,
 			},
-			// Delete testing automatically occurs in TestCase, in our case it is already deleted and the delete step
-			// succeeds as the method is idempotent
+			// TestCase cleanup calls Delete automatically — succeeds because 404 is treated as success.
 		},
 	})
 }
@@ -127,7 +125,7 @@ func manuallyDeleteSource(t *testing.T) resource.TestCheckFunc {
 		if httpSource.Primary.ID == "" {
 			return errors.New("http source ID is not set")
 		}
-		url := os.Getenv("PANTHER_API_URL") + panther.RestHttpSourcePath + "/" + httpSource.Primary.ID
+		url := os.Getenv("PANTHER_API_URL") + httpSourcePath + "/" + httpSource.Primary.ID
 		client := http.DefaultClient
 		req, err := http.NewRequest(http.MethodDelete, url, nil)
 		if err != nil {
@@ -141,6 +139,7 @@ func manuallyDeleteSource(t *testing.T) resource.TestCheckFunc {
 				t.Logf("Error deleting http source %s: error: %v, retry: %d\n", httpSource.Primary.ID, err, retry)
 				return fmt.Errorf("could not delete http source: %w", err)
 			}
+			response.Body.Close()
 			if response.StatusCode == http.StatusNoContent {
 				return nil
 			}

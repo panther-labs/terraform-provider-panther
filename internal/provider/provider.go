@@ -85,7 +85,7 @@ func (p *PantherProvider) Configure(ctx context.Context, req provider.ConfigureR
 
 	if data.Token.IsUnknown() {
 		resp.Diagnostics.AddAttributeError(
-			path.Root("url"),
+			path.Root("token"),
 			"API Token Invalid",
 			"The API Token for Panther API is invalid.",
 		)
@@ -122,7 +122,7 @@ func (p *PantherProvider) Configure(ctx context.Context, req provider.ConfigureR
 		return
 	}
 
-	resp.ResourceData = panther.CreateAPIClient(url, token)
+	resp.ResourceData = panther.NewProviderClients(url, token)
 
 }
 
