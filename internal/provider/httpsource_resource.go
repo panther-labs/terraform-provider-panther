@@ -18,6 +18,7 @@ package provider
 
 import (
 	"context"
+	"net/http"
 	"terraform-provider-panther/internal/client"
 	"terraform-provider-panther/internal/provider/resource_httpsource"
 
@@ -44,7 +45,7 @@ func NewHttpsourceResource() resource.Resource {
 }
 
 type httpsourceResource struct {
-	api *client.RESTResource[client.CreateHttpSourceInput, client.UpdateHttpSourceInput, client.HttpSource]
+	rest *client.RESTClient
 }
 
 func (r *httpsourceResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -88,10 +89,7 @@ func (r *httpsourceResource) Configure(_ context.Context, req resource.Configure
 	if c == nil {
 		return
 	}
-	r.api = client.NewRESTResource[client.CreateHttpSourceInput, client.UpdateHttpSourceInput, client.HttpSource](
-		c.REST, httpSourcePath,
-		func(u client.UpdateHttpSourceInput) string { return u.IntegrationId },
-	)
+	r.rest = c.REST
 }
 
 func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -118,7 +116,7 @@ func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequ
 
 	input.HttpSourceModifiableAttributes.LogStreamTypeOptions = httpLogStreamTypeOptions(data.LogStreamTypeOptions)
 
-	httpSource, err := r.api.Create(ctx, input)
+	httpSource, err := client.RestDo[client.HttpSource](ctx, r.rest, http.MethodPost, httpSourcePath, input)
 	if handleCreateError(resp, "HTTP Source", err) {
 		return
 	}
@@ -136,7 +134,7 @@ func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest,
 		return
 	}
 
-	httpSource, err := r.api.Get(ctx, data.Id.ValueString())
+	httpSource, err := client.RestDo[client.HttpSource](ctx, r.rest, http.MethodGet, httpSourcePath+"/"+data.Id.ValueString(), nil)
 	if handleReadError(ctx, resp, "HTTP Source", data.Id.ValueString(), err) {
 		return
 	}
@@ -179,7 +177,6 @@ func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequ
 	}
 
 	input := client.UpdateHttpSourceInput{
-		IntegrationId: data.Id.ValueString(),
 		HttpSourceModifiableAttributes: client.HttpSourceModifiableAttributes{
 			IntegrationLabel: data.IntegrationLabel.ValueString(),
 			LogStreamType:    data.LogStreamType.ValueString(),
@@ -196,7 +193,7 @@ func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequ
 
 	input.HttpSourceModifiableAttributes.LogStreamTypeOptions = httpLogStreamTypeOptions(data.LogStreamTypeOptions)
 
-	_, err := r.api.Update(ctx, input)
+	_, err := client.RestDo[client.HttpSource](ctx, r.rest, http.MethodPut, httpSourcePath+"/"+data.Id.ValueString(), input)
 	if handleUpdateError(resp, "HTTP Source", data.Id.ValueString(), err) {
 		return
 	}
@@ -214,7 +211,7 @@ func (r *httpsourceResource) Delete(ctx context.Context, req resource.DeleteRequ
 		return
 	}
 
-	err := r.api.Delete(ctx, data.Id.ValueString())
+	err := client.RestDelete(ctx, r.rest, httpSourcePath+"/"+data.Id.ValueString())
 	if handleDeleteError(resp, "HTTP Source", data.Id.ValueString(), err) {
 		return
 	}

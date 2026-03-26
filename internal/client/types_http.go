@@ -49,6 +49,5 @@ type CreateHttpSourceInput struct {
 
 // UpdateHttpSourceInput input for updating an http log source
 type UpdateHttpSourceInput struct {
-	IntegrationId string `json:"-"`
 	HttpSourceModifiableAttributes
 }

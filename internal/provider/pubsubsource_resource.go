@@ -18,6 +18,7 @@ package provider
 
 import (
 	"context"
+	"net/http"
 	"terraform-provider-panther/internal/client"
 	"terraform-provider-panther/internal/provider/resource_pubsubsource"
 
@@ -46,7 +47,7 @@ func NewPubsubsourceResource() resource.Resource {
 }
 
 type pubsubsourceResource struct {
-	api *client.RESTResource[client.CreatePubSubSourceInput, client.UpdatePubSubSourceInput, client.PubSubSource]
+	rest *client.RESTClient
 }
 
 func (r *pubsubsourceResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -87,10 +88,7 @@ func (r *pubsubsourceResource) Configure(_ context.Context, req resource.Configu
 	if c == nil {
 		return
 	}
-	r.api = client.NewRESTResource[client.CreatePubSubSourceInput, client.UpdatePubSubSourceInput, client.PubSubSource](
-		c.REST, pubsubSourcePath,
-		func(u client.UpdatePubSubSourceInput) string { return u.IntegrationId },
-	)
+	r.rest = c.REST
 }
 
 func (r *pubsubsourceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -115,7 +113,7 @@ func (r *pubsubsourceResource) Create(ctx context.Context, req resource.CreateRe
 
 	input.PubSubSourceModifiableAttributes.LogStreamTypeOptions = pubsubLogStreamTypeOptions(data.LogStreamTypeOptions)
 
-	pubsubSource, err := r.api.Create(ctx, input)
+	pubsubSource, err := client.RestDo[client.PubSubSource](ctx, r.rest, http.MethodPost, pubsubSourcePath, input)
 	if handleCreateError(resp, "Pub/Sub Source", err) {
 		return
 	}
@@ -141,7 +139,7 @@ func (r *pubsubsourceResource) Read(ctx context.Context, req resource.ReadReques
 		return
 	}
 
-	pubsubSource, err := r.api.Get(ctx, data.Id.ValueString())
+	pubsubSource, err := client.RestDo[client.PubSubSource](ctx, r.rest, http.MethodGet, pubsubSourcePath+"/"+data.Id.ValueString(), nil)
 	if handleReadError(ctx, resp, "Pub/Sub Source", data.Id.ValueString(), err) {
 		return
 	}
@@ -186,7 +184,6 @@ func (r *pubsubsourceResource) Update(ctx context.Context, req resource.UpdateRe
 	}
 
 	input := client.UpdatePubSubSourceInput{
-		IntegrationId: data.Id.ValueString(),
 		PubSubSourceModifiableAttributes: client.PubSubSourceModifiableAttributes{
 			IntegrationLabel: data.IntegrationLabel.ValueString(),
 			SubscriptionId:   data.SubscriptionId.ValueString(),
@@ -201,7 +198,7 @@ func (r *pubsubsourceResource) Update(ctx context.Context, req resource.UpdateRe
 
 	input.PubSubSourceModifiableAttributes.LogStreamTypeOptions = pubsubLogStreamTypeOptions(data.LogStreamTypeOptions)
 
-	_, err := r.api.Update(ctx, input)
+	_, err := client.RestDo[client.PubSubSource](ctx, r.rest, http.MethodPut, pubsubSourcePath+"/"+data.Id.ValueString(), input)
 	if handleUpdateError(resp, "Pub/Sub Source", data.Id.ValueString(), err) {
 		return
 	}
@@ -220,7 +217,7 @@ func (r *pubsubsourceResource) Delete(ctx context.Context, req resource.DeleteRe
 		return
 	}
 
-	err := r.api.Delete(ctx, data.Id.ValueString())
+	err := client.RestDelete(ctx, r.rest, pubsubSourcePath+"/"+data.Id.ValueString())
 	if handleDeleteError(resp, "Pub/Sub Source", data.Id.ValueString(), err) {
 		return
 	}

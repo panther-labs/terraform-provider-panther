@@ -73,68 +73,15 @@ type RESTClient struct {
 	BaseURL string
 }
 
-// RESTResource provides typed CRUD operations for a single REST API resource.
-// Type parameters:
-//
-//	CreateIn — the input type for Create (e.g. CreatePubSubSourceInput)
-//	UpdateIn — the input type for Update (e.g. UpdatePubSubSourceInput)
-//	Resp     — the response type from Create/Get/Update (e.g. PubSubSource)
-//
-// Any 2xx response is treated as success. Non-2xx responses produce an APIError
-// with the actual status code, enabling programmatic classification via IsNotFound,
-// IsConflict, etc. Update uses PUT; resources that need POST (e.g. users, roles)
-// will require adding an updateMethod parameter when those resources are built.
-type RESTResource[CreateIn, UpdateIn, Resp any] struct {
-	client   *RESTClient
-	path     string // relative path, e.g. "/log-sources/pubsub"
-	updateID func(UpdateIn) string
-}
-
-// NewRESTResource constructs a RESTResource for a specific API endpoint.
-// The path is relative to the RESTClient's BaseURL.
-func NewRESTResource[CreateIn, UpdateIn, Resp any](
-	rc *RESTClient,
-	path string,
-	updateID func(UpdateIn) string,
-) *RESTResource[CreateIn, UpdateIn, Resp] {
-	return &RESTResource[CreateIn, UpdateIn, Resp]{
-		client:   rc,
-		path:     path,
-		updateID: updateID,
-	}
-}
-
-func (r *RESTResource[C, U, Resp]) url(segments ...string) string {
-	u := r.client.BaseURL + r.path
-	for _, s := range segments {
-		u += "/" + s
-	}
-	return u
-}
-
-func (r *RESTResource[C, U, Resp]) Create(ctx context.Context, input C) (Resp, error) {
-	return restDo[Resp](ctx, r.client.Doer, http.MethodPost, r.url(), input)
-}
-
-func (r *RESTResource[C, U, Resp]) Get(ctx context.Context, id string) (Resp, error) {
-	return restDo[Resp](ctx, r.client.Doer, http.MethodGet, r.url(id), nil)
-}
-
-func (r *RESTResource[C, U, Resp]) Update(ctx context.Context, input U) (Resp, error) {
-	return restDo[Resp](ctx, r.client.Doer, http.MethodPut, r.url(r.updateID(input)), input)
-}
-
-func (r *RESTResource[C, U, Resp]) Delete(ctx context.Context, id string) error {
-	return restDelete(ctx, r.client.Doer, r.url(id))
-}
-
 func isHTTPSuccess(statusCode int) bool {
 	return statusCode >= 200 && statusCode < 300
 }
 
-// restDo marshals input, sends an HTTP request, checks for 2xx success, and unmarshals the response.
-func restDo[Resp any](ctx context.Context, doer Doer, method, url string, body any) (Resp, error) {
+// RestDo sends an HTTP request to c.BaseURL+path, marshals body as JSON,
+// checks for 2xx success, and unmarshals the response into Resp.
+func RestDo[Resp any](ctx context.Context, c *RESTClient, method, path string, body any) (Resp, error) {
 	var zero Resp
+	url := c.BaseURL + path
 	var reqBody io.Reader
 	if body != nil {
 		jsonData, err := json.Marshal(body)
@@ -147,7 +94,7 @@ func restDo[Resp any](ctx context.Context, doer Doer, method, url string, body a
 	if err != nil {
 		return zero, fmt.Errorf("failed to create http request: %w", err)
 	}
-	resp, err := doer.Do(req)
+	resp, err := c.Doer.Do(req)
 	if err != nil {
 		return zero, fmt.Errorf("failed to make request: %w", err)
 	}
@@ -175,13 +122,14 @@ func restDo[Resp any](ctx context.Context, doer Doer, method, url string, body a
 	return response, nil
 }
 
-// restDelete is a helper for DELETE requests that return no response body.
-func restDelete(ctx context.Context, doer Doer, url string) error {
+// RestDelete sends a DELETE request to c.BaseURL+path. No response body is expected.
+func RestDelete(ctx context.Context, c *RESTClient, path string) error {
+	url := c.BaseURL + path
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create http request: %w", err)
 	}
-	resp, err := doer.Do(req)
+	resp, err := c.Doer.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to make request: %w", err)
 	}

@@ -48,6 +48,5 @@ type CreatePubSubSourceInput struct {
 
 // UpdatePubSubSourceInput input for updating a Pub/Sub log source
 type UpdatePubSubSourceInput struct {
-	IntegrationId string `json:"-"`
 	PubSubSourceModifiableAttributes
 }
