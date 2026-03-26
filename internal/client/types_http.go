@@ -16,19 +16,14 @@ limitations under the License.
 
 package client
 
+// HttpSource represents an HTTP log source integration (API response).
 type HttpSource struct {
 	IntegrationId string `json:"integrationId"`
-	HttpSourceModifiableAttributes
+	HttpSourceInput
 }
 
-// HttpLogStreamTypeOptions contains options specific to the log stream type for HTTP sources
-type HttpLogStreamTypeOptions struct {
-	JsonArrayEnvelopeField string `json:"jsonArrayEnvelopeField,omitempty"`
-	XmlRootElement         string `json:"xmlRootElement,omitempty"`
-}
-
-// HttpSourceModifiableAttributes attributes that can be modified on an http log source
-type HttpSourceModifiableAttributes struct {
+// HttpSourceInput is the request body for creating or updating an HTTP log source.
+type HttpSourceInput struct {
 	IntegrationLabel     string                    `json:"integrationLabel"`
 	LogStreamType        string                    `json:"logStreamType"`
 	LogTypes             []string                  `json:"logTypes"`
@@ -42,12 +37,8 @@ type HttpSourceModifiableAttributes struct {
 	AuthBearerToken      string                    `json:"authBearerToken,omitempty"`
 }
 
-// CreateHttpSourceInput Input for creating an http log source
-type CreateHttpSourceInput struct {
-	HttpSourceModifiableAttributes
-}
-
-// UpdateHttpSourceInput input for updating an http log source
-type UpdateHttpSourceInput struct {
-	HttpSourceModifiableAttributes
+// HttpLogStreamTypeOptions contains options specific to the log stream type for HTTP sources.
+type HttpLogStreamTypeOptions struct {
+	JsonArrayEnvelopeField string `json:"jsonArrayEnvelopeField,omitempty"`
+	XmlRootElement         string `json:"xmlRootElement,omitempty"`
 }

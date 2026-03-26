@@ -98,20 +98,17 @@ func (r *pubsubsourceResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
-	input := client.CreatePubSubSourceInput{
-		PubSubSourceModifiableAttributes: client.PubSubSourceModifiableAttributes{
-			IntegrationLabel: data.IntegrationLabel.ValueString(),
-			SubscriptionId:   data.SubscriptionId.ValueString(),
-			ProjectId:        data.ProjectId.ValueString(),
-			Credentials:      data.Credentials.ValueString(),
-			CredentialsType:  data.CredentialsType.ValueString(),
-			LogTypes:         convertLogTypes(ctx, data.LogTypes, resp.Diagnostics),
-			LogStreamType:    data.LogStreamType.ValueString(),
-			RegionalEndpoint: data.RegionalEndpoint.ValueString(),
-		},
+	input := client.PubSubSourceInput{
+		IntegrationLabel:     data.IntegrationLabel.ValueString(),
+		SubscriptionId:       data.SubscriptionId.ValueString(),
+		ProjectId:            data.ProjectId.ValueString(),
+		Credentials:          data.Credentials.ValueString(),
+		CredentialsType:      data.CredentialsType.ValueString(),
+		LogTypes:             convertLogTypes(ctx, data.LogTypes, resp.Diagnostics),
+		LogStreamType:        data.LogStreamType.ValueString(),
+		LogStreamTypeOptions: pubsubLogStreamTypeOptions(data.LogStreamTypeOptions),
+		RegionalEndpoint:     data.RegionalEndpoint.ValueString(),
 	}
-
-	input.PubSubSourceModifiableAttributes.LogStreamTypeOptions = pubsubLogStreamTypeOptions(data.LogStreamTypeOptions)
 
 	pubsubSource, err := client.RestDo[client.PubSubSource](ctx, r.rest, http.MethodPost, pubsubSourcePath, input)
 	if handleCreateError(resp, "Pub/Sub Source", err) {
@@ -183,20 +180,17 @@ func (r *pubsubsourceResource) Update(ctx context.Context, req resource.UpdateRe
 		return
 	}
 
-	input := client.UpdatePubSubSourceInput{
-		PubSubSourceModifiableAttributes: client.PubSubSourceModifiableAttributes{
-			IntegrationLabel: data.IntegrationLabel.ValueString(),
-			SubscriptionId:   data.SubscriptionId.ValueString(),
-			ProjectId:        data.ProjectId.ValueString(),
-			Credentials:      data.Credentials.ValueString(),
-			CredentialsType:  data.CredentialsType.ValueString(),
-			LogTypes:         convertLogTypes(ctx, data.LogTypes, resp.Diagnostics),
-			LogStreamType:    data.LogStreamType.ValueString(),
-			RegionalEndpoint: data.RegionalEndpoint.ValueString(),
-		},
+	input := client.PubSubSourceInput{
+		IntegrationLabel:     data.IntegrationLabel.ValueString(),
+		SubscriptionId:       data.SubscriptionId.ValueString(),
+		ProjectId:            data.ProjectId.ValueString(),
+		Credentials:          data.Credentials.ValueString(),
+		CredentialsType:      data.CredentialsType.ValueString(),
+		LogTypes:             convertLogTypes(ctx, data.LogTypes, resp.Diagnostics),
+		LogStreamType:        data.LogStreamType.ValueString(),
+		LogStreamTypeOptions: pubsubLogStreamTypeOptions(data.LogStreamTypeOptions),
+		RegionalEndpoint:     data.RegionalEndpoint.ValueString(),
 	}
-
-	input.PubSubSourceModifiableAttributes.LogStreamTypeOptions = pubsubLogStreamTypeOptions(data.LogStreamTypeOptions)
 
 	_, err := client.RestDo[client.PubSubSource](ctx, r.rest, http.MethodPut, pubsubSourcePath+"/"+data.Id.ValueString(), input)
 	if handleUpdateError(resp, "Pub/Sub Source", data.Id.ValueString(), err) {

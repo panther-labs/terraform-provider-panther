@@ -117,11 +117,11 @@ func findRepoRoot() string {
 	return repoRoot
 }
 
-// TestPubSubSourceResource_ServiceAccount tests the full CRUD lifecycle using a GCP service account key.
-// Creates a real Pub/Sub source in Panther, verifies credentials_type = "service_account",
-// then updates and deletes it.
+// TestPubSubSourceResource_ServiceAccount groups tests that use the same GCP service account
+// subscription. Subtests run sequentially because the Panther API enforces one integration
+// per subscription — parallel creation would cause 409 Conflict.
 func TestPubSubSourceResource_ServiceAccount(t *testing.T) {
-	t.Parallel()
+	t.Parallel() // parallel with WIF (different subscription), sequential within
 	credentials, projectId, subscriptionId, ok := loadPubSubTestConfig(t,
 		"PANTHER_PUBSUB_SA_CREDENTIALS_FILE",
 		"PANTHER_PUBSUB_SA_PROJECT_ID",
@@ -131,29 +131,18 @@ func TestPubSubSourceResource_ServiceAccount(t *testing.T) {
 		t.Skip("Skipping: PANTHER_PUBSUB_SA_CREDENTIALS_FILE, PANTHER_PUBSUB_SA_PROJECT_ID, and PANTHER_PUBSUB_SA_SUBSCRIPTION_ID must be set")
 	}
 
-	runPubSubSourceTest(t, credentials, projectId, subscriptionId, "service_account")
-}
+	t.Run("FullCRUD", func(t *testing.T) {
+		runPubSubSourceTest(t, credentials, projectId, subscriptionId, "service_account")
+	})
 
-// TestPubSubSourceResource_SA_DerivedProjectId tests that project_id can be omitted for service
-// account credentials — the API derives it from the keyfile's project_id field.
-func TestPubSubSourceResource_SA_DerivedProjectId(t *testing.T) {
-	t.Parallel()
-	credentials, _, subscriptionId, ok := loadPubSubTestConfig(t,
-		"PANTHER_PUBSUB_SA_CREDENTIALS_FILE",
-		"PANTHER_PUBSUB_SA_PROJECT_ID",
-		"PANTHER_PUBSUB_SA_SUBSCRIPTION_ID",
-	)
-	if !ok {
-		t.Skip("Skipping: PANTHER_PUBSUB_SA_* env vars must be set")
-	}
+	t.Run("DerivedProjectId", func(t *testing.T) {
+		integrationLabel := "tf-test-pubsub-sa-no-project"
 
-	integrationLabel := "tf-test-pubsub-sa-no-project"
-
-	resource.Test(t, resource.TestCase{
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config: providerConfig + fmt.Sprintf(`
+		resource.Test(t, resource.TestCase{
+			ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: providerConfig + fmt.Sprintf(`
 resource "panther_pubsubsource" "test" {
   integration_label = "%s"
   subscription_id   = "%s"
@@ -163,14 +152,15 @@ resource "panther_pubsubsource" "test" {
   log_stream_type   = "Auto"
 }
 `, integrationLabel, subscriptionId, credentials),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("panther_pubsubsource.test", "integration_label", integrationLabel),
-					// project_id was not provided — API should derive it from the SA keyfile
-					resource.TestCheckResourceAttrSet("panther_pubsubsource.test", "project_id"),
-					resource.TestCheckResourceAttr("panther_pubsubsource.test", "credentials_type", "service_account"),
-				),
+					Check: resource.ComposeAggregateTestCheckFunc(
+						resource.TestCheckResourceAttr("panther_pubsubsource.test", "integration_label", integrationLabel),
+						// project_id was not provided — API should derive it from the SA keyfile
+						resource.TestCheckResourceAttrSet("panther_pubsubsource.test", "project_id"),
+						resource.TestCheckResourceAttr("panther_pubsubsource.test", "credentials_type", "service_account"),
+					),
+				},
 			},
-		},
+		})
 	})
 }
 

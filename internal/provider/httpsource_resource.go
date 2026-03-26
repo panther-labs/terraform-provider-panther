@@ -99,22 +99,19 @@ func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	input := client.CreateHttpSourceInput{
-		HttpSourceModifiableAttributes: client.HttpSourceModifiableAttributes{
-			IntegrationLabel: data.IntegrationLabel.ValueString(),
-			LogStreamType:    data.LogStreamType.ValueString(),
-			LogTypes:         convertLogTypes(ctx, data.LogTypes, resp.Diagnostics),
-			AuthHmacAlg:      data.AuthHmacAlg.ValueString(),
-			AuthHeaderKey:    data.AuthHeaderKey.ValueString(),
-			AuthPassword:     data.AuthPassword.ValueString(),
-			AuthSecretValue:  data.AuthSecretValue.ValueString(),
-			AuthMethod:       data.AuthMethod.ValueString(),
-			AuthUsername:     data.AuthUsername.ValueString(),
-			AuthBearerToken:  data.AuthBearerToken.ValueString(),
-		},
+	input := client.HttpSourceInput{
+		IntegrationLabel:     data.IntegrationLabel.ValueString(),
+		LogStreamType:        data.LogStreamType.ValueString(),
+		LogTypes:             convertLogTypes(ctx, data.LogTypes, resp.Diagnostics),
+		LogStreamTypeOptions: httpLogStreamTypeOptions(data.LogStreamTypeOptions),
+		AuthHmacAlg:          data.AuthHmacAlg.ValueString(),
+		AuthHeaderKey:        data.AuthHeaderKey.ValueString(),
+		AuthPassword:         data.AuthPassword.ValueString(),
+		AuthSecretValue:      data.AuthSecretValue.ValueString(),
+		AuthMethod:           data.AuthMethod.ValueString(),
+		AuthUsername:         data.AuthUsername.ValueString(),
+		AuthBearerToken:      data.AuthBearerToken.ValueString(),
 	}
-
-	input.HttpSourceModifiableAttributes.LogStreamTypeOptions = httpLogStreamTypeOptions(data.LogStreamTypeOptions)
 
 	httpSource, err := client.RestDo[client.HttpSource](ctx, r.rest, http.MethodPost, httpSourcePath, input)
 	if handleCreateError(resp, "HTTP Source", err) {
@@ -176,22 +173,19 @@ func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	input := client.UpdateHttpSourceInput{
-		HttpSourceModifiableAttributes: client.HttpSourceModifiableAttributes{
-			IntegrationLabel: data.IntegrationLabel.ValueString(),
-			LogStreamType:    data.LogStreamType.ValueString(),
-			LogTypes:         convertLogTypes(ctx, data.LogTypes, resp.Diagnostics),
-			AuthHmacAlg:      data.AuthHmacAlg.ValueString(),
-			AuthHeaderKey:    data.AuthHeaderKey.ValueString(),
-			AuthPassword:     data.AuthPassword.ValueString(),
-			AuthSecretValue:  data.AuthSecretValue.ValueString(),
-			AuthMethod:       data.AuthMethod.ValueString(),
-			AuthUsername:     data.AuthUsername.ValueString(),
-			AuthBearerToken:  data.AuthBearerToken.ValueString(),
-		},
+	input := client.HttpSourceInput{
+		IntegrationLabel:     data.IntegrationLabel.ValueString(),
+		LogStreamType:        data.LogStreamType.ValueString(),
+		LogTypes:             convertLogTypes(ctx, data.LogTypes, resp.Diagnostics),
+		LogStreamTypeOptions: httpLogStreamTypeOptions(data.LogStreamTypeOptions),
+		AuthHmacAlg:          data.AuthHmacAlg.ValueString(),
+		AuthHeaderKey:        data.AuthHeaderKey.ValueString(),
+		AuthPassword:         data.AuthPassword.ValueString(),
+		AuthSecretValue:      data.AuthSecretValue.ValueString(),
+		AuthMethod:           data.AuthMethod.ValueString(),
+		AuthUsername:         data.AuthUsername.ValueString(),
+		AuthBearerToken:      data.AuthBearerToken.ValueString(),
 	}
-
-	input.HttpSourceModifiableAttributes.LogStreamTypeOptions = httpLogStreamTypeOptions(data.LogStreamTypeOptions)
 
 	_, err := client.RestDo[client.HttpSource](ctx, r.rest, http.MethodPut, httpSourcePath+"/"+data.Id.ValueString(), input)
 	if handleUpdateError(resp, "HTTP Source", data.Id.ValueString(), err) {

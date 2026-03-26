@@ -16,14 +16,14 @@ limitations under the License.
 
 package client
 
-// PubSubSource represents a GCP Pub/Sub log source integration (API response)
+// PubSubSource represents a GCP Pub/Sub log source integration (API response).
 type PubSubSource struct {
 	IntegrationId string `json:"integrationId"`
-	PubSubSourceModifiableAttributes
+	PubSubSourceInput
 }
 
-// PubSubSourceModifiableAttributes attributes that can be modified on a Pub/Sub log source
-type PubSubSourceModifiableAttributes struct {
+// PubSubSourceInput is the request body for creating or updating a Pub/Sub log source.
+type PubSubSourceInput struct {
 	IntegrationLabel     string                      `json:"integrationLabel"`
 	SubscriptionId       string                      `json:"subscriptionId"`
 	ProjectId            string                      `json:"projectId,omitempty"`
@@ -35,18 +35,8 @@ type PubSubSourceModifiableAttributes struct {
 	RegionalEndpoint     string                      `json:"regionalEndpoint,omitempty"`
 }
 
-// PubSubLogStreamTypeOptions contains options specific to the log stream type for Pub/Sub sources
+// PubSubLogStreamTypeOptions contains options specific to the log stream type for Pub/Sub sources.
 type PubSubLogStreamTypeOptions struct {
 	JsonArrayEnvelopeField string `json:"jsonArrayEnvelopeField,omitempty"`
 	XmlRootElement         string `json:"xmlRootElement,omitempty"`
-}
-
-// CreatePubSubSourceInput input for creating a Pub/Sub log source
-type CreatePubSubSourceInput struct {
-	PubSubSourceModifiableAttributes
-}
-
-// UpdatePubSubSourceInput input for updating a Pub/Sub log source
-type UpdatePubSubSourceInput struct {
-	PubSubSourceModifiableAttributes
 }
