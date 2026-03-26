@@ -56,10 +56,8 @@ func (r *pubsubsourceResource) Metadata(ctx context.Context, req resource.Metada
 
 func (r *pubsubsourceResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = resource_pubsubsource.PubsubsourceResourceSchema(ctx)
-	patchIDAttribute(&resp.Schema)
-
-	// Override Optional+Computed string attributes that the generator can't fully configure
 	applySchemaOverrides(&resp.Schema, []SchemaOverride{
+		{Name: "id", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		{Name: "credentials", Default: stringdefault.StaticString(""), Sensitive: true},
 		{Name: "project_id", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		{Name: "regional_endpoint", Default: stringdefault.StaticString("")},

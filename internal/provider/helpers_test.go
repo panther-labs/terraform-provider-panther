@@ -309,35 +309,6 @@ func assertNoOptionalComputedWithoutDefault(t *testing.T, s schema.Schema) {
 	}
 }
 
-func TestPatchIDAttribute_Normal(t *testing.T) {
-	s := schema.Schema{
-		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{Computed: true},
-		},
-	}
-	patchIDAttribute(&s)
-	attr := s.Attributes["id"].(schema.StringAttribute)
-	assert.Len(t, attr.PlanModifiers, 1)
-}
-
-func TestPatchIDAttribute_MissingID(t *testing.T) {
-	s := schema.Schema{
-		Attributes: map[string]schema.Attribute{},
-	}
-	patchIDAttribute(&s) // should not panic
-}
-
-func TestPatchIDAttribute_WrongType(t *testing.T) {
-	s := schema.Schema{
-		Attributes: map[string]schema.Attribute{
-			"id": schema.Int64Attribute{Computed: true},
-		},
-	}
-	patchIDAttribute(&s) // should not panic; attribute unchanged
-	_, ok := s.Attributes["id"].(schema.Int64Attribute)
-	assert.True(t, ok)
-}
-
 func TestConvertLogTypes(t *testing.T) {
 	ctx := context.Background()
 	diags := diag.Diagnostics{}

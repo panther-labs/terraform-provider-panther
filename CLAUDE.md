@@ -6,11 +6,16 @@ Terraform provider for Panther (panther-labs/panther). Written in Go using the H
 
 - `main.go` — Provider entrypoint, goreleaser sets version
 - `internal/provider/` — Resource implementations (schema, CRUD)
-  - `resource_s3_source.go` — S3 log source (GraphQL API)
+  - `s3source_resource.go` — S3 log source (GraphQL API)
   - `httpsource_resource.go` — HTTP log source (REST API)
+  - `pubsubsource_resource.go` — Pub/Sub log source (REST API)
+  - `helpers.go` — Shared error handlers, schema overrides, type converters
   - `resource_httpsource/httpsource_resource_gen.go` — Generated code from `generator_config.yml`
-- `internal/client/` — API client interfaces and types
-  - `panther/` — GraphQL and HTTP client implementations
+  - `resource_pubsubsource/pubsubsource_resource_gen.go` — Generated code from `generator_config.yml`
+- `internal/client/` — API client types and REST helpers
+  - `rest_resource.go` — `RestDo`, `RestDelete`, `APIError`, error predicates
+  - `types_http.go`, `types_pubsub.go`, `types_s3.go` — Per-resource request/response types
+  - `panther/` — Provider client constructor, GraphQL client, auth transport
 - `examples/` — Terraform example configs (used by doc generator)
 - `docs/` — Generated documentation (do not edit manually)
 
@@ -26,8 +31,8 @@ Terraform provider for Panther (panther-labs/panther). Written in Go using the H
 - Uses **Terraform Plugin Framework** (not the older SDK)
 - Two API patterns coexist:
   - **GraphQL** (`go-graphql-client`) for S3 sources — client in `internal/client/panther/panther.go`
-  - **REST** for HTTP sources — client in `internal/client/panther/panther.go`
-  - HTTP auth client in `internal/client/panther/http.go`
+  - **REST** for HTTP and Pub/Sub sources — via `client.RestDo[Resp]` and `client.RestDelete` helpers in `internal/client/rest_resource.go`
+  - Auth injected via `http.RoundTripper` (`authTransport` in `internal/client/panther/transport.go`)
 - Provider config: `url` + `token` (or env vars `PANTHER_API_URL`, `PANTHER_API_TOKEN`)
 - Resource type prefix is `panther_` (e.g. `panther_s3_source`, `panther_httpsource`)
 
@@ -138,26 +143,40 @@ Fill in the scaffolded resource file at `internal/provider/{resource_name}_resou
   - **ID handling depends on whether the ID is server-generated or user-provided:**
     - **Server-generated ID** (e.g. httpsource): `id` is `Computed: true` + `UseStateForUnknown()` plan modifier — the server assigns the ID on create
     - **User-provided ID**: `id` is `Required: true` + `RequiresReplace()` plan modifier — the user sets the ID, changing it forces recreation
+  - Use `applySchemaOverrides(&resp.Schema, []SchemaOverride{...})` for string attribute defaults, sensitivity, and plan modifiers (including `id` with `UseStateForUnknown()`) — see `httpsource_resource.go` for the pattern
   - `stringdefault.StaticString("")` on optional string fields (the generator makes them Optional+Computed, so without defaults they'll be "unknown")
   - `booldefault.StaticBool(false)` on optional bool fields
   - `listdefault.StaticValue(emptyList)` on optional list fields
   - `mapdefault.StaticValue(emptyMap)` on optional map fields
   - `objectdefault.StaticValue(types.ObjectNull(...))` on optional nested objects
   - Note: the generator sometimes adds defaults itself (e.g. `int64default` with validators) — check the generated schema before adding your own
-- **Configure**: Extract `*panther.APIClient` from `req.ProviderData`, assign `r.client = c.RestClient`
-- **Create**: Read plan -> map model to client input -> call API -> set `data.Id` from response (for server-generated IDs) -> save state
-- **Read**: Read state -> call Get API -> map response to model (skip sensitive fields the API returns as empty) -> save state
-- **Update**: Read plan -> map to update input (include Id) -> call API -> save state
-- **Delete**: Read state -> call Delete API
+- **Configure**: Extract `*panther.ProviderClients` from `req.ProviderData`, assign `r.rest = c.REST`
+- **Create**: Read plan → map model to input → `client.RestDo[Resp](ctx, r.rest, http.MethodPost, path, input)` → set `data.Id` from response → save state
+- **Read**: Read state → `client.RestDo[Resp](ctx, r.rest, http.MethodGet, path+"/"+id, nil)` → map response to model (skip sensitive fields the API returns as empty) → save state
+- **Update**: Read plan → map to input → `client.RestDo[Resp](ctx, r.rest, http.MethodPut, path+"/"+id, input)` → save state
+- **Delete**: Read state → `client.RestDelete(ctx, r.rest, path+"/"+id)`
+- **Error handling**: Use `handleCreateError`, `handleReadError`, `handleUpdateError`, `handleDeleteError` from `helpers.go` — these add actionable diagnostics for 401/403/404/409 and handle drift detection
 - **ImportState**: `resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)` (not generated, must be added manually)
 
-### Step 6: Add client types and REST methods
+### Step 6: Add client types
 
-1. **`internal/client/panther.go`**: Define request/response structs with `json` tags. Add methods to the `RestClient` interface.
-2. **`internal/client/panther/panther.go`**: Implement the CRUD methods on `RestClient` following the HTTP source pattern:
-   - Add a path constant (e.g. `const RestFooPath = "/your-resource-path"`)
-   - Expected HTTP status codes vary per resource — check the API docs (e.g. httpsource POST returns `201`)
-   - All requests use `http.NewRequestWithContext` and the shared `Doer` (adds `X-API-Key` header)
+Create `internal/client/types_{resource_name}.go` with two types following the `types_http.go` pattern:
+
+```go
+// XxxInput is the request body for creating or updating an Xxx.
+type XxxInput struct {
+    FieldA string `json:"fieldA"`
+    // ... all settable fields with json tags
+}
+
+// Xxx is the API response (embeds XxxInput + server-managed fields).
+type Xxx struct {
+    IntegrationId string `json:"integrationId"`
+    XxxInput
+}
+```
+
+Add a path constant in the resource file (e.g. `const xxxPath = "/your-resource-path"`). No shared client code changes needed — the resource calls `client.RestDo` and `client.RestDelete` directly.
 
 ### Step 7: Register, add examples, and generate docs
 
@@ -198,7 +217,7 @@ The generated schema may include fields you didn't expect or model types differe
 
 - **Optional+Computed fields**: Without explicit defaults, Terraform treats missing values as "unknown" causing perpetual diffs. Always set `stringdefault.StaticString("")` or equivalent.
 - **Nested objects**: When the API always returns a non-nil nested object, check if inner fields are actually populated before setting in state (see `logStreamTypeOptions` handling in both resources).
-- **REST client base URL**: `CreateAPIClient` strips `/public/graphql` for backwards compatibility. `RestClient.url` stores the base URL only — each REST method prepends its own path constant (e.g. `RestHttpSourcePath`).
+- **REST client base URL**: `NewProviderClients` strips `/public/graphql` for backwards compatibility. `RESTClient.BaseURL` stores the base URL only — `RestDo` and `RestDelete` concatenate `BaseURL + path`.
 - **User-provided IDs**: When the resource ID is user-provided (not server-generated), use `Required: true` with `RequiresReplace()` instead of `Computed: true` with `UseStateForUnknown()`. In `Create`, the ID is already in the plan — no need to set it from the response.
 - **Query parameters on REST endpoints**: Some endpoints need query parameters. Check the API docs for required query params on create/update.
 - **Async resources**: If the underlying resource has async provisioning (e.g. Firehose), deletion may fail right after creation. See the manual delete retry loop in `httpsource_resource_test.go`.

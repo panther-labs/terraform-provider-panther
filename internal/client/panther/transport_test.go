@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -101,5 +102,5 @@ func TestAuthTransport_PassesThroughErrors(t *testing.T) {
 
 func TestNewHTTPClient_Timeout(t *testing.T) {
 	client := NewHTTPClient("token")
-	assert.Equal(t, 10*1e9, float64(client.Timeout)) // 10 seconds in nanoseconds
+	assert.Equal(t, 10*time.Second, client.Timeout)
 }

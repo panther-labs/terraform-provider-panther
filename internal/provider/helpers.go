@@ -28,7 +28,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/defaults"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -159,21 +158,6 @@ func handleDeleteError(resp *resource.DeleteResponse, resourceName, id string, e
 		fmt.Sprintf("Could not delete %s (id=%s): %s", resourceName, id, err.Error()),
 	)
 	return true
-}
-
-// patchIDAttribute adds UseStateForUnknown to the generated "id" attribute.
-// Every resource needs this because the code generator doesn't support plan modifiers.
-func patchIDAttribute(s *schema.Schema) {
-	raw, ok := s.Attributes["id"]
-	if !ok {
-		return
-	}
-	idAttr, ok := raw.(schema.StringAttribute)
-	if !ok {
-		return
-	}
-	idAttr.PlanModifiers = append(idAttr.PlanModifiers, stringplanmodifier.UseStateForUnknown())
-	s.Attributes["id"] = idAttr
 }
 
 // SchemaOverride describes a patch to apply to a generated string schema attribute.

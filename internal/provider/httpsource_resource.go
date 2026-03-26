@@ -27,7 +27,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -54,10 +56,8 @@ func (r *httpsourceResource) Metadata(ctx context.Context, req resource.Metadata
 
 func (r *httpsourceResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = resource_httpsource.HttpsourceResourceSchema(ctx)
-	patchIDAttribute(&resp.Schema)
-
-	// Override Optional+Computed string attributes that the generator can't fully configure
 	applySchemaOverrides(&resp.Schema, []SchemaOverride{
+		{Name: "id", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		{Name: "auth_hmac_alg", Default: stringdefault.StaticString("")},
 		{Name: "auth_header_key", Default: stringdefault.StaticString("")},
 		{Name: "auth_password", Default: stringdefault.StaticString(""), Sensitive: true},

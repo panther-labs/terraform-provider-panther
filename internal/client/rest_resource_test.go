@@ -197,23 +197,21 @@ func TestRestDo_CancelledContext(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestRestDo_Any2xxIsSuccess(t *testing.T) {
+func TestIsHTTPSuccess(t *testing.T) {
 	tests := []struct {
-		name   string
 		status int
+		want   bool
 	}{
-		{"200 OK", http.StatusOK},
-		{"201 Created", http.StatusCreated},
+		{199, false},
+		{200, true},
+		{201, true},
+		{299, true},
+		{300, false},
+		{404, false},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			doer := &mockDoer{handler: func(req *http.Request) (*http.Response, error) {
-				return jsonResponse(tt.status, testResp{ID: "id-1"}), nil
-			}}
-			c := testClient(doer)
-			resp, err := RestDo[testResp](context.Background(), c, http.MethodPost, "/things", testInput{Name: "test"})
-			require.NoError(t, err)
-			assert.Equal(t, "id-1", resp.ID)
+		t.Run(fmt.Sprintf("%d", tt.status), func(t *testing.T) {
+			assert.Equal(t, tt.want, isHTTPSuccess(tt.status))
 		})
 	}
 }
