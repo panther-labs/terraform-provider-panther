@@ -357,3 +357,11 @@ func TestPubsubsourceSchema_AllOptionalComputedHaveDefaults(t *testing.T) {
 	r.Schema(context.Background(), req, resp)
 	assertNoOptionalComputedWithoutDefault(t, resp.Schema)
 }
+
+func TestGcssourceSchema_AllOptionalComputedHaveDefaults(t *testing.T) {
+	r := &gcssourceResource{}
+	req := resource.SchemaRequest{}
+	resp := &resource.SchemaResponse{}
+	r.Schema(context.Background(), req, resp)
+	assertNoOptionalComputedWithoutDefault(t, resp.Schema)
+}
