@@ -33,3 +33,19 @@ resources:
     schema:
       ignores:
         - integrationId
+  gcssource:
+    create:
+      path: /log-sources/gcs
+      method: POST
+    read:
+      path: /log-sources/gcs/{id}
+      method: GET
+    update:
+      path: /log-sources/gcs/{id}
+      method: PUT
+    delete:
+      path: /log-sources/gcs/{id}
+      method: DELETE
+    schema:
+      ignores:
+        - integrationId
