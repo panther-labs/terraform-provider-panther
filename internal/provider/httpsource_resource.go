@@ -18,27 +18,28 @@ package provider
 
 import (
 	"context"
-	"fmt"
-	"strings"
+	"net/http"
 	"terraform-provider-panther/internal/client"
-	"terraform-provider-panther/internal/client/panther"
 	"terraform-provider-panther/internal/provider/resource_httpsource"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
+const httpSourcePath = "/log-sources/http"
+
 var (
-	_ resource.Resource              = (*httpsourceResource)(nil)
-	_ resource.ResourceWithConfigure = (*httpsourceResource)(nil)
+	_ resource.Resource                = (*httpsourceResource)(nil)
+	_ resource.ResourceWithConfigure   = (*httpsourceResource)(nil)
+	_ resource.ResourceWithImportState = (*httpsourceResource)(nil)
 )
 
 func NewHttpsourceResource() resource.Resource {
@@ -46,7 +47,7 @@ func NewHttpsourceResource() resource.Resource {
 }
 
 type httpsourceResource struct {
-	client client.RestClient
+	rest *client.RESTClient
 }
 
 func (r *httpsourceResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -54,44 +55,18 @@ func (r *httpsourceResource) Metadata(ctx context.Context, req resource.Metadata
 }
 
 func (r *httpsourceResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
-	// We are overriding the schema here with some settings that are not supported by the schema generator.
-	// We opt to do it here in order to be able to keep generating it without our changes getting overwritten in the generated file
 	resp.Schema = resource_httpsource.HttpsourceResourceSchema(ctx)
-	// we add the UseStateForUnknown plan modifier to the id attribute manually because it is not supported by the schema generator
-	idAttr := resp.Schema.Attributes["id"].(schema.StringAttribute)
-	idAttr.PlanModifiers = append(idAttr.PlanModifiers, stringplanmodifier.UseStateForUnknown())
-	resp.Schema.Attributes["id"] = idAttr
+	applySchemaOverrides(&resp.Schema, []SchemaOverride{
+		{Name: "id", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+		{Name: "auth_hmac_alg", Default: stringdefault.StaticString("")},
+		{Name: "auth_header_key", Default: stringdefault.StaticString("")},
+		{Name: "auth_password", Default: stringdefault.StaticString(""), Sensitive: true},
+		{Name: "auth_secret_value", Default: stringdefault.StaticString(""), Sensitive: true},
+		{Name: "auth_username", Default: stringdefault.StaticString("")},
+		{Name: "auth_bearer_token", Default: stringdefault.StaticString(""), Sensitive: true},
+	})
 
-	// override default value for optional values
-	// this is necessary because the code generator creates these fields as optional and computed, which means that if they are not provided
-	// by the user they will be unknown values.
-	hmacAlg := resp.Schema.Attributes["auth_hmac_alg"].(schema.StringAttribute)
-	hmacAlg.Default = stringdefault.StaticString("")
-	resp.Schema.Attributes["auth_hmac_alg"] = hmacAlg
-
-	authHeadKey := resp.Schema.Attributes["auth_header_key"].(schema.StringAttribute)
-	authHeadKey.Default = stringdefault.StaticString("")
-	resp.Schema.Attributes["auth_header_key"] = authHeadKey
-
-	authPass := resp.Schema.Attributes["auth_password"].(schema.StringAttribute)
-	authPass.Default = stringdefault.StaticString("")
-	authPass.Sensitive = true
-	resp.Schema.Attributes["auth_password"] = authPass
-
-	authSecVal := resp.Schema.Attributes["auth_secret_value"].(schema.StringAttribute)
-	authSecVal.Default = stringdefault.StaticString("")
-	authSecVal.Sensitive = true
-	resp.Schema.Attributes["auth_secret_value"] = authSecVal
-
-	authUser := resp.Schema.Attributes["auth_username"].(schema.StringAttribute)
-	authUser.Default = stringdefault.StaticString("")
-	resp.Schema.Attributes["auth_username"] = authUser
-
-	bearerToken := resp.Schema.Attributes["auth_bearer_token"].(schema.StringAttribute)
-	bearerToken.Default = stringdefault.StaticString("")
-	bearerToken.Sensitive = true
-	resp.Schema.Attributes["auth_bearer_token"] = bearerToken
-
+	// logStreamTypeOptions: nested object needs inner defaults + null object default
 	logStreamTypeOptions := resp.Schema.Attributes["log_stream_type_options"].(schema.SingleNestedAttribute)
 
 	jsonArrayEnvelopeField := logStreamTypeOptions.Attributes["json_array_envelope_field"].(schema.StringAttribute)
@@ -103,125 +78,79 @@ func (r *httpsourceResource) Schema(ctx context.Context, req resource.SchemaRequ
 	logStreamTypeOptions.Attributes["xml_root_element"] = xmlRootElement
 
 	logStreamTypeOptions.Default = objectdefault.StaticValue(types.ObjectNull(
-		map[string]attr.Type{
-			"json_array_envelope_field": types.StringType,
-			"xml_root_element":          types.StringType,
-		},
+		resource_httpsource.LogStreamTypeOptionsValue{}.AttributeTypes(ctx),
 	))
 
 	resp.Schema.Attributes["log_stream_type_options"] = logStreamTypeOptions
 }
 
 func (r *httpsourceResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	// Prevent panic if the provider has not been configured.
-	if req.ProviderData == nil {
+	c := providerClients(req, resp)
+	if c == nil {
 		return
 	}
-
-	c, ok := req.ProviderData.(*panther.APIClient)
-
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *panther.APIClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-		)
-
-		return
-	}
-
-	r.client = c.RestClient
+	r.rest = c.REST
 }
 
 func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data resource_httpsource.HttpsourceModel
-	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	input := client.CreateHttpSourceInput{
-		HttpSourceModifiableAttributes: client.HttpSourceModifiableAttributes{
-			IntegrationLabel: data.IntegrationLabel.ValueString(),
-			LogStreamType:    data.LogStreamType.ValueString(),
-			LogTypes:         convertLogTypes(ctx, data.LogTypes),
-			AuthHmacAlg:      data.AuthHmacAlg.ValueString(),
-			AuthHeaderKey:    data.AuthHeaderKey.ValueString(),
-			AuthPassword:     data.AuthPassword.ValueString(),
-			AuthSecretValue:  data.AuthSecretValue.ValueString(),
-			AuthMethod:       data.AuthMethod.ValueString(),
-			AuthUsername:     data.AuthUsername.ValueString(),
-			AuthBearerToken:  data.AuthBearerToken.ValueString(),
-		},
+	input := client.HttpSourceInput{
+		IntegrationLabel:     data.IntegrationLabel.ValueString(),
+		LogStreamType:        data.LogStreamType.ValueString(),
+		LogTypes:             convertLogTypes(ctx, data.LogTypes, &resp.Diagnostics),
+		LogStreamTypeOptions: httpLogStreamTypeOptions(data.LogStreamTypeOptions),
+		AuthHmacAlg:          data.AuthHmacAlg.ValueString(),
+		AuthHeaderKey:        data.AuthHeaderKey.ValueString(),
+		AuthPassword:         data.AuthPassword.ValueString(),
+		AuthSecretValue:      data.AuthSecretValue.ValueString(),
+		AuthMethod:           data.AuthMethod.ValueString(),
+		AuthUsername:         data.AuthUsername.ValueString(),
+		AuthBearerToken:      data.AuthBearerToken.ValueString(),
 	}
 
-	if !data.LogStreamTypeOptions.IsNull() {
-		input.HttpSourceModifiableAttributes.LogStreamTypeOptions = &client.HttpLogStreamTypeOptions{
-			JsonArrayEnvelopeField: data.LogStreamTypeOptions.JsonArrayEnvelopeField.ValueString(),
-			XmlRootElement:         data.LogStreamTypeOptions.XmlRootElement.ValueString(),
-		}
-	}
-
-	httpSource, err := r.client.CreateHttpSource(ctx, input)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error creating HTTP Source",
-			"Could not create HTTP Source, unexpected error: "+err.Error(),
-		)
+	httpSource, err := client.RestDo[client.HttpSource](ctx, r.rest, http.MethodPost, httpSourcePath, input)
+	if handleCreateError(resp, "HTTP Source", err) {
 		return
 	}
 	tflog.Debug(ctx, "Created HTTP Source", map[string]any{
 		"id": httpSource.IntegrationId,
 	})
 	data.Id = types.StringValue(httpSource.IntegrationId)
-
-	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
 func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var data resource_httpsource.HttpsourceModel
-
-	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	httpSource, err := r.client.GetHttpSource(ctx, data.Id.ValueString())
-	if err != nil {
-		if strings.Contains(err.Error(), "status: 404") {
-			tflog.Warn(ctx, fmt.Sprintf("HTTP Source %s not found, removing from state", data.Id.ValueString()))
-			resp.State.RemoveResource(ctx)
-			return
-		}
-		resp.Diagnostics.AddError(
-			"Error reading HTTP Source",
-			fmt.Sprintf("Could not read HTTP Source with id %s, unexpected error: %s", data.Id.ValueString(), err.Error()),
-		)
+	httpSource, err := client.RestDo[client.HttpSource](ctx, r.rest, http.MethodGet, httpSourcePath+"/"+data.Id.ValueString(), nil)
+	if handleReadError(ctx, resp, "HTTP Source", data.Id.ValueString(), err) {
 		return
 	}
 	tflog.Debug(ctx, "Got HTTP Source", map[string]any{
 		"id": httpSource.IntegrationId,
 	})
-	// We need to set all the values from the API response into the data model, except for the sensitive values
-	// which are returned always as empty strings
+	// Sensitive fields (auth_password, auth_secret_value, auth_bearer_token) are returned as ""
+	// by the API — don't overwrite state for those.
 	data.Id = types.StringValue(httpSource.IntegrationId)
 	data.IntegrationLabel = types.StringValue(httpSource.IntegrationLabel)
 	data.LogStreamType = types.StringValue(httpSource.LogStreamType)
-	data.LogTypes = convertFromLogTypes(ctx, httpSource.LogTypes, resp.Diagnostics)
+	data.LogTypes = convertFromLogTypes(ctx, httpSource.LogTypes, &resp.Diagnostics)
 	data.AuthMethod = types.StringValue(httpSource.AuthMethod)
 	data.AuthHmacAlg = types.StringValue(httpSource.AuthHmacAlg)
 	data.AuthHeaderKey = types.StringValue(httpSource.AuthHeaderKey)
 	data.AuthUsername = types.StringValue(httpSource.AuthUsername)
 
 	if httpSource.LogStreamTypeOptions != nil {
-		attributeTypes := map[string]attr.Type{
-			"json_array_envelope_field": types.StringType,
-			"xml_root_element":          types.StringType,
-		}
-
+		attributeTypes := resource_httpsource.LogStreamTypeOptionsValue{}.AttributeTypes(ctx)
 		attributeValues := map[string]attr.Value{
 			"json_array_envelope_field": types.StringValue(httpSource.LogStreamTypeOptions.JsonArrayEnvelopeField),
 			"xml_root_element":          types.StringValue(httpSource.LogStreamTypeOptions.XmlRootElement),
@@ -234,75 +163,50 @@ func (r *httpsourceResource) Read(ctx context.Context, req resource.ReadRequest,
 			data.LogStreamTypeOptions = logStreamTypeOptionsValue
 		}
 	}
-	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
 func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data resource_httpsource.HttpsourceModel
-
-	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	input := client.UpdateHttpSourceInput{
-		IntegrationId: data.Id.ValueString(),
-		HttpSourceModifiableAttributes: client.HttpSourceModifiableAttributes{
-			IntegrationLabel: data.IntegrationLabel.ValueString(),
-			LogStreamType:    data.LogStreamType.ValueString(),
-			LogTypes:         convertLogTypes(ctx, data.LogTypes),
-			AuthHmacAlg:      data.AuthHmacAlg.ValueString(),
-			AuthHeaderKey:    data.AuthHeaderKey.ValueString(),
-			AuthPassword:     data.AuthPassword.ValueString(),
-			AuthSecretValue:  data.AuthSecretValue.ValueString(),
-			AuthMethod:       data.AuthMethod.ValueString(),
-			AuthUsername:     data.AuthUsername.ValueString(),
-			AuthBearerToken:  data.AuthBearerToken.ValueString(),
-		},
+	input := client.HttpSourceInput{
+		IntegrationLabel:     data.IntegrationLabel.ValueString(),
+		LogStreamType:        data.LogStreamType.ValueString(),
+		LogTypes:             convertLogTypes(ctx, data.LogTypes, &resp.Diagnostics),
+		LogStreamTypeOptions: httpLogStreamTypeOptions(data.LogStreamTypeOptions),
+		AuthHmacAlg:          data.AuthHmacAlg.ValueString(),
+		AuthHeaderKey:        data.AuthHeaderKey.ValueString(),
+		AuthPassword:         data.AuthPassword.ValueString(),
+		AuthSecretValue:      data.AuthSecretValue.ValueString(),
+		AuthMethod:           data.AuthMethod.ValueString(),
+		AuthUsername:         data.AuthUsername.ValueString(),
+		AuthBearerToken:      data.AuthBearerToken.ValueString(),
 	}
 
-	if !data.LogStreamTypeOptions.IsNull() {
-		input.HttpSourceModifiableAttributes.LogStreamTypeOptions = &client.HttpLogStreamTypeOptions{
-			JsonArrayEnvelopeField: data.LogStreamTypeOptions.JsonArrayEnvelopeField.ValueString(),
-			XmlRootElement:         data.LogStreamTypeOptions.XmlRootElement.ValueString(),
-		}
-	}
-
-	_, err := r.client.UpdateHttpSource(ctx, input)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error updating HTTP Source",
-			fmt.Sprintf("Could not update HTTP Source with id %s, unexpected error: %s", data.Id.ValueString(), err.Error()),
-		)
+	_, err := client.RestDo[client.HttpSource](ctx, r.rest, http.MethodPut, httpSourcePath+"/"+data.Id.ValueString(), input)
+	if handleUpdateError(resp, "HTTP Source", data.Id.ValueString(), err) {
 		return
 	}
 	tflog.Debug(ctx, "Updated HTTP Source", map[string]any{
 		"id": data.Id.ValueString(),
 	})
 
-	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
 func (r *httpsourceResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var data resource_httpsource.HttpsourceModel
-
-	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	err := r.client.DeleteHttpSource(ctx, data.Id.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error deleting HTTP Source",
-			fmt.Sprintf("Could not delete HTTP Source with id %s, unexpected error: %s", data.Id.ValueString(), err.Error()),
-		)
+	err := client.RestDelete(ctx, r.rest, httpSourcePath+"/"+data.Id.ValueString())
+	if handleDeleteError(resp, "HTTP Source", data.Id.ValueString(), err) {
 		return
 	}
 	tflog.Debug(ctx, "Deleted HTTP Source", map[string]any{
@@ -314,14 +218,12 @@ func (r *httpsourceResource) ImportState(ctx context.Context, req resource.Impor
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
-func convertLogTypes(ctx context.Context, logTypes types.List) []string {
-	var result []string
-	logTypes.ElementsAs(ctx, &result, false)
-	return result
-}
-
-func convertFromLogTypes(ctx context.Context, logTypes []string, diagnostics diag.Diagnostics) types.List {
-	from, d := types.ListValueFrom(ctx, types.StringType, logTypes)
-	diagnostics.Append(d...)
-	return from
+func httpLogStreamTypeOptions(opts resource_httpsource.LogStreamTypeOptionsValue) *client.HttpLogStreamTypeOptions {
+	if opts.IsNull() {
+		return nil
+	}
+	return &client.HttpLogStreamTypeOptions{
+		JsonArrayEnvelopeField: opts.JsonArrayEnvelopeField.ValueString(),
+		XmlRootElement:         opts.XmlRootElement.ValueString(),
+	}
 }
