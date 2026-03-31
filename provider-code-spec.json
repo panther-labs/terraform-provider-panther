@@ -4,6 +4,153 @@
 	},
 	"resources": [
 		{
+			"name": "gcssource",
+			"schema": {
+				"attributes": [
+					{
+						"name": "credentials",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The GCP credentials JSON content (service account key or WIF config). Required on create, optional on update."
+						}
+					},
+					{
+						"name": "credentials_type",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "The type of credentials being used: service_account or wif (Workload Identity Federation).",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.OneOf(\n\"service_account\",\n\"wif\",\n)"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "gcs_bucket",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "The GCS bucket name"
+						}
+					},
+					{
+						"name": "integration_label",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "The integration label (name)"
+						}
+					},
+					{
+						"name": "log_stream_type",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "The log stream type. Supported log stream types: Auto, JSON, JsonArray, Lines, XML",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.OneOf(\n\"Auto\",\n\"JSON\",\n\"JsonArray\",\n\"Lines\",\n\"XML\",\n)"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "log_stream_type_options",
+						"single_nested": {
+							"computed_optional_required": "computed_optional",
+							"attributes": [
+								{
+									"name": "json_array_envelope_field",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "Path to the array value to extract elements from, only applicable if logStreamType is JsonArray. Leave empty if the input JSON is an array itself"
+									}
+								},
+								{
+									"name": "xml_root_element",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "The root element name for XML streams, only applicable if logStreamType is XML. Leave empty if the XML events are not enclosed in a root element"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "prefix_log_types",
+						"list_nested": {
+							"computed_optional_required": "required",
+							"nested_object": {
+								"attributes": [
+									{
+										"name": "excluded_prefixes",
+										"list": {
+											"computed_optional_required": "computed_optional",
+											"element_type": {
+												"string": {}
+											},
+											"description": "Prefixes to exclude from matching. Supports '*' as a wildcard for dynamic path segments."
+										}
+									},
+									{
+										"name": "log_types",
+										"list": {
+											"computed_optional_required": "computed_optional",
+											"element_type": {
+												"string": {}
+											},
+											"description": "The log types (schemas) to apply for this prefix"
+										}
+									},
+									{
+										"name": "prefix",
+										"string": {
+											"computed_optional_required": "computed_optional",
+											"description": "GCS prefix to match. Leave empty to match all files in the bucket."
+										}
+									}
+								]
+							},
+							"description": "Prefix-based log type mappings for parsing ingested data"
+						}
+					},
+					{
+						"name": "project_id",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The GCP project ID. Optional for service_account credentials (derived from the keyfile). Required for WIF."
+						}
+					},
+					{
+						"name": "subscription_id",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "The GCP Pub/Sub subscription ID used to receive GCS bucket notifications"
+						}
+					},
+					{
+						"name": "id",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "ID of the GCS source to fetch"
+						}
+					}
+				]
+			}
+		},
+		{
 			"name": "httpsource",
 			"schema": {
 				"attributes": [
