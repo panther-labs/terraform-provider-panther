@@ -6,7 +6,7 @@ resource "panther_s3_source" "example_s3_source" {
   panther_managed_bucket_notifications_enabled = var.panther_managed_bucket_notifications_enabled
   kms_key_arn                                  = var.kms_key_arn
   bucket_name                                  = var.bucket_name
-  prefix_log_types = var.prefix_log_types
+  prefix_log_types                             = var.prefix_log_types
 
   # Uncomment when using JsonArray, CloudWatchLogs, or XML log stream types:
   #
