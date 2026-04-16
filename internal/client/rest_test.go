@@ -319,24 +319,21 @@ func TestGetErrorResponseMsg_LargeBody(t *testing.T) {
 
 // Tests verify that NewRESTClient correctly strips /public/graphql from the URL
 // (backwards compatibility for users who configured the old URL format)
-// and sets BaseURL to the root.
-
-func TestNewRESTClient_CustomURLWithGraphEndpoint(t *testing.T) {
-	c := NewRESTClient("panther-url/public/graphql", "token")
-	assert.Equal(t, "panther-url", c.BaseURL)
-}
-
-func TestNewRESTClient_CustomUrlWithBaseUrl(t *testing.T) {
-	c := NewRESTClient("panther-url", "token")
-	assert.Equal(t, "panther-url", c.BaseURL)
-}
-
-func TestNewRESTClient_ApiGWUrlWithGraphEndpoint(t *testing.T) {
-	c := NewRESTClient("panther-url/v1/public/graphql", "token")
-	assert.Equal(t, "panther-url/v1", c.BaseURL)
-}
-
-func TestNewRESTClient_ApiGWUrlWithBaseUrl(t *testing.T) {
-	c := NewRESTClient("panther-url/v1", "token")
-	assert.Equal(t, "panther-url/v1", c.BaseURL)
+func TestNewRESTClient_StripsGraphQLSuffix(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		wantURL string
+	}{
+		{"CustomURLWithGraphEndpoint", "panther-url/public/graphql", "panther-url"},
+		{"CustomURLWithBaseURL", "panther-url", "panther-url"},
+		{"ApiGWURLWithGraphEndpoint", "panther-url/v1/public/graphql", "panther-url/v1"},
+		{"ApiGWURLWithBaseURL", "panther-url/v1", "panther-url/v1"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := NewRESTClient(tt.input, "token")
+			assert.Equal(t, tt.wantURL, c.BaseURL)
+		})
+	}
 }

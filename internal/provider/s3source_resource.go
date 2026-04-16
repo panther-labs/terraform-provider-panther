@@ -40,6 +40,12 @@ import (
 
 const s3SourcePath = "/log-sources/s3"
 
+var s3LogStreamTypeOptionAttrTypes = map[string]attr.Type{
+	"json_array_envelope_field": types.StringType,
+	"retain_envelope_fields":    types.BoolType,
+	"xml_root_element":          types.StringType,
+}
+
 // Ensure provider defined types fully satisfy framework interfaces.
 var (
 	_ resource.Resource                = (*S3SourceResource)(nil)
@@ -141,11 +147,7 @@ func (r *S3SourceResource) Schema(ctx context.Context, req resource.SchemaReques
 				},
 				Optional: true,
 				Computed: true,
-				Default: objectdefault.StaticValue(types.ObjectNull(map[string]attr.Type{
-					"json_array_envelope_field": types.StringType,
-					"retain_envelope_fields":    types.BoolType,
-					"xml_root_element":          types.StringType,
-				})),
+				Default:  objectdefault.StaticValue(types.ObjectNull(s3LogStreamTypeOptionAttrTypes)),
 			},
 			"panther_managed_bucket_notifications_enabled": schema.BoolAttribute{
 				MarkdownDescription: `True if bucket notifications are being managed by Panther.  __This will cause Panther to create additional infrastructure in your AWS account.__ \
@@ -249,27 +251,7 @@ func (r *S3SourceResource) Read(ctx context.Context, req resource.ReadRequest, r
 	data.BucketName = types.StringValue(s3Source.S3Bucket)
 	data.PrefixLogTypes = prefixLogTypesToModel(s3Source.S3PrefixLogTypes)
 
-	logStreamTypeOptionAttrTypes := map[string]attr.Type{
-		"json_array_envelope_field": types.StringType,
-		"retain_envelope_fields":    types.BoolType,
-		"xml_root_element":          types.StringType,
-	}
-	if s3Source.LogStreamTypeOptions != nil && (s3Source.LogStreamTypeOptions.JsonArrayEnvelopeField != "" ||
-		s3Source.LogStreamTypeOptions.XmlRootElement != "" || s3Source.LogStreamTypeOptions.RetainEnvelopeFields) {
-		attributeValues := map[string]attr.Value{
-			"json_array_envelope_field": types.StringValue(s3Source.LogStreamTypeOptions.JsonArrayEnvelopeField),
-			"retain_envelope_fields":    types.BoolValue(s3Source.LogStreamTypeOptions.RetainEnvelopeFields),
-			"xml_root_element":          types.StringValue(s3Source.LogStreamTypeOptions.XmlRootElement),
-		}
-		objectValue, diags := basetypes.NewObjectValue(logStreamTypeOptionAttrTypes, attributeValues)
-		if diags.HasError() {
-			resp.Diagnostics.Append(diags...)
-			return
-		}
-		data.LogStreamTypeOptions = objectValue
-	} else {
-		data.LogStreamTypeOptions = types.ObjectNull(logStreamTypeOptionAttrTypes)
-	}
+	data.LogStreamTypeOptions = s3LogStreamTypeOptionsToModel(s3Source.LogStreamTypeOptions)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -318,13 +300,12 @@ func (r *S3SourceResource) ImportState(ctx context.Context, req resource.ImportS
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
-// s3LogStreamTypeOptions extracts LogStreamTypeOptions from a Terraform nested object.
-// Returns nil when the object is null/unknown or when all inner fields are null/unknown.
-func s3LogStreamTypeOptions(opts types.Object) *client.LogStreamTypeOptions {
+// s3LogStreamTypeOptions returns nil when all fields are zero to avoid sending {} to the API.
+func s3LogStreamTypeOptions(opts types.Object) *client.S3LogStreamTypeOptions {
 	if opts.IsNull() || opts.IsUnknown() {
 		return nil
 	}
-	result := &client.LogStreamTypeOptions{}
+	result := &client.S3LogStreamTypeOptions{}
 	attrs := opts.Attributes()
 	if val, ok := attrs["json_array_envelope_field"]; ok && !val.IsNull() && !val.IsUnknown() {
 		if sv, ok := val.(types.String); ok {
@@ -346,6 +327,20 @@ func s3LogStreamTypeOptions(opts types.Object) *client.LogStreamTypeOptions {
 		return nil
 	}
 	return result
+}
+
+// s3LogStreamTypeOptionsToModel maps an API response into the terraform object.
+// The S3 API returns {} (non-null with empty fields) when options are unset,
+// so we also null out the state when all fields are zero to avoid a perpetual diff.
+func s3LogStreamTypeOptionsToModel(opts *client.S3LogStreamTypeOptions) types.Object {
+	if opts == nil || (opts.JsonArrayEnvelopeField == "" && opts.XmlRootElement == "" && !opts.RetainEnvelopeFields) {
+		return types.ObjectNull(s3LogStreamTypeOptionAttrTypes)
+	}
+	return basetypes.NewObjectValueMust(s3LogStreamTypeOptionAttrTypes, map[string]attr.Value{
+		"json_array_envelope_field": types.StringValue(opts.JsonArrayEnvelopeField),
+		"retain_envelope_fields":    types.BoolValue(opts.RetainEnvelopeFields),
+		"xml_root_element":          types.StringValue(opts.XmlRootElement),
+	})
 }
 
 // prefixLogTypesToInput converts the Terraform model to REST API input structs.

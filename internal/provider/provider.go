@@ -123,7 +123,6 @@ func (p *PantherProvider) Configure(ctx context.Context, req provider.ConfigureR
 	}
 
 	resp.ResourceData = client.NewRESTClient(url, token)
-
 }
 
 func (p *PantherProvider) Resources(ctx context.Context) []func() resource.Resource {

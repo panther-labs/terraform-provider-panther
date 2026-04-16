@@ -16,43 +16,41 @@ limitations under the License.
 
 package client
 
-// S3SourceCreateInput is the request body for POST /log-sources/s3.
-// awsAccountId is only present on Create — it is immutable and excluded from PUT.
+// S3SourceCreateInput has awsAccountId because it's immutable after creation and excluded from PUT.
 type S3SourceCreateInput struct {
-	AwsAccountId               string                `json:"awsAccountId"`
-	IntegrationLabel           string                `json:"integrationLabel"`
-	S3Bucket                   string                `json:"s3Bucket"`
-	KmsKey                     string                `json:"kmsKey,omitempty"`
-	LogProcessingRole          string                `json:"logProcessingRole"`
-	LogStreamType              string                `json:"logStreamType"`
-	LogStreamTypeOptions       *LogStreamTypeOptions `json:"logStreamTypeOptions,omitempty"`
-	ManagedBucketNotifications bool                  `json:"managedBucketNotifications"`
+	AwsAccountId               string                  `json:"awsAccountId"`
+	IntegrationLabel           string                  `json:"integrationLabel"`
+	S3Bucket                   string                  `json:"s3Bucket"`
+	KmsKey                     string                  `json:"kmsKey,omitempty"`
+	LogProcessingRole          string                  `json:"logProcessingRole"`
+	LogStreamType              string                  `json:"logStreamType"`
+	LogStreamTypeOptions       *S3LogStreamTypeOptions `json:"logStreamTypeOptions,omitempty"`
+	ManagedBucketNotifications bool                    `json:"managedBucketNotifications"`
 	S3PrefixLogTypes           []S3PrefixLogTypesInput `json:"s3PrefixLogTypes"`
 }
 
-// S3SourceUpdateInput is the request body for PUT /log-sources/s3/{id}.
-// awsAccountId and s3Bucket are immutable after creation and excluded from PUT.
+// S3SourceUpdateInput excludes awsAccountId and s3Bucket because they're immutable after creation.
 type S3SourceUpdateInput struct {
 	IntegrationLabel           string                  `json:"integrationLabel"`
 	KmsKey                     string                  `json:"kmsKey,omitempty"`
 	LogProcessingRole          string                  `json:"logProcessingRole"`
 	LogStreamType              string                  `json:"logStreamType"`
-	LogStreamTypeOptions       *LogStreamTypeOptions   `json:"logStreamTypeOptions,omitempty"`
+	LogStreamTypeOptions       *S3LogStreamTypeOptions `json:"logStreamTypeOptions,omitempty"`
 	ManagedBucketNotifications bool                    `json:"managedBucketNotifications"`
 	S3PrefixLogTypes           []S3PrefixLogTypesInput `json:"s3PrefixLogTypes"`
 }
 
 // S3Source is the REST API response for GET/POST/PUT /log-sources/s3.
 type S3Source struct {
-	IntegrationId              string                `json:"integrationId"`
-	IntegrationLabel           string                `json:"integrationLabel"`
-	AwsAccountId               string                `json:"awsAccountId"`
-	S3Bucket                   string                `json:"s3Bucket"`
-	KmsKey                     string                `json:"kmsKey"`
-	LogProcessingRole          string                `json:"logProcessingRole"`
-	LogStreamType              string                `json:"logStreamType"`
-	LogStreamTypeOptions       *LogStreamTypeOptions `json:"logStreamTypeOptions,omitempty"`
-	ManagedBucketNotifications bool                  `json:"managedBucketNotifications"`
+	IntegrationId              string                  `json:"integrationId"`
+	IntegrationLabel           string                  `json:"integrationLabel"`
+	AwsAccountId               string                  `json:"awsAccountId"`
+	S3Bucket                   string                  `json:"s3Bucket"`
+	KmsKey                     string                  `json:"kmsKey"`
+	LogProcessingRole          string                  `json:"logProcessingRole"`
+	LogStreamType              string                  `json:"logStreamType"`
+	LogStreamTypeOptions       *S3LogStreamTypeOptions `json:"logStreamTypeOptions,omitempty"`
+	ManagedBucketNotifications bool                    `json:"managedBucketNotifications"`
 	S3PrefixLogTypes           []S3PrefixLogTypesInput `json:"s3PrefixLogTypes"`
 }
 
@@ -64,8 +62,7 @@ type S3PrefixLogTypesInput struct {
 	Prefix           string   `json:"prefix"`
 }
 
-// LogStreamTypeOptions contains options specific to the log stream type.
-type LogStreamTypeOptions struct {
+type S3LogStreamTypeOptions struct {
 	JsonArrayEnvelopeField string `json:"jsonArrayEnvelopeField,omitempty"`
 	RetainEnvelopeFields   bool   `json:"retainEnvelopeFields,omitempty"`
 	XmlRootElement         string `json:"xmlRootElement,omitempty"`

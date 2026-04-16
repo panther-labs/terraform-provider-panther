@@ -17,9 +17,9 @@ limitations under the License.
 package provider
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
 	"testing"
@@ -56,15 +56,6 @@ func loadS3TestConfig(t *testing.T) (cfg s3TestConfig, ok bool) {
 	return cfg, true
 }
 
-// TestS3SourceResource runs a comprehensive acceptance test covering the full lifecycle:
-//
-//	Step 1 — Create basic S3 source (TC1). Post-apply plan verifies no perpetual diffs (TC2).
-//	Step 2 — Import by ID (TC10). Framework verifies plan after import shows no diff (TC11).
-//	Step 3 — Update: change name, switch to CloudWatchLogs + retainEnvelopeFields, clear KMS key (TC3, TC4, TC7).
-//	Step 4 — Update: multiple prefix_log_types, add KMS key, toggle managed notifications off (TC5, TC6, TC8).
-//	Step 5 — Update: revert to Auto stream type, remove log_stream_type_options (TC9).
-//	Step 6 — Drift detection: manually delete the resource out-of-band, verify Terraform proposes recreation (TC17).
-//	Cleanup — TestCase automatically calls Delete, which succeeds on 404 (TC16).
 func TestS3SourceResource(t *testing.T) {
 	cfg, ok := loadS3TestConfig(t)
 	if !ok {
@@ -76,8 +67,8 @@ func TestS3SourceResource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
-			// Step 1: Create basic S3 source (TC1).
-			// The framework automatically runs a post-apply plan to verify no perpetual diffs (TC2).
+			// Step 1: Create basic S3 source.
+			// The framework automatically runs a post-apply plan to verify no perpetual diffs.
 			{
 				Config: providerConfig + testS3SourceConfig_Basic(cfg, name),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -94,14 +85,13 @@ func TestS3SourceResource(t *testing.T) {
 					resource.TestCheckResourceAttrSet("panther_s3_source.test", "id"),
 				),
 			},
-			// Step 2: Import by ID (TC10). The framework verifies a subsequent plan shows no diff (TC11).
+			// Step 2: Import by ID. The framework verifies a subsequent plan shows no diff.
 			{
 				ResourceName:      "panther_s3_source.test",
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
-			// Step 3: Update — change name, switch to CloudWatchLogs with retainEnvelopeFields,
-			// clear KMS key (TC3, TC4, TC7).
+			// Step 3: Update — change name, switch to CloudWatchLogs with retainEnvelopeFields, clear KMS key.
 			{
 				Config: providerConfig + testS3SourceConfig_CloudWatchLogs(cfg, nameUpdated),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -111,8 +101,7 @@ func TestS3SourceResource(t *testing.T) {
 					resource.TestCheckResourceAttr("panther_s3_source.test", "kms_key_arn", ""),
 				),
 			},
-			// Step 4: Update — multiple prefix_log_types, add KMS key back,
-			// toggle managed notifications off (TC5, TC6, TC8).
+			// Step 4: Update — multiple prefix_log_types, add KMS key back, toggle managed notifications off.
 			{
 				Config: providerConfig + testS3SourceConfig_MultiPrefix(cfg, nameUpdated),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -128,7 +117,7 @@ func TestS3SourceResource(t *testing.T) {
 				),
 			},
 			// Step 5: Update — revert to Auto stream type, remove log_stream_type_options,
-			// restore managed notifications (TC9).
+			// restore managed notifications.
 			{
 				Config: providerConfig + testS3SourceConfig_RevertAuto(cfg, nameUpdated),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -139,9 +128,8 @@ func TestS3SourceResource(t *testing.T) {
 				),
 			},
 			// Step 6: Drift detection — manually delete the resource out-of-band, then verify
-			// Terraform's Read detects 404 and proposes recreation (TC17).
-			// TestCase cleanup then calls Delete — succeeds because 404 is treated as
-			// success by handleDeleteError (TC16).
+			// Terraform's Read detects 404 and proposes recreation. TestCase cleanup then calls
+			// Delete — succeeds because 404 is treated as success by handleDeleteError.
 			{
 				Config:             providerConfig + testS3SourceConfig_RevertAuto(cfg, nameUpdated),
 				Check:              manuallyDeleteS3Source(t),
@@ -151,8 +139,8 @@ func TestS3SourceResource(t *testing.T) {
 	})
 }
 
-// manuallyDeleteS3Source deletes the S3 source directly via the REST API (bypassing Terraform)
-// to simulate out-of-band deletion for drift detection testing.
+// manuallyDeleteS3Source bypasses Terraform and deletes via the REST API directly,
+// simulating out-of-band deletion for drift detection testing.
 func manuallyDeleteS3Source(t *testing.T) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources["panther_s3_source.test"]
@@ -162,19 +150,9 @@ func manuallyDeleteS3Source(t *testing.T) resource.TestCheckFunc {
 		if rs.Primary.ID == "" {
 			return errors.New("S3 source ID is not set")
 		}
-		url := os.Getenv("PANTHER_API_URL") + s3SourcePath + "/" + rs.Primary.ID
-		req, err := http.NewRequest(http.MethodDelete, url, nil)
-		if err != nil {
-			return fmt.Errorf("could not create delete request: %w", err)
-		}
-		req.Header.Set("X-API-Key", os.Getenv("PANTHER_API_TOKEN"))
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
+		c := client.NewRESTClient(os.Getenv("PANTHER_API_URL"), os.Getenv("PANTHER_API_TOKEN"))
+		if err := client.RestDelete(context.Background(), c, s3SourcePath+"/"+rs.Primary.ID); err != nil {
 			return fmt.Errorf("could not delete S3 source: %w", err)
-		}
-		resp.Body.Close()
-		if resp.StatusCode != http.StatusNoContent {
-			return fmt.Errorf("expected 204 deleting S3 source, got %d", resp.StatusCode)
 		}
 		t.Logf("Manually deleted S3 source %s for drift detection test", rs.Primary.ID)
 		return nil
@@ -188,7 +166,7 @@ func testS3SourceConfig_Basic(cfg s3TestConfig, name string) string {
 resource "panther_s3_source" "test" {
   aws_account_id                               = %q
   name                                         = %q
-  log_processing_role_arn                       = %q
+  log_processing_role_arn                      = %q
   log_stream_type                              = "Lines"
   panther_managed_bucket_notifications_enabled = true
   bucket_name                                  = %q
@@ -207,7 +185,7 @@ func testS3SourceConfig_CloudWatchLogs(cfg s3TestConfig, name string) string {
 resource "panther_s3_source" "test" {
   aws_account_id                               = %q
   name                                         = %q
-  log_processing_role_arn                       = %q
+  log_processing_role_arn                      = %q
   log_stream_type                              = "CloudWatchLogs"
   log_stream_type_options = {
     retain_envelope_fields = true
@@ -229,7 +207,7 @@ func testS3SourceConfig_MultiPrefix(cfg s3TestConfig, name string) string {
 resource "panther_s3_source" "test" {
   aws_account_id                               = %q
   name                                         = %q
-  log_processing_role_arn                       = %q
+  log_processing_role_arn                      = %q
   log_stream_type                              = "Lines"
   panther_managed_bucket_notifications_enabled = false
   bucket_name                                  = %q
@@ -255,7 +233,7 @@ func testS3SourceConfig_RevertAuto(cfg s3TestConfig, name string) string {
 resource "panther_s3_source" "test" {
   aws_account_id                               = %q
   name                                         = %q
-  log_processing_role_arn                       = %q
+  log_processing_role_arn                      = %q
   log_stream_type                              = "Auto"
   panther_managed_bucket_notifications_enabled = true
   bucket_name                                  = %q
@@ -322,11 +300,7 @@ func TestPrefixLogTypesToModel(t *testing.T) {
 }
 
 func TestS3LogStreamTypeOptions(t *testing.T) {
-	attrTypes := map[string]attr.Type{
-		"json_array_envelope_field": types.StringType,
-		"retain_envelope_fields":    types.BoolType,
-		"xml_root_element":          types.StringType,
-	}
+	attrTypes := s3LogStreamTypeOptionAttrTypes
 
 	t.Run("null object returns nil", func(t *testing.T) {
 		result := s3LogStreamTypeOptions(types.ObjectNull(attrTypes))
