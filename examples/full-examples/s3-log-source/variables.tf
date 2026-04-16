@@ -47,15 +47,13 @@ variable "panther_managed_bucket_notifications_enabled" {
   default     = true
 }
 
-variable "log_types" {
-  description = "List of log types for the prefix"
-  type        = list(string)
-}
-
-variable "prefix" {
-  description = "S3 prefix to filter logs (leave empty to match all objects)"
-  type        = string
-  default     = ""
+variable "prefix_log_types" {
+  description = "Prefix-based log type mappings. Each mapping specifies an S3 prefix, the log types (schemas) to apply, and optional prefixes to exclude."
+  type = list(object({
+    prefix            = optional(string, "")
+    log_types         = list(string)
+    excluded_prefixes = optional(list(string), [])
+  }))
 }
 
 # These variables are only needed when log_stream_type_options is uncommented in s3-log-source.tf.
