@@ -85,11 +85,7 @@ func (r *httpsourceResource) Schema(ctx context.Context, req resource.SchemaRequ
 }
 
 func (r *httpsourceResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	c := providerClients(req, resp)
-	if c == nil {
-		return
-	}
-	r.rest = c.REST
+	r.rest = restClient(req, resp)
 }
 
 func (r *httpsourceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

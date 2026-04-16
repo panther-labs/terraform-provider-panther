@@ -122,7 +122,7 @@ func (p *PantherProvider) Configure(ctx context.Context, req provider.ConfigureR
 		return
 	}
 
-	resp.ResourceData = panther.NewProviderClients(url, token)
+	resp.ResourceData = panther.NewRESTClient(url, token)
 
 }
 

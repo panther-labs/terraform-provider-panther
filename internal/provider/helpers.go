@@ -21,7 +21,6 @@ import (
 	"fmt"
 
 	"terraform-provider-panther/internal/client"
-	"terraform-provider-panther/internal/client/panther"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -32,17 +31,17 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
-// providerClients extracts *panther.ProviderClients from the Terraform provider data.
+// restClient extracts the *client.RESTClient from the Terraform provider data.
 // Returns nil if provider data is not yet available (during early lifecycle).
-func providerClients(req resource.ConfigureRequest, resp *resource.ConfigureResponse) *panther.ProviderClients {
+func restClient(req resource.ConfigureRequest, resp *resource.ConfigureResponse) *client.RESTClient {
 	if req.ProviderData == nil {
 		return nil
 	}
-	c, ok := req.ProviderData.(*panther.ProviderClients)
+	c, ok := req.ProviderData.(*client.RESTClient)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *panther.ProviderClients, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *client.RESTClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 		return nil
 	}

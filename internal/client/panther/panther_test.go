@@ -6,26 +6,26 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// Tests verify that NewProviderClients correctly strips /public/graphql from the URL
-// (backwards compatibility) and sets REST.BaseURL to the root. The GraphQL URL is
-// always BaseURL + GraphQLPath, so testing BaseURL is sufficient.
+// Tests verify that NewRESTClient correctly strips /public/graphql from the URL
+// (backwards compatibility for users who configured the old URL format)
+// and sets BaseURL to the root.
 
-func TestNewProviderClients_CustomURLWithGraphEndpoint(t *testing.T) {
-	c := NewProviderClients("panther-url/public/graphql", "token")
-	assert.Equal(t, "panther-url", c.REST.BaseURL)
+func TestNewRESTClient_CustomURLWithGraphEndpoint(t *testing.T) {
+	c := NewRESTClient("panther-url/public/graphql", "token")
+	assert.Equal(t, "panther-url", c.BaseURL)
 }
 
-func TestNewProviderClients_CustomUrlWithBaseUrl(t *testing.T) {
-	c := NewProviderClients("panther-url", "token")
-	assert.Equal(t, "panther-url", c.REST.BaseURL)
+func TestNewRESTClient_CustomUrlWithBaseUrl(t *testing.T) {
+	c := NewRESTClient("panther-url", "token")
+	assert.Equal(t, "panther-url", c.BaseURL)
 }
 
-func TestNewProviderClients_ApiGWUrlWithGraphEndpoint(t *testing.T) {
-	c := NewProviderClients("panther-url/v1/public/graphql", "token")
-	assert.Equal(t, "panther-url/v1", c.REST.BaseURL)
+func TestNewRESTClient_ApiGWUrlWithGraphEndpoint(t *testing.T) {
+	c := NewRESTClient("panther-url/v1/public/graphql", "token")
+	assert.Equal(t, "panther-url/v1", c.BaseURL)
 }
 
-func TestNewProviderClients_ApiGWUrlWithBaseUrl(t *testing.T) {
-	c := NewProviderClients("panther-url/v1", "token")
-	assert.Equal(t, "panther-url/v1", c.REST.BaseURL)
+func TestNewRESTClient_ApiGWUrlWithBaseUrl(t *testing.T) {
+	c := NewRESTClient("panther-url/v1", "token")
+	assert.Equal(t, "panther-url/v1", c.BaseURL)
 }

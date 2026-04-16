@@ -21,7 +21,7 @@ variable "subscription_id" {
 variable "project_id" {
   description = "The GCP project ID. Optional for service_account credentials (derived from the keyfile). Required for WIF."
   type        = string
-  default     = ""
+  default     = null
 }
 
 variable "credentials_file" {

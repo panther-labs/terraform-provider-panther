@@ -49,7 +49,7 @@ resource "panther_gcssource" "example" {
 - `credentials` (String, Sensitive) The GCP credentials JSON content (service account key or WIF config). Required on create, optional on update.
 - `id` (String) ID of the GCS source to fetch
 - `log_stream_type_options` (Attributes) (see [below for nested schema](#nestedatt--log_stream_type_options))
-- `project_id` (String) The GCP project ID. Optional for service_account credentials (derived from the keyfile). Required for WIF.
+- `project_id` (String) The GCP project ID. Optional for service_account credentials. Required for WIF.
 
 <a id="nestedatt--prefix_log_types"></a>
 ### Nested Schema for `prefix_log_types`

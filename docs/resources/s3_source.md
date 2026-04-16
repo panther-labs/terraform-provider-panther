@@ -13,18 +13,17 @@ Represents an S3 Log Source in Panther
 ## Example Usage
 
 ```terraform
-# Manage S3 Log Source integration
-resource "panther_s3_source" "test_source" {
-  aws_account_id                               = ""
-  name                                         = ""
-  log_processing_role_arn                      = ""
-  log_stream_type                              = "Lines"
+# Manage an S3 Log Source integration in Panther.
+resource "panther_s3_source" "example" {
+  aws_account_id                               = "123456789012"
+  name                                         = "my-s3-logs"
+  log_processing_role_arn                      = "arn:aws:iam::123456789012:role/PantherLogProcessingRole"
+  log_stream_type                              = "Auto"
   panther_managed_bucket_notifications_enabled = true
-  kms_key_arn                                  = ""
-  bucket_name                                  = ""
+  bucket_name                                  = "my-log-bucket"
   prefix_log_types = [{
     excluded_prefixes = []
-    log_types         = []
+    log_types         = ["AWS.CloudTrail"]
     prefix            = ""
   }]
 }
@@ -51,7 +50,7 @@ To manage the notification-related infrastructure through terraform, refer to [t
 
 ### Read-Only
 
-- `id` (String) Example identifier
+- `id` (String) The unique identifier of the S3 log source.
 
 <a id="nestedatt--prefix_log_types"></a>
 ### Nested Schema for `prefix_log_types`
@@ -68,6 +67,6 @@ Required:
 
 Optional:
 
-- `json_array_envelope_field` (String) Path to the array value to extract elements from, only applicable if logStreamType is JsonArray. Leave empty if the input JSON is an array itself
-- `retain_envelope_fields` (Boolean) When enabled, envelope metadata from CloudWatch Logs is preserved in a p_header column on each unpacked event (only relevant when stream type is CloudWatchLogs).
-- `xml_root_element` (String) The root element name for XML streams, only applicable if logStreamType is XML. Leave empty if the XML events are not enclosed in a root element
+- `json_array_envelope_field` (String) Path to the JSON array field to extract records from. Only applicable when log_stream_type is JsonArray.
+- `retain_envelope_fields` (Boolean) Preserve CloudWatch Logs envelope metadata (accountId, logGroup, subscriptionFilters) in a p_header column. Only applicable when log_stream_type is CloudWatchLogs.
+- `xml_root_element` (String) Root element wrapping XML events. Only applicable when log_stream_type is XML.

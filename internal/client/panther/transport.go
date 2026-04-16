@@ -35,8 +35,8 @@ func (t *authTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	return t.next.RoundTrip(r)
 }
 
-// NewHTTPClient returns an *http.Client that satisfies both client.Doer
-// and the go-graphql-client Doer interface.
+// NewHTTPClient returns an *http.Client that satisfies client.Doer,
+// injecting the API key and Content-Type headers on every request.
 func NewHTTPClient(token string) *http.Client {
 	return &http.Client{
 		Timeout: 30 * time.Second,

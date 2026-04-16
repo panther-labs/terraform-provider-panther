@@ -127,8 +127,8 @@ func GcssourceResourceSchema(ctx context.Context) schema.Schema {
 			"project_id": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				Description:         "The GCP project ID. Optional for service_account credentials (derived from the keyfile). Required for WIF.",
-				MarkdownDescription: "The GCP project ID. Optional for service_account credentials (derived from the keyfile). Required for WIF.",
+				Description:         "The GCP project ID. Optional for service_account credentials. Required for WIF.",
+				MarkdownDescription: "The GCP project ID. Optional for service_account credentials. Required for WIF.",
 			},
 			"subscription_id": schema.StringAttribute{
 				Required:            true,
