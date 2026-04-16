@@ -13,9 +13,9 @@ Terraform provider for Panther (panther-labs/panther). Written in Go using the H
   - `resource_httpsource/httpsource_resource_gen.go` — Generated code from `generator_config.yml`
   - `resource_pubsubsource/pubsubsource_resource_gen.go` — Generated code from `generator_config.yml`
 - `internal/client/` — API client types and REST helpers
-  - `rest.go` — `RestDo`, `RestDelete`, `APIError`, error predicates
+  - `rest.go` — `NewRESTClient`, `RestDo`, `RestDelete`, `APIError`, error predicates
+  - `transport.go` — Auth transport (`authTransport`), injects `X-API-Key` and `Content-Type` headers
   - `types_http.go`, `types_pubsub.go`, `types_s3.go` — Per-resource request/response types
-  - `panther/` — Provider client constructor, auth transport
 - `examples/` — Terraform example configs (used by doc generator)
 - `docs/` — Generated documentation (do not edit manually)
 
@@ -30,7 +30,7 @@ Terraform provider for Panther (panther-labs/panther). Written in Go using the H
 
 - Uses **Terraform Plugin Framework** (not the older SDK)
 - All resources use **REST** via `client.RestDo[Resp]` and `client.RestDelete` helpers in `internal/client/rest.go`
-  - Auth injected via `http.RoundTripper` (`authTransport` in `internal/client/panther/transport.go`)
+  - Auth injected via `http.RoundTripper` (`authTransport` in `internal/client/transport.go`)
 - Provider config: `url` + `token` (or env vars `PANTHER_API_URL`, `PANTHER_API_TOKEN`)
 - Resource type prefix is `panther_` (e.g. `panther_s3_source`, `panther_httpsource`)
 
@@ -215,7 +215,7 @@ The generated schema may include fields you didn't expect or model types differe
 
 - **Optional+Computed fields**: Without explicit defaults, Terraform treats missing values as "unknown" causing perpetual diffs. Always set `stringdefault.StaticString("")` or equivalent.
 - **Nested objects**: When the API always returns a non-nil nested object, check if inner fields are actually populated before setting in state (see `logStreamTypeOptions` handling in both resources).
-- **REST client base URL**: `panther.NewRESTClient` strips the legacy `/public/graphql` suffix for backwards compatibility. `RESTClient.BaseURL` stores the base URL only — `RestDo` and `RestDelete` concatenate `BaseURL + path`.
+- **REST client base URL**: `client.NewRESTClient` strips the legacy `/public/graphql` suffix for backwards compatibility. `RESTClient.BaseURL` stores the base URL only — `RestDo` and `RestDelete` concatenate `BaseURL + path`.
 - **User-provided IDs**: When the resource ID is user-provided (not server-generated), use `Required: true` with `RequiresReplace()` instead of `Computed: true` with `UseStateForUnknown()`. In `Create`, the ID is already in the plan — no need to set it from the response.
 - **Query parameters on REST endpoints**: Some endpoints need query parameters. Check the API docs for required query params on create/update.
 - **Async resources**: If the underlying resource has async provisioning (e.g. Firehose), deletion may fail right after creation. See the manual delete retry loop in `httpsource_resource_test.go`.

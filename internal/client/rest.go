@@ -24,7 +24,22 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 )
+
+const graphQLPath = "/public/graphql"
+
+// NewRESTClient creates a configured REST client for the Panther API.
+func NewRESTClient(url, token string) *RESTClient {
+	// Strip the legacy /public/graphql suffix — older provider configs included it.
+	pantherURL := strings.TrimSuffix(url, graphQLPath)
+	httpClient := newHTTPClient(token)
+
+	return &RESTClient{
+		Doer:    httpClient,
+		BaseURL: pantherURL,
+	}
+}
 
 type Doer interface {
 	Do(req *http.Request) (*http.Response, error)
