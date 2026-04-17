@@ -57,6 +57,13 @@ func NewS3SourceResource() resource.Resource {
 	return &S3SourceResource{}
 }
 
+// S3SourceResource is hand-written (not generated from the OpenAPI spec like httpsource,
+// pubsubsource, and gcssource) to preserve backwards compatibility. The public Terraform
+// attribute names (`name`, `bucket_name`, `kms_key_arn`, `log_processing_role_arn`,
+// `panther_managed_bucket_notifications_enabled`) predate the REST migration and don't
+// match the API's JSON fields (`integrationLabel`, `s3Bucket`, `kmsKey`, `logProcessingRole`,
+// `managedBucketNotifications`). tfplugingen-framework converts JSON → snake_case 1:1 with
+// no rename hook, so regenerating would break existing users' .tf configs and state files.
 type S3SourceResource struct {
 	rest *client.RESTClient
 }
