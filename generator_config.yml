@@ -49,3 +49,21 @@ resources:
     schema:
       ignores:
         - integrationId
+  log_source_alarm:
+    create:
+      path: /log-source-alarms/{sourceId}/{type}
+      method: PUT
+    read:
+      path: /log-source-alarms/{sourceId}/{type}
+      method: GET
+    update:
+      path: /log-source-alarms/{sourceId}/{type}
+      method: PUT
+    delete:
+      path: /log-source-alarms/{sourceId}/{type}
+      method: DELETE
+    schema:
+      ignores:
+        # runtime observability, not configuration — see the "Runtime state not exposed"
+        # row in the PR description
+        - state

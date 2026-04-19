@@ -284,6 +284,34 @@
 			}
 		},
 		{
+			"name": "log_source_alarm",
+			"schema": {
+				"attributes": [
+					{
+						"name": "minutes_threshold",
+						"int64": {
+							"computed_optional_required": "required",
+							"description": "The no-data evaluation period in minutes. Minimum 15, maximum 43200 (30 days)."
+						}
+					},
+					{
+						"name": "type",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "The alarm type"
+						}
+					},
+					{
+						"name": "source_id",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The ID of the log source"
+						}
+					}
+				]
+			}
+		},
+		{
 			"name": "pubsubsource",
 			"schema": {
 				"attributes": [
