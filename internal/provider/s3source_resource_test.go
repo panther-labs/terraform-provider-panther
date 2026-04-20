@@ -20,9 +20,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 	"testing"
+
+	"terraform-provider-panther/internal/client"
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -30,7 +33,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/stretchr/testify/assert"
-	"terraform-provider-panther/internal/client"
 )
 
 // s3TestConfig holds environment-specific values for S3 acceptance tests.
@@ -66,6 +68,7 @@ func TestS3SourceResource(t *testing.T) {
 	nameUpdated := strings.ReplaceAll(uuid.NewString(), "-", "")
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             checkS3SourceDestroyed,
 		Steps: []resource.TestStep{
 			// Step 1: Create basic S3 source.
 			// The framework automatically runs a post-apply plan to verify no perpetual diffs.
@@ -128,12 +131,20 @@ func TestS3SourceResource(t *testing.T) {
 				),
 			},
 			// Step 6: Drift detection — manually delete the resource out-of-band, then verify
-			// Terraform's Read detects 404 and proposes recreation. TestCase cleanup then calls
-			// Delete — succeeds because 404 is treated as success by handleDeleteError.
+			// Terraform's Read detects 404 and proposes recreation.
 			{
 				Config:             providerConfig + testS3SourceConfig_RevertAuto(cfg, nameUpdated),
 				Check:              manuallyDeleteS3Source(t),
 				ExpectNonEmptyPlan: true,
+			},
+			// Step 7: Re-apply the same config to recreate the resource drifted away in Step 6.
+			// This leaves a live resource for the framework's cleanup to destroy
+			{
+				Config: providerConfig + testS3SourceConfig_RevertAuto(cfg, nameUpdated),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("panther_s3_source.test", "id"),
+					resource.TestCheckResourceAttr("panther_s3_source.test", "log_stream_type", "Auto"),
+				),
 			},
 		},
 	})
@@ -157,6 +168,26 @@ func manuallyDeleteS3Source(t *testing.T) resource.TestCheckFunc {
 		t.Logf("Manually deleted S3 source %s for drift detection test", rs.Primary.ID)
 		return nil
 	}
+}
+
+// checkS3SourceDestroyed verifies that each panther_s3_source tracked in the final
+// test state has actually been removed from the Panther API — closes the silent-failure
+// window where Delete() returns no diagnostic but the resource still exists remotely.
+func checkS3SourceDestroyed(s *terraform.State) error {
+	c := client.NewRESTClient(os.Getenv("PANTHER_API_URL"), os.Getenv("PANTHER_API_TOKEN"))
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "panther_s3_source" {
+			continue
+		}
+		_, err := client.RestDo[client.S3Source](context.Background(), c, http.MethodGet, s3SourcePath+"/"+rs.Primary.ID, nil)
+		if err == nil {
+			return fmt.Errorf("S3 source %s still exists after destroy", rs.Primary.ID)
+		}
+		if !client.IsNotFound(err) {
+			return fmt.Errorf("unexpected error checking S3 source %s: %w", rs.Primary.ID, err)
+		}
+	}
+	return nil
 }
 
 // --- Test configs ---
