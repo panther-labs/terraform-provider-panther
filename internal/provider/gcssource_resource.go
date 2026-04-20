@@ -102,11 +102,7 @@ func (r *gcssourceResource) Schema(ctx context.Context, req resource.SchemaReque
 }
 
 func (r *gcssourceResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	c := providerClients(req, resp)
-	if c == nil {
-		return
-	}
-	r.rest = c.REST
+	r.rest = restClient(req, resp)
 }
 
 func (r *gcssourceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

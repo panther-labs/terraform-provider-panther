@@ -82,11 +82,7 @@ func (r *pubsubsourceResource) Schema(ctx context.Context, req resource.SchemaRe
 }
 
 func (r *pubsubsourceResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	c := providerClients(req, resp)
-	if c == nil {
-		return
-	}
-	r.rest = c.REST
+	r.rest = restClient(req, resp)
 }
 
 func (r *pubsubsourceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

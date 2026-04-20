@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package panther
+package client
 
 import (
 	"net/http"
@@ -35,9 +35,9 @@ func (t *authTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	return t.next.RoundTrip(r)
 }
 
-// NewHTTPClient returns an *http.Client that satisfies both client.Doer
-// and the go-graphql-client Doer interface.
-func NewHTTPClient(token string) *http.Client {
+// newHTTPClient returns an *http.Client that satisfies Doer,
+// injecting the API key and Content-Type headers on every request.
+func newHTTPClient(token string) *http.Client {
 	return &http.Client{
 		Timeout: 30 * time.Second,
 		Transport: &authTransport{

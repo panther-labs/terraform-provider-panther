@@ -316,3 +316,24 @@ func TestGetErrorResponseMsg_LargeBody(t *testing.T) {
 	assert.LessOrEqual(t, len(msg), 600)
 	assert.Contains(t, msg, "... (truncated)")
 }
+
+// Tests verify that NewRESTClient correctly strips /public/graphql from the URL
+// (backwards compatibility for users who configured the old URL format)
+func TestNewRESTClient_StripsGraphQLSuffix(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		wantURL string
+	}{
+		{"CustomURLWithGraphEndpoint", "panther-url/public/graphql", "panther-url"},
+		{"CustomURLWithBaseURL", "panther-url", "panther-url"},
+		{"ApiGWURLWithGraphEndpoint", "panther-url/v1/public/graphql", "panther-url/v1"},
+		{"ApiGWURLWithBaseURL", "panther-url/v1", "panther-url/v1"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := NewRESTClient(tt.input, "token")
+			assert.Equal(t, tt.wantURL, c.BaseURL)
+		})
+	}
+}

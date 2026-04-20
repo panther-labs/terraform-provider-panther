@@ -19,7 +19,7 @@ package provider
 import (
 	"context"
 	"os"
-	"terraform-provider-panther/internal/client/panther"
+	"terraform-provider-panther/internal/client"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -122,8 +122,7 @@ func (p *PantherProvider) Configure(ctx context.Context, req provider.ConfigureR
 		return
 	}
 
-	resp.ResourceData = panther.NewProviderClients(url, token)
-
+	resp.ResourceData = client.NewRESTClient(url, token)
 }
 
 func (p *PantherProvider) Resources(ctx context.Context) []func() resource.Resource {

@@ -36,21 +36,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestProviderClients_NilProviderData(t *testing.T) {
+func TestRestClient_NilProviderData(t *testing.T) {
 	req := resource.ConfigureRequest{ProviderData: nil}
 	resp := &resource.ConfigureResponse{}
 
-	c := providerClients(req, resp)
+	c := restClient(req, resp)
 
 	assert.Nil(t, c)
 	assert.False(t, resp.Diagnostics.HasError())
 }
 
-func TestProviderClients_WrongType(t *testing.T) {
+func TestRestClient_WrongType(t *testing.T) {
 	req := resource.ConfigureRequest{ProviderData: "wrong-type"}
 	resp := &resource.ConfigureResponse{}
 
-	c := providerClients(req, resp)
+	c := restClient(req, resp)
 
 	assert.Nil(t, c)
 	assert.True(t, resp.Diagnostics.HasError())
@@ -360,6 +360,14 @@ func TestPubsubsourceSchema_AllOptionalComputedHaveDefaults(t *testing.T) {
 
 func TestGcssourceSchema_AllOptionalComputedHaveDefaults(t *testing.T) {
 	r := &gcssourceResource{}
+	req := resource.SchemaRequest{}
+	resp := &resource.SchemaResponse{}
+	r.Schema(context.Background(), req, resp)
+	assertNoOptionalComputedWithoutDefault(t, resp.Schema)
+}
+
+func TestS3SourceSchema_AllOptionalComputedHaveDefaults(t *testing.T) {
+	r := &S3SourceResource{}
 	req := resource.SchemaRequest{}
 	resp := &resource.SchemaResponse{}
 	r.Schema(context.Background(), req, resp)

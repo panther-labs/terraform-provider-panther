@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package panther
+package client
 
 import (
 	"io"
@@ -101,6 +101,6 @@ func TestAuthTransport_PassesThroughErrors(t *testing.T) {
 }
 
 func TestNewHTTPClient_Timeout(t *testing.T) {
-	client := NewHTTPClient("token")
+	client := newHTTPClient("token")
 	assert.Equal(t, 30*time.Second, client.Timeout)
 }
