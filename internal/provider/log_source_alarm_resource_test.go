@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"regexp"
 	"strings"
@@ -59,9 +60,11 @@ var (
 
 // TestLogSourceAlarmResource creates one parent gcssource (service_account) and
 // exercises every live scenario against it in a single TestCase: CRUD lifecycle,
-// valid import, three malformed-import variants, lower/upper threshold boundaries,
-// and out-of-band-delete drift detection. Framework cleanup at the end destroys
-// both the alarm (404-tolerant) and the gcssource (synchronous delete).
+// valid import, four malformed-import variants, lower/upper threshold boundaries,
+// out-of-band-delete drift detection, and drift recovery. Framework cleanup at
+// the end destroys a live alarm (happy-path 204) plus the gcssource (synchronous);
+// CheckDestroy then GETs the alarm and asserts 404 — closes the silent-failure
+// window where Delete returns no diagnostic but the alarm still exists remotely.
 func TestLogSourceAlarmResource(t *testing.T) {
 	t.Parallel()
 	credentials, projectId, subscriptionId, bucket, ok := loadGcsTestConfig(t,
@@ -144,19 +147,32 @@ func TestLogSourceAlarmResource(t *testing.T) {
 			Check:     resource.TestCheckResourceAttr("panther_log_source_alarm.test", "minutes_threshold", "43200"),
 		},
 		// Step 9: Drift detection — manually delete the alarm via the REST API, then
-		// verify Read detects 404 (handleReadError → RemoveResource). Framework cleanup
-		// then calls Delete on both resources: alarm returns 404 (success via
-		// handleDeleteError); gcssource deletes synchronously.
+		// verify Read detects 404 (handleReadError → RemoveResource) and proposes
+		// recreation in the next plan.
 		resource.TestStep{
 			PreConfig:          func() { t.Log("Step 9: Drift detection (out-of-band DELETE → expect non-empty plan)") },
 			Config:             mkConfig(43200),
 			Check:              manuallyDeleteLogSourceAlarm(t),
 			ExpectNonEmptyPlan: true,
 		},
+		// Step 10: Re-apply the same config to recreate the alarm drifted away in
+		// Step 9. This leaves a live alarm for the framework's cleanup to destroy via
+		// the happy-path 204 (otherwise teardown would only ever exercise the
+		// 404-tolerant branch of handleDeleteError, because Step 9 already removed the
+		// alarm out-of-band). Mirrors s3source_resource_test.go Step 7.
+		resource.TestStep{
+			PreConfig: func() { t.Log("Step 10: Recreate alarm post-drift so cleanup exercises happy-path Delete") },
+			Config:    mkConfig(43200),
+			Check: resource.ComposeAggregateTestCheckFunc(
+				resource.TestCheckResourceAttrSet("panther_log_source_alarm.test", "id"),
+				resource.TestCheckResourceAttr("panther_log_source_alarm.test", "minutes_threshold", "43200"),
+			),
+		},
 	)
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             checkLogSourceAlarmDestroyed,
 		Steps:                    steps,
 	})
 }
@@ -252,6 +268,29 @@ func manuallyDeleteLogSourceAlarm(t *testing.T) resource.TestCheckFunc {
 		t.Logf("Manually deleted alarm %s for drift detection test", rs.Primary.ID)
 		return nil
 	}
+}
+
+// checkLogSourceAlarmDestroyed verifies that each panther_log_source_alarm tracked in
+// the final test state has actually been removed from the Panther API — closes the
+// silent-failure window where Delete returns no diagnostic but the alarm still exists
+// remotely. Mirrors checkS3SourceDestroyed in s3source_resource_test.go.
+func checkLogSourceAlarmDestroyed(s *terraform.State) error {
+	c := client.NewRESTClient(os.Getenv("PANTHER_API_URL"), os.Getenv("PANTHER_API_TOKEN"))
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "panther_log_source_alarm" {
+			continue
+		}
+		// rs.Primary.ID is the composite "{source_id}/SOURCE_NO_DATA", exactly the
+		// path suffix the API expects.
+		_, err := client.RestDo[client.LogSourceAlarm](context.Background(), c, http.MethodGet, logSourceAlarmPath+"/"+rs.Primary.ID, nil)
+		if err == nil {
+			return fmt.Errorf("alarm %s still exists after destroy", rs.Primary.ID)
+		}
+		if !client.IsNotFound(err) {
+			return fmt.Errorf("unexpected error checking alarm %s: %w", rs.Primary.ID, err)
+		}
+	}
+	return nil
 }
 
 // testLogSourceAlarmConfig builds HCL with a panther_gcssource parent + the alarm attached.
