@@ -21,11 +21,12 @@ type LogSourceAlarmInput struct {
 	MinutesThreshold int64 `json:"minutesThreshold"`
 }
 
-// LogSourceAlarm is the API response for GET and PUT. The GET response also includes a
-// runtime `state` field (OK | ALARM | INSUFFICIENT_DATA) which this struct intentionally
-// does NOT mirror — the provider scopes itself to declarative configuration and exposes
-// no runtime observability. Consumers who need live alarm state should query the REST
-// API directly or use a dedicated data source (future work).
+// LogSourceAlarm is the API response for GET and PUT on
+// /log-source-alarms/{sourceId}/{type}. The GET response also includes a runtime
+// `state` field (OK | ALARM | INSUFFICIENT_DATA) which this struct intentionally
+// does NOT mirror — the provider scopes itself to declarative configuration and
+// exposes no runtime observability. Consumers who need live alarm state should
+// GET that endpoint directly or use a dedicated data source (future work).
 type LogSourceAlarm struct {
 	Type string `json:"type"`
 	LogSourceAlarmInput

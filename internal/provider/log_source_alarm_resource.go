@@ -221,7 +221,7 @@ func (r *logSourceAlarmResource) Delete(ctx context.Context, req resource.Delete
 }
 
 func (r *logSourceAlarmResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	parts := strings.SplitN(req.ID, "/", 2)
+	parts := strings.Split(req.ID, "/")
 	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
 		resp.Diagnostics.AddError(
 			"Invalid Import ID",

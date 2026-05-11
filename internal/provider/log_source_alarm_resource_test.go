@@ -83,6 +83,7 @@ func TestLogSourceAlarmResource(t *testing.T) {
 		{"no_separator", "just-a-uuid"},
 		{"empty_source_id", "/SOURCE_NO_DATA"},
 		{"empty_type", "41ed10a4-7791-460a-80b7-c0178baa3595/"},
+		{"multi_slash", "41ed10a4-7791-460a-80b7-c0178baa3595/SOURCE_NO_DATA/extra"},
 	}
 
 	steps := []resource.TestStep{
