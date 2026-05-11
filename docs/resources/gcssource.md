@@ -3,12 +3,12 @@
 page_title: "panther_gcssource Resource - terraform-provider-panther"
 subcategory: ""
 description: |-
-  
+  Represents a GCS Log Source in Panther
 ---
 
 # panther_gcssource (Resource)
 
-
+Represents a GCS Log Source in Panther
 
 ## Example Usage
 

@@ -3,15 +3,12 @@
 page_title: "panther_log_source_alarm Resource - terraform-provider-panther"
 subcategory: ""
 description: |-
-  Manages the SOURCE_NO_DATA drop-off alarm for a Panther log source integration. The alarm fires when the source receives no events for longer than minutes_threshold minutes.
-  Scope. Only the SOURCE_NO_DATA alarm type is configurable through this resource. The four system-managed alarm types (SOURCE_PERMISSIONS_CHECKS, SOURCE_CLASSIFICATION_FAILURES, SOURCE_LOG_PROCESSING_ERRORS, SOURCE_SCANNING_ERRORS) are health observability — their state flips between OK and ALARM at runtime based on conditions the user doesn't directly control, so they're not a good fit for Terraform's declarative plan → apply model.
+  Manages a no-data drop-off alarm for a Panther log source
 ---
 
 # panther_log_source_alarm (Resource)
 
-Manages the `SOURCE_NO_DATA` drop-off alarm for a Panther log source integration. The alarm fires when the source receives no events for longer than `minutes_threshold` minutes.
-
-**Scope.** Only the `SOURCE_NO_DATA` alarm type is configurable through this resource. The four system-managed alarm types (`SOURCE_PERMISSIONS_CHECKS`, `SOURCE_CLASSIFICATION_FAILURES`, `SOURCE_LOG_PROCESSING_ERRORS`, `SOURCE_SCANNING_ERRORS`) are health observability — their state flips between `OK` and `ALARM` at runtime based on conditions the user doesn't directly control, so they're not a good fit for Terraform's declarative `plan → apply` model.
+Manages a no-data drop-off alarm for a Panther log source
 
 ## Example Usage
 
@@ -40,8 +37,8 @@ resource "panther_log_source_alarm" "example" {
 ### Required
 
 - `minutes_threshold` (Number) The no-data evaluation period in minutes. Minimum 15, maximum 43200 (30 days).
-- `source_id` (String) The ID of the log source to attach the alarm to. Must point to a log-processing source (e.g. S3, HTTP, Pub/Sub, GCS); cloud-security sources do not emit the no-data metric and the API will reject the request with a 400. Changing this forces resource recreation.
-- `type` (String) The alarm type. Only `SOURCE_NO_DATA` is supported today. Changing this forces resource recreation.
+- `source_id` (String) The ID of the log source this alarm monitors (the `id` of a `panther_s3_source`, `panther_httpsource`, `panther_gcssource`, or `panther_pubsubsource`). Changing this forces resource recreation.
+- `type` (String) The alarm type. Must be `SOURCE_NO_DATA`. Changing this forces resource recreation.
 
 ### Read-Only
 

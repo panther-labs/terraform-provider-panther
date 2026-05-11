@@ -56,6 +56,7 @@ func (r *httpsourceResource) Metadata(ctx context.Context, req resource.Metadata
 
 func (r *httpsourceResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = resource_httpsource.HttpsourceResourceSchema(ctx)
+	resp.Schema.MarkdownDescription = "Represents an HTTP Log Source in Panther"
 	applySchemaOverrides(&resp.Schema, []SchemaOverride{
 		{Name: "id", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		{Name: "auth_hmac_alg", Default: stringdefault.StaticString("")},

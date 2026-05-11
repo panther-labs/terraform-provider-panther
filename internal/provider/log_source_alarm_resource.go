@@ -76,43 +76,37 @@ func (r *logSourceAlarmResource) Metadata(_ context.Context, req resource.Metada
 func (r *logSourceAlarmResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = resource_log_source_alarm.LogSourceAlarmResourceSchema(ctx)
 
-	// Resource-level summary — the generator leaves Description/MarkdownDescription empty,
-	// which renders as a blank block under the docs page heading and offers no discoverability
-	// hint about this resource's scope (only the user-configurable SOURCE_NO_DATA drop-off
-	// alarm; the four system-managed types visible in the Panther UI are not exposed here).
-	resp.Schema.Description = "Manages the SOURCE_NO_DATA drop-off alarm for a Panther log source. " +
-		"The alarm fires when the source receives no events for longer than minutes_threshold minutes. " +
-		"Other alarm types visible in the Panther UI (permissions checks, classification failures, " +
-		"log-processing errors, scanning errors) are system-managed and not configurable through this resource."
-	resp.Schema.MarkdownDescription = "Manages the `SOURCE_NO_DATA` drop-off alarm for a Panther log source integration. " +
-		"The alarm fires when the source receives no events for longer than `minutes_threshold` minutes.\n\n" +
-		"**Scope.** Only the `SOURCE_NO_DATA` alarm type is configurable through this resource. " +
-		"The four system-managed alarm types (`SOURCE_PERMISSIONS_CHECKS`, `SOURCE_CLASSIFICATION_FAILURES`, " +
-		"`SOURCE_LOG_PROCESSING_ERRORS`, `SOURCE_SCANNING_ERRORS`) are health observability — their state " +
-		"flips between `OK` and `ALARM` at runtime based on conditions the user doesn't directly control, " +
-		"so they're not a good fit for Terraform's declarative `plan → apply` model."
+	// Scope rationale (kept as a code comment, not user-facing docs): only the
+	// SOURCE_NO_DATA alarm is configurable here. The four system-managed types
+	// (SOURCE_PERMISSIONS_CHECKS, SOURCE_CLASSIFICATION_FAILURES,
+	// SOURCE_LOG_PROCESSING_ERRORS, SOURCE_SCANNING_ERRORS) flip OK/ALARM at
+	// runtime based on conditions the user doesn't directly control, so they
+	// don't fit Terraform's declarative plan/apply model. The OneOf validator
+	// on the `type` attribute enforces the same scope at the schema layer.
+	resp.Schema.Description = "Manages a no-data drop-off alarm for a Panther log source"
+	resp.Schema.MarkdownDescription = "Manages a no-data drop-off alarm for a Panther log source"
 
 	// The generator models path parameters as computed/optional based on OpenAPI inference.
 	// Both source_id and type are user-supplied path parameters; rewrite them as Required
 	// with RequiresReplace (changing either identifies a different alarm resource).
 	resp.Schema.Attributes["source_id"] = schema.StringAttribute{
 		Required: true,
-		Description: "The ID of the log source to attach the alarm to. Must point to a log-processing " +
-			"source (e.g. S3, HTTP, Pub/Sub, GCS); cloud-security sources do not emit the no-data " +
-			"metric and the API will reject the request with a 400. Changing this forces resource recreation.",
-		MarkdownDescription: "The ID of the log source to attach the alarm to. Must point to a log-processing " +
-			"source (e.g. S3, HTTP, Pub/Sub, GCS); cloud-security sources do not emit the no-data " +
-			"metric and the API will reject the request with a 400. Changing this forces resource recreation.",
+		Description: "The ID of the log source this alarm monitors (the `id` of a " +
+			"`panther_s3_source`, `panther_httpsource`, `panther_gcssource`, or `panther_pubsubsource`). " +
+			"Changing this forces resource recreation.",
+		MarkdownDescription: "The ID of the log source this alarm monitors (the `id` of a " +
+			"`panther_s3_source`, `panther_httpsource`, `panther_gcssource`, or `panther_pubsubsource`). " +
+			"Changing this forces resource recreation.",
 		PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()},
 	}
 	resp.Schema.Attributes["type"] = schema.StringAttribute{
 		Required: true,
 		Description: fmt.Sprintf(
-			"The alarm type. Only %q is supported today. Changing this forces resource recreation.",
+			"The alarm type. Must be %q. Changing this forces resource recreation.",
 			AlarmTypeSourceNoData,
 		),
 		MarkdownDescription: fmt.Sprintf(
-			"The alarm type. Only `%s` is supported today. Changing this forces resource recreation.",
+			"The alarm type. Must be `%s`. Changing this forces resource recreation.",
 			AlarmTypeSourceNoData,
 		),
 		Validators:    []validator.String{stringvalidator.OneOf(AlarmTypeSourceNoData)},
