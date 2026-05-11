@@ -1,6 +1,6 @@
 output "source_id" {
-  description = "The ID of the parent GCS log source"
-  value       = panther_gcssource.parent.id
+  description = "The ID of the parent HTTP log source"
+  value       = panther_httpsource.parent.id
 }
 
 output "alarm_id" {
