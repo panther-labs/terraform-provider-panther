@@ -3,12 +3,12 @@
 page_title: "panther_pubsubsource Resource - terraform-provider-panther"
 subcategory: ""
 description: |-
-  
+  Represents a Google Cloud Pub/Sub Log Source in Panther
 ---
 
 # panther_pubsubsource (Resource)
 
-
+Represents a Google Cloud Pub/Sub Log Source in Panther
 
 ## Example Usage
 
