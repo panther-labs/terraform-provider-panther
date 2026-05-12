@@ -67,3 +67,19 @@ resources:
         # runtime observability, not configuration — see the "Runtime state not exposed"
         # row in the PR description
         - state
+  aws_cloud_account:
+    create:
+      path: /cloud-accounts/aws
+      method: POST
+    read:
+      path: /cloud-accounts/aws/{id}
+      method: GET
+    update:
+      path: /cloud-accounts/aws/{id}
+      method: PUT
+    delete:
+      path: /cloud-accounts/aws/{id}
+      method: DELETE
+    schema:
+      ignores:
+        - integrationId

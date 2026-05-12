@@ -450,3 +450,11 @@ func TestS3SourceSchema_AllOptionalComputedHaveDefaults(t *testing.T) {
 	r.Schema(context.Background(), req, resp)
 	assertNoOptionalComputedWithoutDefault(t, resp.Schema)
 }
+
+func TestAwsCloudAccountSchema_AllOptionalComputedHaveDefaults(t *testing.T) {
+	r := &awsCloudAccountResource{}
+	req := resource.SchemaRequest{}
+	resp := &resource.SchemaResponse{}
+	r.Schema(context.Background(), req, resp)
+	assertNoOptionalComputedWithoutDefault(t, resp.Schema)
+}
