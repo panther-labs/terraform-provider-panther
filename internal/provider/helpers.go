@@ -19,14 +19,19 @@ package provider
 import (
 	"context"
 	"fmt"
+	"regexp"
 
 	"terraform-provider-panther/internal/client"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/defaults"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -114,11 +119,25 @@ func handleCreateError(resp *resource.CreateResponse, resourceName string, err e
 	return true
 }
 
-func handleUpdateError(resp *resource.UpdateResponse, resourceName, id string, err error) bool {
+func handleUpdateError(ctx context.Context, resp *resource.UpdateResponse, resourceName, id string, err error) bool {
 	if err == nil {
 		return false
 	}
 	if addAuthDiagnostic(&resp.Diagnostics, err) {
+		return true
+	}
+	// 404 means the resource was deleted out-of-band; remove from state and
+	// surface a clear error. Plugin Framework rejects RemoveResource without
+	// a diagnostic on update, so both are required.
+	if client.IsNotFound(err) {
+		tflog.Warn(ctx, fmt.Sprintf("%s %s not found on update (deleted out-of-band), removing from state", resourceName, id))
+		resp.State.RemoveResource(ctx)
+		resp.Diagnostics.AddError(
+			fmt.Sprintf("%s no longer exists", resourceName),
+			fmt.Sprintf("%s (id=%s) was deleted outside of Terraform between the refresh and apply phases. "+
+				"It has been removed from state; re-run `terraform apply` to recreate it.\n\nAPI error: %s",
+				resourceName, id, err.Error()),
+		)
 		return true
 	}
 	if client.IsConflict(err) {
@@ -196,4 +215,78 @@ func convertFromLogTypes(ctx context.Context, logTypes []string, diagnostics *di
 	from, d := types.ListValueFrom(ctx, types.StringType, logTypes)
 	diagnostics.Append(d...)
 	return from
+}
+
+// setEmptyListDefault overrides a generated ListAttribute's Default with an
+// empty string list. Required for Optional+Computed list fields whose API
+// representation is always `[]` — without this, null-vs-`[]` is a perpetual
+// state-vs-config diff.
+func setEmptyListDefault(s *schema.Schema, name string) {
+	raw, ok := s.Attributes[name]
+	if !ok {
+		return
+	}
+	list, ok := raw.(schema.ListAttribute)
+	if !ok {
+		return
+	}
+	list.Default = listdefault.StaticValue(types.ListValueMust(types.StringType, []attr.Value{}))
+	s.Attributes[name] = list
+}
+
+// addListElementValidator wraps a string-element validator in
+// listvalidator.ValueStringsAre and appends it to the given list attribute.
+func addListElementValidator(s *schema.Schema, name string, v validator.String) {
+	raw, ok := s.Attributes[name]
+	if !ok {
+		return
+	}
+	list, ok := raw.(schema.ListAttribute)
+	if !ok {
+		return
+	}
+	list.Validators = append(list.Validators, listvalidator.ValueStringsAre(v))
+	s.Attributes[name] = list
+}
+
+// addNestedStringValidator appends a string validator to a string attribute
+// inside a SingleNestedAttribute.
+func addNestedStringValidator(s *schema.Schema, parent, child string, v validator.String) {
+	nested, ok := s.Attributes[parent].(schema.SingleNestedAttribute)
+	if !ok {
+		return
+	}
+	inner, ok := nested.Attributes[child].(schema.StringAttribute)
+	if !ok {
+		return
+	}
+	inner.Validators = append(inner.Validators, v)
+	nested.Attributes[child] = inner
+	s.Attributes[parent] = nested
+}
+
+// compilesAsRegex is a string validator that rejects any value the Go regexp
+// engine cannot parse. Used for fields that accept user-supplied regex
+// patterns — catches typos at plan time instead of apply time.
+type compilesAsRegex struct{}
+
+func (compilesAsRegex) Description(_ context.Context) string {
+	return "must be a valid Go regular expression"
+}
+
+func (compilesAsRegex) MarkdownDescription(_ context.Context) string {
+	return "must be a valid Go regular expression"
+}
+
+func (compilesAsRegex) ValidateString(_ context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	if _, err := regexp.Compile(req.ConfigValue.ValueString()); err != nil {
+		resp.Diagnostics.AddAttributeError(
+			req.Path,
+			"Invalid regular expression",
+			fmt.Sprintf("Could not compile regex %q: %s", req.ConfigValue.ValueString(), err),
+		)
+	}
 }

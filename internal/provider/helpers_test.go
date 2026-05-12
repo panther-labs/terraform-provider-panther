@@ -24,6 +24,7 @@ import (
 
 	"terraform-provider-panther/internal/client"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -32,6 +33,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -147,25 +149,55 @@ func TestHandleUpdateError(t *testing.T) {
 	tests := []struct {
 		name                string
 		err                 error
+		initState           bool
 		wantHandled         bool
 		wantHasError        bool
+		wantStateRemoved    bool
 		wantSummaryContains string
 		wantDetailContains  string
 	}{
-		{"Nil", nil, false, false, "", ""},
+		{"Nil", nil, false, false, false, false, "", ""},
+		{"Unauthorized",
+			&client.APIError{StatusCode: http.StatusUnauthorized, Message: "unauthorized"},
+			false, true, true, false, "Authentication failed", "PANTHER_API_TOKEN"},
+		{"Forbidden",
+			&client.APIError{StatusCode: http.StatusForbidden, Message: "forbidden"},
+			false, true, true, false, "Insufficient permissions", "permission"},
+		{"NotFound",
+			&client.APIError{StatusCode: http.StatusNotFound, Message: "not found"},
+			true, true, true, true, "Test no longer exists", "deleted outside of Terraform"},
 		{"Conflict",
 			&client.APIError{StatusCode: http.StatusConflict, Message: "label already exists"},
-			true, true, "Conflict updating Test", "conflicts with an existing resource"},
+			false, true, true, false, "Conflict updating Test", "conflicts with an existing resource"},
 		{"OtherError",
 			fmt.Errorf("connection refused"),
-			true, true, "Error updating Test", ""},
+			false, true, true, false, "Error updating Test", ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resp := &resource.UpdateResponse{}
-			handled := handleUpdateError(resp, "Test", "id-1", tt.err)
+			if tt.initState {
+				// RemoveResource needs a schema to avoid panic. Seed with a
+				// non-null raw value so the post-call IsNull() check is meaningful.
+				resp.State = tfsdk.State{
+					Schema: schema.Schema{
+						Attributes: map[string]schema.Attribute{
+							"id": schema.StringAttribute{Computed: true},
+						},
+						Blocks: map[string]schema.Block{},
+					},
+					Raw: tftypes.NewValue(
+						tftypes.Object{AttributeTypes: map[string]tftypes.Type{"id": tftypes.String}},
+						map[string]tftypes.Value{"id": tftypes.NewValue(tftypes.String, "id-1")},
+					),
+				}
+			}
+			handled := handleUpdateError(context.Background(), resp, "Test", "id-1", tt.err)
 			assert.Equal(t, tt.wantHandled, handled)
 			assert.Equal(t, tt.wantHasError, resp.Diagnostics.HasError())
+			if tt.wantStateRemoved {
+				assert.True(t, resp.State.Raw.IsNull(), "state should be removed on 404 update")
+			}
 			if tt.wantSummaryContains != "" {
 				assert.Contains(t, resp.Diagnostics.Errors()[0].Summary(), tt.wantSummaryContains)
 			}
@@ -340,6 +372,51 @@ func TestConvertFromLogTypes(t *testing.T) {
 	assert.False(t, diags.HasError())
 	assert.False(t, list.IsNull())
 	assert.Equal(t, 1, len(list.Elements()))
+}
+
+// Helpers that mutate a generated schema (setEmptyListDefault, addListElementValidator,
+// addNestedStringValidator) silently no-op on missing / wrong-type attributes. The
+// behavior matches applySchemaOverrides — a typo in an attribute name produces no
+// runtime error. These tests pin that as intentional (consistent with the rest of the
+// codebase) so a future change to panic doesn't slip in unnoticed.
+func TestSetEmptyListDefault_MissingOrWrongType(t *testing.T) {
+	s := schema.Schema{Attributes: map[string]schema.Attribute{
+		"a_string": schema.StringAttribute{Optional: true},
+	}}
+	setEmptyListDefault(&s, "nonexistent")
+	setEmptyListDefault(&s, "a_string")
+	_, stillString := s.Attributes["a_string"].(schema.StringAttribute)
+	assert.True(t, stillString, "wrong-type attribute should be untouched")
+	_, present := s.Attributes["nonexistent"]
+	assert.False(t, present, "missing attribute should still be missing")
+}
+
+func TestAddListElementValidator_MissingOrWrongType(t *testing.T) {
+	s := schema.Schema{Attributes: map[string]schema.Attribute{
+		"a_string": schema.StringAttribute{Optional: true},
+	}}
+	addListElementValidator(&s, "nonexistent", stringvalidator.LengthAtMost(5))
+	addListElementValidator(&s, "a_string", stringvalidator.LengthAtMost(5))
+	attr := s.Attributes["a_string"].(schema.StringAttribute)
+	assert.Empty(t, attr.Validators, "wrong-type attribute should not get the validator")
+}
+
+func TestAddNestedStringValidator_MissingOrWrongType(t *testing.T) {
+	s := schema.Schema{Attributes: map[string]schema.Attribute{
+		"a_string": schema.StringAttribute{Optional: true},
+		"a_nested": schema.SingleNestedAttribute{
+			Attributes: map[string]schema.Attribute{
+				"inner_int": schema.Int64Attribute{Optional: true},
+			},
+		},
+	}}
+	addNestedStringValidator(&s, "missing_parent", "anything", stringvalidator.LengthAtMost(5))
+	addNestedStringValidator(&s, "a_string", "anything", stringvalidator.LengthAtMost(5))
+	addNestedStringValidator(&s, "a_nested", "missing_child", stringvalidator.LengthAtMost(5))
+	addNestedStringValidator(&s, "a_nested", "inner_int", stringvalidator.LengthAtMost(5))
+	nested := s.Attributes["a_nested"].(schema.SingleNestedAttribute)
+	inner := nested.Attributes["inner_int"].(schema.Int64Attribute)
+	assert.Empty(t, inner.Validators, "wrong-type inner attribute should not get the validator")
 }
 
 func TestHttpsourceSchema_AllOptionalComputedHaveDefaults(t *testing.T) {

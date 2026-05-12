@@ -191,7 +191,7 @@ func (r *logSourceAlarmResource) Update(ctx context.Context, req resource.Update
 		MinutesThreshold: data.MinutesThreshold.ValueInt64(),
 	}
 	putResp, err := client.RestDo[client.LogSourceAlarm](ctx, r.rest, http.MethodPut, reqPath, input)
-	if handleUpdateError(resp, "Log Source Alarm", data.Id.ValueString(), err) {
+	if handleUpdateError(ctx, resp, "Log Source Alarm", data.Id.ValueString(), err) {
 		return
 	}
 	tflog.Debug(ctx, "Updated Log Source Alarm", map[string]any{

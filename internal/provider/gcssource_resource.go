@@ -206,7 +206,7 @@ func (r *gcssourceResource) Update(ctx context.Context, req resource.UpdateReque
 	}
 
 	_, err := client.RestDo[client.GcsSource](ctx, r.rest, http.MethodPut, gcsSourcePath+"/"+data.Id.ValueString(), input)
-	if handleUpdateError(resp, "GCS Source", data.Id.ValueString(), err) {
+	if handleUpdateError(ctx, resp, "GCS Source", data.Id.ValueString(), err) {
 		return
 	}
 	tflog.Debug(ctx, "Updated GCS Source", map[string]any{

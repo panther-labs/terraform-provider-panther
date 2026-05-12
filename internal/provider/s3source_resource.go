@@ -281,7 +281,7 @@ func (r *S3SourceResource) Update(ctx context.Context, req resource.UpdateReques
 	}
 
 	_, err := client.RestDo[client.S3Source](ctx, r.rest, http.MethodPut, s3SourcePath+"/"+data.Id.ValueString(), input)
-	if handleUpdateError(resp, "S3 Source", data.Id.ValueString(), err) {
+	if handleUpdateError(ctx, resp, "S3 Source", data.Id.ValueString(), err) {
 		return
 	}
 	tflog.Debug(ctx, "Updated S3 Source", map[string]any{"id": data.Id.ValueString()})

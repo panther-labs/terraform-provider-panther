@@ -188,7 +188,7 @@ func (r *pubsubsourceResource) Update(ctx context.Context, req resource.UpdateRe
 	}
 
 	_, err := client.RestDo[client.PubSubSource](ctx, r.rest, http.MethodPut, pubsubSourcePath+"/"+data.Id.ValueString(), input)
-	if handleUpdateError(resp, "Pub/Sub Source", data.Id.ValueString(), err) {
+	if handleUpdateError(ctx, resp, "Pub/Sub Source", data.Id.ValueString(), err) {
 		return
 	}
 	tflog.Debug(ctx, "Updated Pub/Sub Source", map[string]any{

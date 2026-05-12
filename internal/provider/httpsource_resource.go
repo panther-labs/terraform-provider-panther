@@ -185,7 +185,7 @@ func (r *httpsourceResource) Update(ctx context.Context, req resource.UpdateRequ
 	}
 
 	_, err := client.RestDo[client.HttpSource](ctx, r.rest, http.MethodPut, httpSourcePath+"/"+data.Id.ValueString(), input)
-	if handleUpdateError(resp, "HTTP Source", data.Id.ValueString(), err) {
+	if handleUpdateError(ctx, resp, "HTTP Source", data.Id.ValueString(), err) {
 		return
 	}
 	tflog.Debug(ctx, "Updated HTTP Source", map[string]any{
