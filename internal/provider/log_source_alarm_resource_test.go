@@ -35,20 +35,16 @@ import (
 
 // Acceptance tests for panther_log_source_alarm.
 //
-// Architecture: the single live lifecycle test (TestLogSourceAlarmResource) bundles
-// every scenario that needs a parent log source — CRUD, import (valid and malformed),
-// boundary thresholds, drift detection — into ONE resource.TestCase so the shared
-// parent gcssource is created once and torn down once. Plan-time tests and the
-// no-parent 404 test stay as separate top-level tests (they gain nothing from
-// sharing the parent and benefit from independent t.Parallel() scheduling).
+// Architecture: the live lifecycle scenarios share a single parent log source
+// inside ONE resource.TestCase so the parent is created and torn down once;
+// plan-time tests and the no-parent 404 test stay as independent top-level
+// tests with their own t.Parallel().
 //
-// GCS (service_account) is chosen over httpsource because httpsource provisions
-// a Firehose stream asynchronously, which races with the framework's post-test
-// DELETE and yields a flaky 500. GCS sources delete synchronously — no race, no
-// retry helpers needed.
-//
-// Requires PANTHER_GCS_SA_* env vars (same as gcssource_resource_test.go) — the
-// live lifecycle and malformed-import scenarios skip if they're missing.
+// Parent: panther_httpsource — cheapest to provision (only PANTHER_API_URL and
+// PANTHER_API_TOKEN required). Its Kinesis Firehose is async, so a naive teardown
+// races CREATING and returns 5xx; the final step OOB-deletes the parent through
+// a retry loop, after which refresh observes 404 and drops both resources from
+// state, leaving the framework's destroy phase a no-op.
 
 var (
 	compositeIDRegex     = regexp.MustCompile(`^[0-9a-f-]+/SOURCE_NO_DATA$`)
@@ -58,28 +54,18 @@ var (
 	notFoundSourceRegex  = regexp.MustCompile(`log source was not found|404`)
 )
 
-// TestLogSourceAlarmResource creates one parent gcssource (service_account) and
-// exercises every live scenario against it in a single TestCase: CRUD lifecycle,
-// valid import, four malformed-import variants, lower/upper threshold boundaries,
-// out-of-band-delete drift detection, and drift recovery. Framework cleanup at
-// the end destroys a live alarm (happy-path 204) plus the gcssource (synchronous);
-// CheckDestroy then GETs the alarm and asserts 404 — closes the silent-failure
-// window where Delete returns no diagnostic but the alarm still exists remotely.
+// TestLogSourceAlarmResource exercises CRUD, import (valid + four malformed
+// variants), lower/upper threshold boundaries, out-of-band drift detection, and
+// drift recovery against a shared parent — see the file-level docstring for the
+// architecture and parent-choice rationale. CheckDestroy is wired for parity with
+// checkS3SourceDestroyed; in the steady state of this test, refresh has already
+// pruned every resource from state, so its loop body is unreachable.
 func TestLogSourceAlarmResource(t *testing.T) {
 	t.Parallel()
-	credentials, projectId, subscriptionId, bucket, ok := loadGcsTestConfig(t,
-		"PANTHER_GCS_SA_CREDENTIALS_FILE",
-		"PANTHER_GCS_SA_PROJECT_ID",
-		"PANTHER_GCS_SA_SUBSCRIPTION_ID",
-		"PANTHER_GCS_SA_BUCKET",
-	)
-	if !ok {
-		t.Skip("Skipping: PANTHER_GCS_SA_CREDENTIALS_FILE, PANTHER_GCS_SA_PROJECT_ID, PANTHER_GCS_SA_SUBSCRIPTION_ID, and PANTHER_GCS_SA_BUCKET must be set")
-	}
 
 	parentLabel := strings.ReplaceAll(uuid.NewString(), "-", "")
 	mkConfig := func(threshold int64) string {
-		return providerConfig + testLogSourceAlarmConfig(parentLabel, credentials, projectId, subscriptionId, bucket, threshold)
+		return providerConfig + testLogSourceAlarmConfig(parentLabel, threshold)
 	}
 
 	malformedIDs := []struct{ name, id string }{
@@ -90,10 +76,9 @@ func TestLogSourceAlarmResource(t *testing.T) {
 	}
 
 	steps := []resource.TestStep{
-		// Step 1: Create parent gcssource + alarm at threshold 60.
 		{
 			PreConfig: func() {
-				t.Log("Step 1: Create parent gcssource + alarm (PUT /log-source-alarms/{sourceId}/SOURCE_NO_DATA)")
+				t.Log("Step 1: Create parent httpsource + alarm (PUT /log-source-alarms/{sourceId}/SOURCE_NO_DATA)")
 			},
 			Config: mkConfig(60),
 			Check: resource.ComposeAggregateTestCheckFunc(
@@ -104,7 +89,6 @@ func TestLogSourceAlarmResource(t *testing.T) {
 				resource.TestMatchResourceAttr("panther_log_source_alarm.test", "id", compositeIDRegex),
 			),
 		},
-		// Step 2: Valid import by composite "{source_id}/SOURCE_NO_DATA".
 		{
 			PreConfig:         func() { t.Log("Step 2: Valid import by {source_id}/SOURCE_NO_DATA") },
 			ResourceName:      "panther_log_source_alarm.test",
@@ -156,17 +140,29 @@ func TestLogSourceAlarmResource(t *testing.T) {
 			ExpectNonEmptyPlan: true,
 		},
 		// Step 10: Re-apply the same config to recreate the alarm drifted away in
-		// Step 9. This leaves a live alarm for the framework's cleanup to destroy via
-		// the happy-path 204 (otherwise teardown would only ever exercise the
-		// 404-tolerant branch of handleDeleteError, because Step 9 already removed the
-		// alarm out-of-band). Mirrors s3source_resource_test.go Step 7.
+		// Step 9, verifying the Create path runs cleanly after a Read-detected 404
+		// (drift recovery).
 		resource.TestStep{
-			PreConfig: func() { t.Log("Step 10: Recreate alarm post-drift so cleanup exercises happy-path Delete") },
+			PreConfig: func() { t.Log("Step 10: Recreate alarm post-drift (drift recovery)") },
 			Config:    mkConfig(43200),
 			Check: resource.ComposeAggregateTestCheckFunc(
 				resource.TestCheckResourceAttrSet("panther_log_source_alarm.test", "id"),
 				resource.TestCheckResourceAttr("panther_log_source_alarm.test", "minutes_threshold", "43200"),
 			),
+		},
+		// Step 11: Manually delete the parent httpsource with bounded retries to
+		// sidestep the post-create Kinesis Firehose race (DELETE returns 5xx while
+		// the stream is CREATING). Subsequent refresh observes 404 on the parent
+		// and on the now-orphaned alarm, dropping both from state — so the
+		// framework's automatic destroy phase finds an empty state and is a no-op.
+		// RefreshState skips a redundant plan/apply cycle: state from Step 10 is
+		// reused, Check runs the OOB delete, and the post-Check plan picks up the
+		// drift (ExpectNonEmptyPlan).
+		resource.TestStep{
+			PreConfig:          func() { t.Log("Step 11: Manually delete parent httpsource (Firehose race workaround)") },
+			RefreshState:       true,
+			Check:              manuallyDeleteSource(t, "panther_httpsource.parent", httpSourcePath),
+			ExpectNonEmptyPlan: true,
 		},
 	)
 
@@ -179,7 +175,7 @@ func TestLogSourceAlarmResource(t *testing.T) {
 
 // TestLogSourceAlarmResource_InvalidThreshold verifies the Between(15, 43200) validator
 // rejects just-below (14) and just-above (43201) — the off-by-one edges. Plan-time only,
-// no API call, no GCS creds required.
+// no API call.
 func TestLogSourceAlarmResource_InvalidThreshold(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
@@ -207,7 +203,7 @@ func TestLogSourceAlarmResource_InvalidThreshold(t *testing.T) {
 }
 
 // TestLogSourceAlarmResource_InvalidType verifies the stringvalidator.OneOf rejects alarm
-// types other than SOURCE_NO_DATA at plan time. No API call, no GCS creds required.
+// types other than SOURCE_NO_DATA at plan time. No API call.
 func TestLogSourceAlarmResource_InvalidType(t *testing.T) {
 	t.Parallel()
 	resource.Test(t, resource.TestCase{
@@ -293,32 +289,25 @@ func checkLogSourceAlarmDestroyed(s *terraform.State) error {
 	return nil
 }
 
-// testLogSourceAlarmConfig builds HCL with a panther_gcssource parent + the alarm attached.
-// Uses service_account credentials — the credentials JSON is embedded via %q so it's
-// properly quoted as a Terraform string literal.
-func testLogSourceAlarmConfig(parentLabel, credentials, projectId, subscriptionId, bucket string, threshold int64) string {
+// testLogSourceAlarmConfig builds HCL with a panther_httpsource parent + the alarm
+// attached. See the file-level docstring for why httpsource is the parent of choice.
+func testLogSourceAlarmConfig(parentLabel string, threshold int64) string {
 	return fmt.Sprintf(`
-resource "panther_gcssource" "parent" {
+resource "panther_httpsource" "parent" {
   integration_label = %q
-  subscription_id   = %q
-  project_id        = %q
-  gcs_bucket        = %q
-  credentials       = %q
-  credentials_type  = "service_account"
   log_stream_type   = "Auto"
-  prefix_log_types = [{
-    prefix            = ""
-    log_types         = ["GCP.AuditLog"]
-    excluded_prefixes = []
-  }]
+  log_types         = ["AWS.CloudFrontAccess"]
+  auth_method       = "SharedSecret"
+  auth_header_key   = "x-api-key"
+  auth_secret_value = "test-secret-value"
 }
 
 resource "panther_log_source_alarm" "test" {
-  source_id         = panther_gcssource.parent.id
+  source_id         = panther_httpsource.parent.id
   type              = "SOURCE_NO_DATA"
   minutes_threshold = %d
 }
-`, parentLabel, subscriptionId, projectId, bucket, credentials, threshold)
+`, parentLabel, threshold)
 }
 
 // testLogSourceAlarmStandaloneConfig builds a config that references a hard-coded source_id
