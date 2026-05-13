@@ -21,11 +21,9 @@ type AwsScanConfig struct {
 	AuditRole string `json:"auditRole"`
 }
 
-// AwsCloudAccountInput is the body for POST /cloud-accounts/aws. The PUT body
-// reuses this struct; AwsAccountId has `omitempty` because ModifyAWSCloudAccount
-// drops it. The exclusion list fields deliberately omit `omitempty` so a
-// cleared list serializes as `[]` on the wire — the API treats a missing
-// field as "keep existing values".
+// AwsCloudAccountInput is the POST/PUT body. AwsAccountId has `omitempty` so
+// PUT (which drops it) doesn't send the zero value; the exclusion lists
+// deliberately don't, so sending `[]` explicitly clears them on the server.
 type AwsCloudAccountInput struct {
 	IntegrationLabel        string        `json:"integrationLabel"`
 	AwsAccountId            string        `json:"awsAccountId,omitempty"`
