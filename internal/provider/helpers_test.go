@@ -458,3 +458,19 @@ func TestAwsCloudAccountSchema_AllOptionalComputedHaveDefaults(t *testing.T) {
 	r.Schema(context.Background(), req, resp)
 	assertNoOptionalComputedWithoutDefault(t, resp.Schema)
 }
+
+func TestAwsCloudAccountSchema_AuditRoleRequired(t *testing.T) {
+	r := &awsCloudAccountResource{}
+	req := resource.SchemaRequest{}
+	resp := &resource.SchemaResponse{}
+	r.Schema(context.Background(), req, resp)
+
+	scanCfg, ok := resp.Schema.Attributes["aws_scan_config"].(schema.SingleNestedAttribute)
+	require.True(t, ok, "aws_scan_config should be a SingleNestedAttribute, got %T", resp.Schema.Attributes["aws_scan_config"])
+	auditRole, ok := scanCfg.Attributes["audit_role"].(schema.StringAttribute)
+	require.True(t, ok, "audit_role should be a StringAttribute, got %T", scanCfg.Attributes["audit_role"])
+
+	assert.True(t, auditRole.Required, "audit_role must be Required (otherwise the API gets auditRole=\"\")")
+	assert.False(t, auditRole.Optional, "audit_role must not be Optional")
+	assert.False(t, auditRole.Computed, "audit_role must not be Computed")
+}
