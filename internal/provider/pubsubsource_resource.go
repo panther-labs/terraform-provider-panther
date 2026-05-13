@@ -99,7 +99,7 @@ func (r *pubsubsourceResource) Create(ctx context.Context, req resource.CreateRe
 		ProjectId:            data.ProjectId.ValueString(),
 		Credentials:          data.Credentials.ValueString(),
 		CredentialsType:      data.CredentialsType.ValueString(),
-		LogTypes:             convertLogTypes(ctx, data.LogTypes, &resp.Diagnostics),
+		LogTypes:             listToStringSlice(ctx, data.LogTypes, &resp.Diagnostics),
 		LogStreamType:        data.LogStreamType.ValueString(),
 		LogStreamTypeOptions: pubsubLogStreamTypeOptions(data.LogStreamTypeOptions),
 		RegionalEndpoint:     data.RegionalEndpoint.ValueString(),
@@ -147,7 +147,7 @@ func (r *pubsubsourceResource) Read(ctx context.Context, req resource.ReadReques
 	data.SubscriptionId = types.StringValue(pubsubSource.SubscriptionId)
 	data.ProjectId = types.StringValue(pubsubSource.ProjectId)
 	data.CredentialsType = types.StringValue(pubsubSource.CredentialsType)
-	data.LogTypes = convertFromLogTypes(ctx, pubsubSource.LogTypes, &resp.Diagnostics)
+	data.LogTypes = stringSliceToList(ctx, pubsubSource.LogTypes, &resp.Diagnostics)
 	data.LogStreamType = types.StringValue(pubsubSource.LogStreamType)
 	data.RegionalEndpoint = types.StringValue(pubsubSource.RegionalEndpoint)
 
@@ -181,7 +181,7 @@ func (r *pubsubsourceResource) Update(ctx context.Context, req resource.UpdateRe
 		ProjectId:            data.ProjectId.ValueString(),
 		Credentials:          data.Credentials.ValueString(),
 		CredentialsType:      data.CredentialsType.ValueString(),
-		LogTypes:             convertLogTypes(ctx, data.LogTypes, &resp.Diagnostics),
+		LogTypes:             listToStringSlice(ctx, data.LogTypes, &resp.Diagnostics),
 		LogStreamType:        data.LogStreamType.ValueString(),
 		LogStreamTypeOptions: pubsubLogStreamTypeOptions(data.LogStreamTypeOptions),
 		RegionalEndpoint:     data.RegionalEndpoint.ValueString(),

@@ -341,7 +341,7 @@ func assertNoOptionalComputedWithoutDefault(t *testing.T, s schema.Schema) {
 	}
 }
 
-func TestConvertLogTypes(t *testing.T) {
+func TestListToStringSlice(t *testing.T) {
 	ctx := context.Background()
 	diags := diag.Diagnostics{}
 
@@ -349,26 +349,26 @@ func TestConvertLogTypes(t *testing.T) {
 	diags.Append(d...)
 	require.False(t, diags.HasError())
 
-	result := convertLogTypes(ctx, list, &diags)
+	result := listToStringSlice(ctx, list, &diags)
 	assert.Equal(t, []string{"AWS.CloudTrail", "AWS.S3"}, result)
 }
 
-func TestConvertLogTypes_Empty(t *testing.T) {
+func TestListToStringSlice_Empty(t *testing.T) {
 	ctx := context.Background()
 	diags := diag.Diagnostics{}
 
 	list, d := types.ListValueFrom(ctx, types.StringType, []string{})
 	diags.Append(d...)
 
-	result := convertLogTypes(ctx, list, &diags)
+	result := listToStringSlice(ctx, list, &diags)
 	assert.Empty(t, result)
 }
 
-func TestConvertFromLogTypes(t *testing.T) {
+func TestStringSliceToList(t *testing.T) {
 	ctx := context.Background()
 	diags := diag.Diagnostics{}
 
-	list := convertFromLogTypes(ctx, []string{"AWS.CloudTrail"}, &diags)
+	list := stringSliceToList(ctx, []string{"AWS.CloudTrail"}, &diags)
 	assert.False(t, diags.HasError())
 	assert.False(t, list.IsNull())
 	assert.Equal(t, 1, len(list.Elements()))

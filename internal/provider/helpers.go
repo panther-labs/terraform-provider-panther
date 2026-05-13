@@ -205,16 +205,16 @@ func applySchemaOverrides(s *schema.Schema, overrides []SchemaOverride) {
 	}
 }
 
-func convertLogTypes(ctx context.Context, logTypes types.List, diagnostics *diag.Diagnostics) []string {
+func listToStringSlice(ctx context.Context, list types.List, diagnostics *diag.Diagnostics) []string {
 	var result []string
-	diagnostics.Append(logTypes.ElementsAs(ctx, &result, false)...)
+	diagnostics.Append(list.ElementsAs(ctx, &result, false)...)
 	return result
 }
 
-func convertFromLogTypes(ctx context.Context, logTypes []string, diagnostics *diag.Diagnostics) types.List {
-	from, d := types.ListValueFrom(ctx, types.StringType, logTypes)
+func stringSliceToList(ctx context.Context, slice []string, diagnostics *diag.Diagnostics) types.List {
+	result, d := types.ListValueFrom(ctx, types.StringType, slice)
 	diagnostics.Append(d...)
-	return from
+	return result
 }
 
 // setEmptyListDefault overrides a generated ListAttribute's Default with an

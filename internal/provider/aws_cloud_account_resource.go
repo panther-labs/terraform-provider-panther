@@ -121,9 +121,9 @@ func (r *awsCloudAccountResource) Create(ctx context.Context, req resource.Creat
 		IntegrationLabel:        data.IntegrationLabel.ValueString(),
 		AwsAccountId:            data.AwsAccountId.ValueString(),
 		AwsScanConfig:           client.AwsScanConfig{AuditRole: data.AwsScanConfig.AuditRole.ValueString()},
-		RegionIgnoreList:        convertLogTypes(ctx, data.RegionIgnoreList, &resp.Diagnostics),
-		ResourceTypeIgnoreList:  convertLogTypes(ctx, data.ResourceTypeIgnoreList, &resp.Diagnostics),
-		ResourceRegexIgnoreList: convertLogTypes(ctx, data.ResourceRegexIgnoreList, &resp.Diagnostics),
+		RegionIgnoreList:        listToStringSlice(ctx, data.RegionIgnoreList, &resp.Diagnostics),
+		ResourceTypeIgnoreList:  listToStringSlice(ctx, data.ResourceTypeIgnoreList, &resp.Diagnostics),
+		ResourceRegexIgnoreList: listToStringSlice(ctx, data.ResourceRegexIgnoreList, &resp.Diagnostics),
 	}
 	if resp.Diagnostics.HasError() {
 		return
@@ -166,9 +166,9 @@ func (r *awsCloudAccountResource) Read(ctx context.Context, req resource.ReadReq
 		return
 	}
 	data.AwsScanConfig = scanCfg
-	data.RegionIgnoreList = convertFromLogTypes(ctx, out.RegionIgnoreList, &resp.Diagnostics)
-	data.ResourceTypeIgnoreList = convertFromLogTypes(ctx, out.ResourceTypeIgnoreList, &resp.Diagnostics)
-	data.ResourceRegexIgnoreList = convertFromLogTypes(ctx, out.ResourceRegexIgnoreList, &resp.Diagnostics)
+	data.RegionIgnoreList = stringSliceToList(ctx, out.RegionIgnoreList, &resp.Diagnostics)
+	data.ResourceTypeIgnoreList = stringSliceToList(ctx, out.ResourceTypeIgnoreList, &resp.Diagnostics)
+	data.ResourceRegexIgnoreList = stringSliceToList(ctx, out.ResourceRegexIgnoreList, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -188,9 +188,9 @@ func (r *awsCloudAccountResource) Update(ctx context.Context, req resource.Updat
 	input := client.AwsCloudAccountInput{
 		IntegrationLabel:        data.IntegrationLabel.ValueString(),
 		AwsScanConfig:           client.AwsScanConfig{AuditRole: data.AwsScanConfig.AuditRole.ValueString()},
-		RegionIgnoreList:        convertLogTypes(ctx, data.RegionIgnoreList, &resp.Diagnostics),
-		ResourceTypeIgnoreList:  convertLogTypes(ctx, data.ResourceTypeIgnoreList, &resp.Diagnostics),
-		ResourceRegexIgnoreList: convertLogTypes(ctx, data.ResourceRegexIgnoreList, &resp.Diagnostics),
+		RegionIgnoreList:        listToStringSlice(ctx, data.RegionIgnoreList, &resp.Diagnostics),
+		ResourceTypeIgnoreList:  listToStringSlice(ctx, data.ResourceTypeIgnoreList, &resp.Diagnostics),
+		ResourceRegexIgnoreList: listToStringSlice(ctx, data.ResourceRegexIgnoreList, &resp.Diagnostics),
 	}
 	if resp.Diagnostics.HasError() {
 		return
