@@ -48,11 +48,11 @@ resource "panther_aws_cloud_account" "example" {
 
 - `aws_account_id` (String) The 12-digit AWS account ID
 - `aws_scan_config` (Attributes) (see [below for nested schema](#nestedatt--aws_scan_config))
-- `integration_label` (String) The display name for the Cloud Account integration
+- `integration_label` (String) The display name for the AWS Cloud Account integration
 
 ### Optional
 
-- `id` (String) ID of the Cloud Account to fetch
+- `id` (String) ID of the AWS Cloud Account to fetch
 - `region_ignore_list` (List of String) Regions to exclude from scanning
 - `resource_regex_ignore_list` (List of String) Regex patterns matching resource ARNs to exclude from scanning
 - `resource_type_ignore_list` (List of String) Resource types to exclude from scanning (e.g. AWS.S3.Bucket)

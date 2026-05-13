@@ -70,7 +70,7 @@ func (r *awsCloudAccountResource) Schema(ctx context.Context, req resource.Schem
 
 	applySchemaOverrides(&resp.Schema, []SchemaOverride{
 		{Name: "id", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-		// aws_account_id is immutable server-side (ModifyCloudAccount drops it).
+		// aws_account_id is immutable server-side (ModifyAWSCloudAccount drops it).
 		{Name: "aws_account_id", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
 	})
 
@@ -183,7 +183,7 @@ func (r *awsCloudAccountResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	// AwsAccountId omitted: ModifyCloudAccount drops it; the zero value is
+	// AwsAccountId omitted: ModifyAWSCloudAccount drops it; the zero value is
 	// elided by `omitempty`. RequiresReplace handles config diffs.
 	input := client.AwsCloudAccountInput{
 		IntegrationLabel:        data.IntegrationLabel.ValueString(),

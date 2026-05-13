@@ -48,13 +48,13 @@ func AwsCloudAccountResourceSchema(ctx context.Context) schema.Schema {
 			"id": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				Description:         "ID of the Cloud Account to fetch",
-				MarkdownDescription: "ID of the Cloud Account to fetch",
+				Description:         "ID of the AWS Cloud Account to fetch",
+				MarkdownDescription: "ID of the AWS Cloud Account to fetch",
 			},
 			"integration_label": schema.StringAttribute{
 				Required:            true,
-				Description:         "The display name for the Cloud Account integration",
-				MarkdownDescription: "The display name for the Cloud Account integration",
+				Description:         "The display name for the AWS Cloud Account integration",
+				MarkdownDescription: "The display name for the AWS Cloud Account integration",
 				Validators: []validator.String{
 					stringvalidator.LengthAtMost(36),
 					stringvalidator.RegexMatches(regexp.MustCompile("^[0-9a-zA-Z- ]+$"), ""),

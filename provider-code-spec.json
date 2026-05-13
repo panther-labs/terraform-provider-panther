@@ -48,7 +48,7 @@
 						"name": "integration_label",
 						"string": {
 							"computed_optional_required": "required",
-							"description": "The display name for the Cloud Account integration",
+							"description": "The display name for the AWS Cloud Account integration",
 							"validators": [
 								{
 									"custom": {
@@ -110,7 +110,7 @@
 						"name": "id",
 						"string": {
 							"computed_optional_required": "computed_optional",
-							"description": "ID of the Cloud Account to fetch"
+							"description": "ID of the AWS Cloud Account to fetch"
 						}
 					}
 				]

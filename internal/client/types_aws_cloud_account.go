@@ -22,7 +22,7 @@ type AwsScanConfig struct {
 }
 
 // AwsCloudAccountInput is the body for POST /cloud-accounts/aws. The PUT body
-// reuses this struct; AwsAccountId has `omitempty` because ModifyCloudAccount
+// reuses this struct; AwsAccountId has `omitempty` because ModifyAWSCloudAccount
 // drops it. The exclusion list fields deliberately omit `omitempty` so a
 // cleared list serializes as `[]` on the wire — the API treats a missing
 // field as "keep existing values".
