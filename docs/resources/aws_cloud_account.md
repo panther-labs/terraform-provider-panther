@@ -78,5 +78,5 @@ Import is supported using the following syntax:
 # the Panther UI or GraphQL, the first `terraform apply` after import will
 # silently reset the scan interval to 24 hours (1440 minutes). The REST API
 # does not currently expose `scanIntervalMins`.
-terraform import panther_aws_cloud_account.example <integration-id>
+terraform import panther_aws_cloud_account.example 12345678-1234-1234-1234-123456789012
 ```
