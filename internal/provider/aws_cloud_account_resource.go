@@ -62,11 +62,7 @@ func (r *awsCloudAccountResource) Metadata(_ context.Context, req resource.Metad
 
 func (r *awsCloudAccountResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = resource_aws_cloud_account.AwsCloudAccountResourceSchema(ctx)
-	resp.Schema.MarkdownDescription = "Manages an AWS Cloud Account integration for Panther's compliance scanner.\n\n" +
-		"**Caveat — scan interval:** the REST API hardcodes a 24-hour scan interval " +
-		"(1440 minutes) on every create/update and does not expose `scanIntervalMins`. " +
-		"Custom intervals set out-of-band (Panther UI or GraphQL) will be silently " +
-		"reset on the first `terraform apply` after import."
+	resp.Schema.MarkdownDescription = "Manages an AWS Cloud Account integration for Panther's compliance scanner."
 
 	applySchemaOverrides(&resp.Schema, []SchemaOverride{
 		{Name: "id", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
