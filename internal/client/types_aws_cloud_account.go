@@ -23,7 +23,7 @@ type AwsScanConfig struct {
 
 // AwsCloudAccountInput is the POST/PUT body. AwsAccountId has `omitempty` so
 // PUT (which drops it) doesn't send the zero value; the exclusion lists
-// deliberately don't, so sending `[]` explicitly clears them on the server.
+// deliberately don't, so cleared lists serialize as `[]` on the wire.
 type AwsCloudAccountInput struct {
 	IntegrationLabel        string        `json:"integrationLabel"`
 	AwsAccountId            string        `json:"awsAccountId,omitempty"`

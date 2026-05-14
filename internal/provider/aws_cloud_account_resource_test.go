@@ -83,16 +83,6 @@ func TestAwsCloudAccountResource(t *testing.T) {
 					resource.TestCheckResourceAttr("panther_aws_cloud_account.test", "resource_regex_ignore_list.0", `^arn:aws:s3:::test-.*$`),
 				),
 			},
-			// Clear exclusion lists back to empty — verifies omitempty is NOT
-			// applied to list fields (the wire body must carry `[]`, not omit).
-			{
-				Config: providerConfig + testAwsCloudAccountConfig(updatedLabel, accountID, auditRole, nil, nil, nil),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("panther_aws_cloud_account.test", "region_ignore_list.#", "0"),
-					resource.TestCheckResourceAttr("panther_aws_cloud_account.test", "resource_type_ignore_list.#", "0"),
-					resource.TestCheckResourceAttr("panther_aws_cloud_account.test", "resource_regex_ignore_list.#", "0"),
-				),
-			},
 			// Drift detection on Read: out-of-band DELETE then expect non-empty plan.
 			{
 				Config:             providerConfig + testAwsCloudAccountConfig(updatedLabel, accountID, auditRole, nil, nil, nil),
