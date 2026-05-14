@@ -89,12 +89,6 @@ func TestAwsCloudAccountResource(t *testing.T) {
 				Check:              manuallyDeleteAwsCloudAccount(t),
 				ExpectNonEmptyPlan: true,
 			},
-			// NOTE: the 404-on-Update path in handleUpdateError is intentionally
-			// not covered here. terraform-plugin-testing v1.10.0 always runs
-			// refresh before Config-mode plan/apply, so any out-of-band delete
-			// is caught by handleReadError first. The Update-404 branch is
-			// covered by helpers_test.go:TestHandleUpdateError/NotFound and the
-			// manual test plan (TC21, via `terraform apply -refresh=false`).
 		},
 	})
 }
