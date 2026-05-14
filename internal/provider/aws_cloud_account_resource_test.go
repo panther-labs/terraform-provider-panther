@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"net/http"
 	"os"
 	"regexp"
 	"strings"
@@ -48,6 +49,7 @@ func TestAwsCloudAccountResource(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             checkAwsCloudAccountDestroyed,
 		Steps: []resource.TestStep{
 			// Create + Read
 			{
@@ -84,10 +86,17 @@ func TestAwsCloudAccountResource(t *testing.T) {
 				),
 			},
 			// Drift detection on Read: out-of-band DELETE then expect non-empty plan.
+			// (Resource's own Delete CRUD is asserted by CheckDestroy at end-of-test.)
 			{
 				Config:             providerConfig + testAwsCloudAccountConfig(updatedLabel, accountID, auditRole, nil, nil, nil),
-				Check:              manuallyDeleteAwsCloudAccount(t),
+				Check:              manuallyDeleteSource(t, "panther_aws_cloud_account.test", awsCloudAccountPath),
 				ExpectNonEmptyPlan: true,
+			},
+			// Re-apply to recreate the resource drifted away above so the framework's
+			// cleanup tears down a live resource (asserted via CheckDestroy).
+			{
+				Config: providerConfig + testAwsCloudAccountConfig(updatedLabel, accountID, auditRole, nil, nil, nil),
+				Check:  resource.TestCheckResourceAttrSet("panther_aws_cloud_account.test", "id"),
 			},
 		},
 	})
@@ -206,24 +215,22 @@ func hclList(items []string) string {
 	return "[" + strings.Join(quoted, ", ") + "]"
 }
 
-// manuallyDeleteAwsCloudAccount bypasses Terraform and deletes via the REST API
-// directly, simulating out-of-band deletion for drift detection testing.
-func manuallyDeleteAwsCloudAccount(t *testing.T) resource.TestCheckFunc {
-	t.Helper()
-	return func(s *terraform.State) error {
-		t.Helper()
-		rs, ok := s.RootModule().Resources["panther_aws_cloud_account.test"]
-		if !ok {
-			return fmt.Errorf("not found: panther_aws_cloud_account.test")
+// checkAwsCloudAccountDestroyed verifies that each panther_aws_cloud_account tracked
+// in the final state is gone server-side after the framework's auto-destroy step,
+// mirroring checkS3SourceDestroyed in s3source_resource_test.go.
+func checkAwsCloudAccountDestroyed(s *terraform.State) error {
+	c := client.NewRESTClient(os.Getenv("PANTHER_API_URL"), os.Getenv("PANTHER_API_TOKEN"))
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "panther_aws_cloud_account" {
+			continue
 		}
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("AWS Cloud Account ID is not set")
+		_, err := client.RestDo[client.AwsCloudAccount](context.Background(), c, http.MethodGet, awsCloudAccountPath+"/"+rs.Primary.ID, nil)
+		if err == nil {
+			return fmt.Errorf("AWS Cloud Account %s still exists after destroy", rs.Primary.ID)
 		}
-		c := client.NewRESTClient(os.Getenv("PANTHER_API_URL"), os.Getenv("PANTHER_API_TOKEN"))
-		if err := client.RestDelete(context.Background(), c, awsCloudAccountPath+"/"+rs.Primary.ID); err != nil {
-			return fmt.Errorf("could not delete AWS Cloud Account: %w", err)
+		if !client.IsNotFound(err) {
+			return fmt.Errorf("unexpected error checking AWS Cloud Account %s: %w", rs.Primary.ID, err)
 		}
-		t.Logf("Manually deleted AWS Cloud Account %s for drift detection test", rs.Primary.ID)
-		return nil
 	}
+	return nil
 }
