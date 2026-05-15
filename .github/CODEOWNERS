@@ -2,11 +2,11 @@
 *       @panther-labs/business-platform
 
 # context-data-experience: log source resources
-/internal/provider/s3source_resource.go             @panther-labs/context-data-experience
-/internal/provider/httpsource_resource.go           @panther-labs/context-data-experience
-/internal/provider/pubsubsource_resource.go         @panther-labs/context-data-experience
-/internal/provider/gcssource_resource.go            @panther-labs/context-data-experience
-/internal/provider/log_source_alarm_resource.go     @panther-labs/context-data-experience
+/internal/provider/s3source_resource*.go            @panther-labs/context-data-experience
+/internal/provider/httpsource_resource*.go          @panther-labs/context-data-experience
+/internal/provider/pubsubsource_resource*.go        @panther-labs/context-data-experience
+/internal/provider/gcssource_resource*.go           @panther-labs/context-data-experience
+/internal/provider/log_source_alarm_resource*.go    @panther-labs/context-data-experience
 /internal/provider/resource_httpsource/             @panther-labs/context-data-experience
 /internal/provider/resource_pubsubsource/           @panther-labs/context-data-experience
 /internal/provider/resource_gcssource/              @panther-labs/context-data-experience
@@ -16,6 +16,16 @@
 /internal/client/types_s3.go                        @panther-labs/context-data-experience
 /internal/client/types_gcs.go                       @panther-labs/context-data-experience
 /internal/client/types_log_source_alarm.go          @panther-labs/context-data-experience
+/examples/resources/panther_s3_source/              @panther-labs/context-data-experience
+/examples/resources/panther_httpsource/             @panther-labs/context-data-experience
+/examples/resources/panther_pubsubsource/           @panther-labs/context-data-experience
+/examples/resources/panther_gcssource/              @panther-labs/context-data-experience
+/examples/resources/panther_log_source_alarm/       @panther-labs/context-data-experience
+/examples/full-examples/s3-log-source/              @panther-labs/context-data-experience
+/examples/full-examples/http-log-source/            @panther-labs/context-data-experience
+/examples/full-examples/pubsub-log-source/          @panther-labs/context-data-experience
+/examples/full-examples/gcs-log-source/             @panther-labs/context-data-experience
+/examples/full-examples/log-source-alarm/           @panther-labs/context-data-experience
 
 # detection-threat-hunting-experience: add resource paths here
 
