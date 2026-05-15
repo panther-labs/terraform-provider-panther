@@ -4,6 +4,119 @@
 	},
 	"resources": [
 		{
+			"name": "aws_cloud_account",
+			"schema": {
+				"attributes": [
+					{
+						"name": "aws_account_id",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "The 12-digit AWS account ID",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "regexp"
+											},
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.RegexMatches(regexp.MustCompile(\"^[0-9]{12}$\"), \"\")"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "aws_scan_config",
+						"single_nested": {
+							"computed_optional_required": "required",
+							"attributes": [
+								{
+									"name": "audit_role",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "The IAM role ARN that Panther assumes to scan the AWS account"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "integration_label",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "The display name for the AWS Cloud Account integration",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.LengthAtMost(36)"
+									}
+								},
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "regexp"
+											},
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.RegexMatches(regexp.MustCompile(\"^[0-9a-zA-Z- ]+$\"), \"\")"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "region_ignore_list",
+						"list": {
+							"computed_optional_required": "computed_optional",
+							"element_type": {
+								"string": {}
+							},
+							"description": "Regions to exclude from scanning"
+						}
+					},
+					{
+						"name": "resource_regex_ignore_list",
+						"list": {
+							"computed_optional_required": "computed_optional",
+							"element_type": {
+								"string": {}
+							},
+							"description": "Regex patterns matching resource ARNs to exclude from scanning"
+						}
+					},
+					{
+						"name": "resource_type_ignore_list",
+						"list": {
+							"computed_optional_required": "computed_optional",
+							"element_type": {
+								"string": {}
+							},
+							"description": "Resource types to exclude from scanning (e.g. AWS.S3.Bucket)"
+						}
+					},
+					{
+						"name": "id",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "ID of the AWS Cloud Account to fetch"
+						}
+					}
+				]
+			}
+		},
+		{
 			"name": "gcssource",
 			"schema": {
 				"attributes": [
