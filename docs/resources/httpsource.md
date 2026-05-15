@@ -3,12 +3,12 @@
 page_title: "panther_httpsource Resource - terraform-provider-panther"
 subcategory: ""
 description: |-
-  
+  Represents an HTTP Log Source in Panther
 ---
 
 # panther_httpsource (Resource)
 
-
+Represents an HTTP Log Source in Panther
 
 ## Example Usage
 

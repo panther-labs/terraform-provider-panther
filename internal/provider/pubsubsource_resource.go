@@ -56,6 +56,7 @@ func (r *pubsubsourceResource) Metadata(ctx context.Context, req resource.Metada
 
 func (r *pubsubsourceResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = resource_pubsubsource.PubsubsourceResourceSchema(ctx)
+	resp.Schema.MarkdownDescription = "Represents a Google Cloud Pub/Sub Log Source in Panther"
 	applySchemaOverrides(&resp.Schema, []SchemaOverride{
 		{Name: "id", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		{Name: "credentials", Default: stringdefault.StaticString(""), Sensitive: true},

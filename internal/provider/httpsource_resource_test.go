@@ -17,18 +17,19 @@ limitations under the License.
 package provider
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 
-	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"terraform-provider-panther/internal/client"
 )
 
 // There is a caveat in testing the http source resource with an acceptance test, because after running all the steps the test case will
@@ -78,7 +79,7 @@ func TestHttpSourceResource(t *testing.T) {
 			// and removes it from state, causing a non-empty refresh plan (recreate).
 			{
 				Config:             providerConfig + testUpdatedHttpSourceResourceConfig(integrationUpdatedLabel),
-				Check:              manuallyDeleteSource(t),
+				Check:              manuallyDeleteSource(t, "panther_httpsource.test", httpSourcePath),
 				ExpectNonEmptyPlan: true,
 			},
 			// TestCase cleanup calls Delete automatically — succeeds because 404 is treated as success.
@@ -116,37 +117,37 @@ resource "panther_httpsource" "test" {
 `, name)
 }
 
-func manuallyDeleteSource(t *testing.T) resource.TestCheckFunc {
+// manuallyDeleteSource issues DELETEs against the given source's REST path with a
+// bounded retry loop, treating 5xx as retryable. The retry exists because the
+// underlying Kinesis Firehose can be in a CREATING state immediately after Create,
+// during which DELETE returns 5xx until the stream transitions to ACTIVE. 404 is
+// treated as success — the resource is already gone. resourceName is the
+// Terraform-state address (e.g. "panther_httpsource.parent"); basePath is the REST
+// collection path (e.g. httpSourcePath).
+func manuallyDeleteSource(t *testing.T, resourceName, basePath string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		httpSource, ok := s.RootModule().Resources["panther_httpsource.test"]
+		rs, ok := s.RootModule().Resources[resourceName]
 		if !ok {
-			return fmt.Errorf("not found: %s", "panther_httpsource.test")
+			return fmt.Errorf("not found: %s", resourceName)
 		}
-		if httpSource.Primary.ID == "" {
-			return errors.New("http source ID is not set")
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("%s ID is not set", resourceName)
 		}
-		url := os.Getenv("PANTHER_API_URL") + httpSourcePath + "/" + httpSource.Primary.ID
-		client := http.DefaultClient
-		req, err := http.NewRequest(http.MethodDelete, url, nil)
-		if err != nil {
-			return fmt.Errorf("could not create delete request: %w", err)
-		}
-		req.Header.Set("X-API-Key", os.Getenv("PANTHER_API_TOKEN"))
-		retry := 0
-		for retry < 10 {
-			response, err := client.Do(req)
-			if err != nil {
-				t.Logf("Error deleting http source %s: error: %v, retry: %d\n", httpSource.Primary.ID, err, retry)
-				return fmt.Errorf("could not delete http source: %w", err)
-			}
-			response.Body.Close()
-			if response.StatusCode == http.StatusNoContent {
+		c := client.NewRESTClient(os.Getenv("PANTHER_API_URL"), os.Getenv("PANTHER_API_TOKEN"))
+		path := basePath + "/" + rs.Primary.ID
+		const maxRetries = 10
+		for retry := 0; retry < maxRetries; retry++ {
+			err := client.RestDelete(context.Background(), c, path)
+			if err == nil || client.IsNotFound(err) {
 				return nil
 			}
-			t.Logf("Could not delete http source %s with retry %d: status code: %d. retrying\n", httpSource.Primary.ID, retry, response.StatusCode)
+			var apiErr *client.APIError
+			if !errors.As(err, &apiErr) || apiErr.StatusCode < 500 {
+				return fmt.Errorf("could not delete %s: %w", resourceName, err)
+			}
+			t.Logf("Could not delete %s %s with retry %d: %v. retrying\n", resourceName, rs.Primary.ID, retry, err)
 			time.Sleep(5 * time.Second)
-			retry++
 		}
-		return fmt.Errorf("could not delete http source after %d retries", retry)
+		return fmt.Errorf("could not delete %s after %d retries", resourceName, maxRetries)
 	}
 }

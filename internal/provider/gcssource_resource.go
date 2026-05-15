@@ -58,6 +58,7 @@ func (r *gcssourceResource) Metadata(ctx context.Context, req resource.MetadataR
 
 func (r *gcssourceResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = resource_gcssource.GcssourceResourceSchema(ctx)
+	resp.Schema.MarkdownDescription = "Represents a GCS Log Source in Panther"
 	applySchemaOverrides(&resp.Schema, []SchemaOverride{
 		{Name: "id", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		{Name: "credentials", Default: stringdefault.StaticString(""), Sensitive: true},
