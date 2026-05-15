@@ -219,7 +219,7 @@ func hclList(items []string) string {
 // in the final state is gone server-side after the framework's auto-destroy step,
 // mirroring checkS3SourceDestroyed in s3source_resource_test.go.
 func checkAwsCloudAccountDestroyed(s *terraform.State) error {
-	c := client.NewRESTClient(os.Getenv("PANTHER_API_URL"), os.Getenv("PANTHER_API_TOKEN"))
+	c := client.NewRESTClient(os.Getenv("PANTHER_API_URL"), os.Getenv("PANTHER_API_TOKEN"), testUserAgent)
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "panther_aws_cloud_account" {
 			continue

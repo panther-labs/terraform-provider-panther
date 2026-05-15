@@ -19,6 +19,7 @@ package client
 import (
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -101,6 +102,65 @@ func TestAuthTransport_PassesThroughErrors(t *testing.T) {
 }
 
 func TestNewHTTPClient_Timeout(t *testing.T) {
-	client := newHTTPClient("token")
+	client := newHTTPClient("token", "ua")
 	assert.Equal(t, 30*time.Second, client.Timeout)
+}
+
+func TestBuildUserAgent_FormatAndFallbacks(t *testing.T) {
+	tests := []struct {
+		name             string
+		providerVersion  string
+		terraformVersion string
+		want             string
+	}{
+		{
+			name:             "Populated",
+			providerVersion:  "0.5.2",
+			terraformVersion: "1.10.4",
+			want:             "Terraform/1.10.4 terraform-provider-panther/0.5.2",
+		},
+		{
+			name:             "EmptyProviderVersionFallsBackToDev",
+			providerVersion:  "",
+			terraformVersion: "1.10.4",
+			want:             "Terraform/1.10.4 terraform-provider-panther/dev",
+		},
+		{
+			name:             "EmptyTerraformVersionFallsBackToUnknown",
+			providerVersion:  "0.5.2",
+			terraformVersion: "",
+			want:             "Terraform/unknown terraform-provider-panther/0.5.2",
+		},
+		{
+			name:             "DevLiteral",
+			providerVersion:  "dev",
+			terraformVersion: "1.10.4",
+			want:             "Terraform/1.10.4 terraform-provider-panther/dev",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, BuildUserAgent(tt.providerVersion, tt.terraformVersion))
+		})
+	}
+}
+
+func TestAuthTransport_SetsUserAgentOnWire(t *testing.T) {
+	const wantUA = "Terraform/1.10.4 terraform-provider-panther/0.5.2"
+
+	var gotUA string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotUA = r.Header.Get("User-Agent")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	c := newHTTPClient("token", wantUA)
+	req, err := http.NewRequest(http.MethodGet, server.URL, nil)
+	require.NoError(t, err)
+	resp, err := c.Do(req)
+	require.NoError(t, err)
+	require.NoError(t, resp.Body.Close())
+
+	assert.Equal(t, wantUA, gotUA)
 }

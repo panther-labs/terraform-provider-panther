@@ -30,10 +30,10 @@ import (
 const graphQLPath = "/public/graphql"
 
 // NewRESTClient creates a configured REST client for the Panther API.
-func NewRESTClient(url, token string) *RESTClient {
+func NewRESTClient(url, token, userAgent string) *RESTClient {
 	// Strip the legacy /public/graphql suffix — older provider configs included it.
 	pantherURL := strings.TrimSuffix(url, graphQLPath)
-	httpClient := newHTTPClient(token)
+	httpClient := newHTTPClient(token, userAgent)
 
 	return &RESTClient{
 		Doer:    httpClient,
