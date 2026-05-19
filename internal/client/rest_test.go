@@ -332,7 +332,7 @@ func TestNewRESTClient_StripsGraphQLSuffix(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewRESTClient(tt.input, "token")
+			c := NewRESTClient(tt.input, "token", "ua")
 			assert.Equal(t, tt.wantURL, c.BaseURL)
 		})
 	}

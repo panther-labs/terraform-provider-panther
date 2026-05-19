@@ -161,7 +161,7 @@ func manuallyDeleteS3Source(t *testing.T) resource.TestCheckFunc {
 		if rs.Primary.ID == "" {
 			return errors.New("S3 source ID is not set")
 		}
-		c := client.NewRESTClient(os.Getenv("PANTHER_API_URL"), os.Getenv("PANTHER_API_TOKEN"))
+		c := client.NewRESTClient(os.Getenv("PANTHER_API_URL"), os.Getenv("PANTHER_API_TOKEN"), testUserAgent)
 		if err := client.RestDelete(context.Background(), c, s3SourcePath+"/"+rs.Primary.ID); err != nil {
 			return fmt.Errorf("could not delete S3 source: %w", err)
 		}
@@ -174,7 +174,7 @@ func manuallyDeleteS3Source(t *testing.T) resource.TestCheckFunc {
 // test state has actually been removed from the Panther API — closes the silent-failure
 // window where Delete() returns no diagnostic but the resource still exists remotely.
 func checkS3SourceDestroyed(s *terraform.State) error {
-	c := client.NewRESTClient(os.Getenv("PANTHER_API_URL"), os.Getenv("PANTHER_API_TOKEN"))
+	c := client.NewRESTClient(os.Getenv("PANTHER_API_URL"), os.Getenv("PANTHER_API_TOKEN"), testUserAgent)
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "panther_s3_source" {
 			continue

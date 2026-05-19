@@ -133,7 +133,7 @@ func manuallyDeleteSource(t *testing.T, resourceName, basePath string) resource.
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("%s ID is not set", resourceName)
 		}
-		c := client.NewRESTClient(os.Getenv("PANTHER_API_URL"), os.Getenv("PANTHER_API_TOKEN"))
+		c := client.NewRESTClient(os.Getenv("PANTHER_API_URL"), os.Getenv("PANTHER_API_TOKEN"), testUserAgent)
 		path := basePath + "/" + rs.Primary.ID
 		const maxRetries = 10
 		for retry := 0; retry < maxRetries; retry++ {
