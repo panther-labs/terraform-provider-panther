@@ -42,15 +42,15 @@ func restClient(req resource.ConfigureRequest, resp *resource.ConfigureResponse)
 	if req.ProviderData == nil {
 		return nil
 	}
-	c, ok := req.ProviderData.(*client.RESTClient)
+	pd, ok := req.ProviderData.(*ProviderData)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *client.RESTClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *ProviderData, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 		return nil
 	}
-	return c
+	return pd.REST
 }
 
 func addAuthDiagnostic(diagnostics *diag.Diagnostics, err error) bool {
