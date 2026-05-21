@@ -257,7 +257,7 @@ func manuallyDeleteLogSourceAlarm(t *testing.T) resource.TestCheckFunc {
 		}
 		// rs.Primary.ID is the composite "{source_id}/SOURCE_NO_DATA", exactly the
 		// path suffix the API expects — concat and DELETE.
-		c := client.NewRESTClient(os.Getenv("PANTHER_API_URL"), os.Getenv("PANTHER_API_TOKEN"))
+		c := client.NewRESTClient(os.Getenv("PANTHER_API_URL"), os.Getenv("PANTHER_API_TOKEN"), testUserAgent)
 		if err := client.RestDelete(context.Background(), c, logSourceAlarmPath+"/"+rs.Primary.ID); err != nil {
 			return fmt.Errorf("could not delete alarm: %w", err)
 		}
@@ -271,7 +271,7 @@ func manuallyDeleteLogSourceAlarm(t *testing.T) resource.TestCheckFunc {
 // silent-failure window where Delete returns no diagnostic but the alarm still exists
 // remotely. Mirrors checkS3SourceDestroyed in s3source_resource_test.go.
 func checkLogSourceAlarmDestroyed(s *terraform.State) error {
-	c := client.NewRESTClient(os.Getenv("PANTHER_API_URL"), os.Getenv("PANTHER_API_TOKEN"))
+	c := client.NewRESTClient(os.Getenv("PANTHER_API_URL"), os.Getenv("PANTHER_API_TOKEN"), testUserAgent)
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "panther_log_source_alarm" {
 			continue

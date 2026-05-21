@@ -122,7 +122,8 @@ func (p *PantherProvider) Configure(ctx context.Context, req provider.ConfigureR
 		return
 	}
 
-	resp.ResourceData = client.NewRESTClient(url, token)
+	userAgent := client.BuildUserAgent(p.version, req.TerraformVersion)
+	resp.ResourceData = client.NewRESTClient(url, token, userAgent)
 }
 
 func (p *PantherProvider) Resources(ctx context.Context) []func() resource.Resource {

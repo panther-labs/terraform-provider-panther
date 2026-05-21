@@ -17,32 +17,44 @@ limitations under the License.
 package client
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 )
 
 type authTransport struct {
-	token string
-	next  http.RoundTripper
+	token     string
+	userAgent string
+	next      http.RoundTripper
 }
 
 func (t *authTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	r := req.Clone(req.Context())
 	r.Header.Set("X-API-Key", t.token)
+	r.Header.Set("User-Agent", t.userAgent)
 	if r.Body != nil {
 		r.Header.Set("Content-Type", "application/json")
 	}
 	return t.next.RoundTrip(r)
 }
 
-// newHTTPClient returns an *http.Client that satisfies Doer,
-// injecting the API key and Content-Type headers on every request.
-func newHTTPClient(token string) *http.Client {
+func BuildUserAgent(providerVersion, terraformVersion string) string {
+	if providerVersion == "" {
+		providerVersion = "dev"
+	}
+	if terraformVersion == "" {
+		terraformVersion = "unknown"
+	}
+	return fmt.Sprintf("Terraform/%s terraform-provider-panther/%s", terraformVersion, providerVersion)
+}
+
+func newHTTPClient(token, userAgent string) *http.Client {
 	return &http.Client{
 		Timeout: 30 * time.Second,
 		Transport: &authTransport{
-			token: token,
-			next:  http.DefaultTransport,
+			token:     token,
+			userAgent: userAgent,
+			next:      http.DefaultTransport,
 		},
 	}
 }

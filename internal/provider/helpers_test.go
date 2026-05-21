@@ -38,6 +38,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const testUserAgent = "Terraform/test terraform-provider-panther/test"
+
 func TestRestClient_NilProviderData(t *testing.T) {
 	req := resource.ConfigureRequest{ProviderData: nil}
 	resp := &resource.ConfigureResponse{}
