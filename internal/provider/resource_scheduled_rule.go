@@ -18,9 +18,8 @@ package provider
 
 import (
 	"context"
-	"fmt"
+	"net/http"
 	"terraform-provider-panther/internal/client"
-	"terraform-provider-panther/internal/client/panther"
 	"terraform-provider-panther/internal/provider/resource_scheduled_rule"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -31,6 +30,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
+
+const scheduledRulePath = "/scheduled-rules"
 
 var (
 	_ resource.Resource                = (*scheduledRuleResource)(nil)
@@ -43,10 +44,10 @@ func NewScheduledRuleResource() resource.Resource {
 }
 
 type scheduledRuleResource struct {
-	client client.RestClient
+	rest *client.RESTClient
 }
 
-func (r *scheduledRuleResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *scheduledRuleResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_scheduled_rule"
 }
 
@@ -67,21 +68,8 @@ func (r *scheduledRuleResource) Schema(ctx context.Context, req resource.SchemaR
 	resp.Schema = generatedSchema
 }
 
-func (r *scheduledRuleResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-
-	apiClient, ok := req.ProviderData.(*panther.APIClient)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *panther.APIClient, got: %T", req.ProviderData),
-		)
-		return
-	}
-
-	r.client = apiClient.RestClient
+func (r *scheduledRuleResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	r.rest = restClient(req, resp)
 }
 
 func (r *scheduledRuleResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -92,21 +80,18 @@ func (r *scheduledRuleResource) Create(ctx context.Context, req resource.CreateR
 		return
 	}
 
-	input := client.CreateScheduledRuleInput{
-		ID: data.DisplayName.ValueString(),
-		ScheduledRuleModifiableAttributes: client.ScheduledRuleModifiableAttributes{
-			DisplayName:        data.DisplayName.ValueString(),
-			Body:               data.Body.ValueString(),
-			Description:        data.Description.ValueString(),
-			Severity:           data.Severity.ValueString(),
-			Enabled:            data.Enabled.ValueBool(),
-			DedupPeriodMinutes: int(data.DedupPeriodMinutes.ValueInt64()),
-			Runbook:            data.Runbook.ValueString(),
-			Threshold:          int(data.Threshold.ValueInt64()),
-		},
+	input := client.ScheduledRuleInput{
+		ID:                 data.DisplayName.ValueString(),
+		DisplayName:        data.DisplayName.ValueString(),
+		Body:               data.Body.ValueString(),
+		Description:        data.Description.ValueString(),
+		Severity:           data.Severity.ValueString(),
+		Enabled:            data.Enabled.ValueBool(),
+		DedupPeriodMinutes: int(data.DedupPeriodMinutes.ValueInt64()),
+		Runbook:            data.Runbook.ValueString(),
+		Threshold:          int(data.Threshold.ValueInt64()),
 	}
 
-	// Convert scheduled queries
 	if !data.ScheduledQueries.IsNull() && !data.ScheduledQueries.IsUnknown() {
 		scheduledQueries := make([]string, 0, len(data.ScheduledQueries.Elements()))
 		for _, elem := range data.ScheduledQueries.Elements() {
@@ -117,7 +102,6 @@ func (r *scheduledRuleResource) Create(ctx context.Context, req resource.CreateR
 		input.ScheduledQueries = scheduledQueries
 	}
 
-	// Convert tags
 	if !data.Tags.IsNull() && !data.Tags.IsUnknown() {
 		tags := make([]string, 0, len(data.Tags.Elements()))
 		for _, elem := range data.Tags.Elements() {
@@ -128,9 +112,8 @@ func (r *scheduledRuleResource) Create(ctx context.Context, req resource.CreateR
 		input.Tags = tags
 	}
 
-	result, err := r.client.CreateScheduledRule(ctx, input)
-	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create scheduled_rule, got error: %s", err))
+	result, err := client.RestDo[client.ScheduledRule](ctx, r.rest, http.MethodPost, scheduledRulePath, input)
+	if handleCreateError(resp, "ScheduledRule", err) {
 		return
 	}
 
@@ -144,9 +127,8 @@ func (r *scheduledRuleResource) Create(ctx context.Context, req resource.CreateR
 	data.Runbook = types.StringValue(result.Runbook)
 	data.Threshold = types.Int64Value(int64(result.Threshold))
 	data.CreatedAt = types.StringValue(result.CreatedAt)
-	data.LastModified = types.StringValue(result.UpdatedAt)
+	data.LastModified = types.StringValue(result.LastModified)
 
-	// Convert scheduled queries back to list
 	if len(result.ScheduledQueries) > 0 {
 		elements := make([]types.String, len(result.ScheduledQueries))
 		for i, query := range result.ScheduledQueries {
@@ -162,7 +144,6 @@ func (r *scheduledRuleResource) Create(ctx context.Context, req resource.CreateR
 		data.ScheduledQueries = types.ListNull(types.StringType)
 	}
 
-	// Set computed fields
 	data.CreatedBy = resource_scheduled_rule.NewCreatedByValueNull()
 	data.CreatedByExternal = types.StringNull()
 	data.Managed = types.BoolNull()
@@ -194,28 +175,27 @@ func (r *scheduledRuleResource) Read(ctx context.Context, req resource.ReadReque
 	if scheduledRuleID == "" {
 		scheduledRuleID = data.DisplayName.ValueString()
 	}
-	scheduledRule, err := r.client.GetScheduledRule(ctx, scheduledRuleID)
-	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read scheduled_rule, got error: %s", err))
+
+	result, err := client.RestDo[client.ScheduledRule](ctx, r.rest, http.MethodGet, scheduledRulePath+"/"+scheduledRuleID, nil)
+	if handleReadError(ctx, resp, "ScheduledRule", scheduledRuleID, err) {
 		return
 	}
 
-	data.Id = types.StringValue(scheduledRule.ID)
-	data.DisplayName = types.StringValue(scheduledRule.DisplayName)
-	data.Body = types.StringValue(scheduledRule.Body)
-	data.Description = types.StringValue(scheduledRule.Description)
-	data.Severity = types.StringValue(scheduledRule.Severity)
-	data.Enabled = types.BoolValue(scheduledRule.Enabled)
-	data.DedupPeriodMinutes = types.Int64Value(int64(scheduledRule.DedupPeriodMinutes))
-	data.Runbook = types.StringValue(scheduledRule.Runbook)
-	data.Threshold = types.Int64Value(int64(scheduledRule.Threshold))
-	data.CreatedAt = types.StringValue(scheduledRule.CreatedAt)
-	data.LastModified = types.StringValue(scheduledRule.UpdatedAt)
+	data.Id = types.StringValue(result.ID)
+	data.DisplayName = types.StringValue(result.DisplayName)
+	data.Body = types.StringValue(result.Body)
+	data.Description = types.StringValue(result.Description)
+	data.Severity = types.StringValue(result.Severity)
+	data.Enabled = types.BoolValue(result.Enabled)
+	data.DedupPeriodMinutes = types.Int64Value(int64(result.DedupPeriodMinutes))
+	data.Runbook = types.StringValue(result.Runbook)
+	data.Threshold = types.Int64Value(int64(result.Threshold))
+	data.CreatedAt = types.StringValue(result.CreatedAt)
+	data.LastModified = types.StringValue(result.LastModified)
 
-	// Convert scheduled queries back to list
-	if len(scheduledRule.ScheduledQueries) > 0 {
-		elements := make([]types.String, len(scheduledRule.ScheduledQueries))
-		for i, query := range scheduledRule.ScheduledQueries {
+	if len(result.ScheduledQueries) > 0 {
+		elements := make([]types.String, len(result.ScheduledQueries))
+		for i, query := range result.ScheduledQueries {
 			elements[i] = types.StringValue(query)
 		}
 		queriesList, diags := types.ListValueFrom(ctx, types.StringType, elements)
@@ -228,8 +208,8 @@ func (r *scheduledRuleResource) Read(ctx context.Context, req resource.ReadReque
 		data.ScheduledQueries = types.ListNull(types.StringType)
 	}
 
-	// Handle tags with order preservation
-	if len(scheduledRule.Tags) > 0 {
+	// Preserve tag order: only update tags if content changed.
+	if len(result.Tags) > 0 {
 		currentTags := make([]string, 0)
 		if !data.Tags.IsNull() && !data.Tags.IsUnknown() {
 			for _, elem := range data.Tags.Elements() {
@@ -239,10 +219,10 @@ func (r *scheduledRuleResource) Read(ctx context.Context, req resource.ReadReque
 			}
 		}
 
-		tagsChanged := len(currentTags) != len(scheduledRule.Tags)
+		tagsChanged := len(currentTags) != len(result.Tags)
 		if !tagsChanged {
 			apiTagsMap := make(map[string]bool)
-			for _, tag := range scheduledRule.Tags {
+			for _, tag := range result.Tags {
 				apiTagsMap[tag] = true
 			}
 			for _, tag := range currentTags {
@@ -254,8 +234,8 @@ func (r *scheduledRuleResource) Read(ctx context.Context, req resource.ReadReque
 		}
 
 		if tagsChanged {
-			elements := make([]types.String, len(scheduledRule.Tags))
-			for i, tag := range scheduledRule.Tags {
+			elements := make([]types.String, len(result.Tags))
+			for i, tag := range result.Tags {
 				elements[i] = types.StringValue(tag)
 			}
 			tagsList, diags := types.ListValueFrom(ctx, types.StringType, elements)
@@ -269,7 +249,6 @@ func (r *scheduledRuleResource) Read(ctx context.Context, req resource.ReadReque
 		data.Tags = types.ListNull(types.StringType)
 	}
 
-	// Set computed fields
 	data.CreatedBy = resource_scheduled_rule.NewCreatedByValueNull()
 	data.CreatedByExternal = types.StringNull()
 	data.Managed = types.BoolNull()
@@ -293,21 +272,18 @@ func (r *scheduledRuleResource) Update(ctx context.Context, req resource.UpdateR
 		return
 	}
 
-	input := client.UpdateScheduledRuleInput{
-		ID: data.Id.ValueString(),
-		ScheduledRuleModifiableAttributes: client.ScheduledRuleModifiableAttributes{
-			DisplayName:        data.DisplayName.ValueString(),
-			Body:               data.Body.ValueString(),
-			Description:        data.Description.ValueString(),
-			Severity:           data.Severity.ValueString(),
-			Enabled:            data.Enabled.ValueBool(),
-			DedupPeriodMinutes: int(data.DedupPeriodMinutes.ValueInt64()),
-			Runbook:            data.Runbook.ValueString(),
-			Threshold:          int(data.Threshold.ValueInt64()),
-		},
+	input := client.ScheduledRuleInput{
+		ID:                 data.Id.ValueString(),
+		DisplayName:        data.DisplayName.ValueString(),
+		Body:               data.Body.ValueString(),
+		Description:        data.Description.ValueString(),
+		Severity:           data.Severity.ValueString(),
+		Enabled:            data.Enabled.ValueBool(),
+		DedupPeriodMinutes: int(data.DedupPeriodMinutes.ValueInt64()),
+		Runbook:            data.Runbook.ValueString(),
+		Threshold:          int(data.Threshold.ValueInt64()),
 	}
 
-	// Convert scheduled queries
 	if !data.ScheduledQueries.IsNull() && !data.ScheduledQueries.IsUnknown() {
 		scheduledQueries := make([]string, 0, len(data.ScheduledQueries.Elements()))
 		for _, elem := range data.ScheduledQueries.Elements() {
@@ -318,7 +294,6 @@ func (r *scheduledRuleResource) Update(ctx context.Context, req resource.UpdateR
 		input.ScheduledQueries = scheduledQueries
 	}
 
-	// Convert tags
 	if !data.Tags.IsNull() && !data.Tags.IsUnknown() {
 		tags := make([]string, 0, len(data.Tags.Elements()))
 		for _, elem := range data.Tags.Elements() {
@@ -329,9 +304,8 @@ func (r *scheduledRuleResource) Update(ctx context.Context, req resource.UpdateR
 		input.Tags = tags
 	}
 
-	result, err := r.client.UpdateScheduledRule(ctx, input)
-	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update scheduled_rule, got error: %s", err))
+	result, err := client.RestDo[client.ScheduledRule](ctx, r.rest, http.MethodPut, scheduledRulePath+"/"+data.Id.ValueString(), input)
+	if handleUpdateError(ctx, resp, "ScheduledRule", data.Id.ValueString(), err) {
 		return
 	}
 
@@ -345,9 +319,8 @@ func (r *scheduledRuleResource) Update(ctx context.Context, req resource.UpdateR
 	data.Runbook = types.StringValue(result.Runbook)
 	data.Threshold = types.Int64Value(int64(result.Threshold))
 	data.CreatedAt = types.StringValue(result.CreatedAt)
-	data.LastModified = types.StringValue(result.UpdatedAt)
+	data.LastModified = types.StringValue(result.LastModified)
 
-	// Convert scheduled queries back to list
 	if len(result.ScheduledQueries) > 0 {
 		elements := make([]types.String, len(result.ScheduledQueries))
 		for i, query := range result.ScheduledQueries {
@@ -363,7 +336,6 @@ func (r *scheduledRuleResource) Update(ctx context.Context, req resource.UpdateR
 		data.ScheduledQueries = types.ListNull(types.StringType)
 	}
 
-	// Set computed fields
 	data.CreatedBy = resource_scheduled_rule.NewCreatedByValueNull()
 	data.CreatedByExternal = types.StringNull()
 	data.Managed = types.BoolNull()
@@ -391,9 +363,8 @@ func (r *scheduledRuleResource) Delete(ctx context.Context, req resource.DeleteR
 		return
 	}
 
-	err := r.client.DeleteScheduledRule(ctx, data.Id.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete scheduled_rule, got error: %s", err))
+	err := client.RestDelete(ctx, r.rest, scheduledRulePath+"/"+data.Id.ValueString())
+	if handleDeleteError(resp, "ScheduledRule", data.Id.ValueString(), err) {
 		return
 	}
 
