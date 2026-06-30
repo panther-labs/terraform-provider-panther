@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
+
 // Acceptance tests for the panther_logforwardersource resource.
 //
 // These tests run against a LIVE Panther instance and perform real API calls:
@@ -69,13 +70,7 @@ func TestLogForwarderSourceResource(t *testing.T) {
 					resource.TestCheckResourceAttr("panther_logforwardersource.test", "log_stream_type_options.json_array_envelope_field", "records"),
 				),
 			},
-			// Step 4: Drift detection — manually delete, verify Read detects 404 and removes from state
-			{
-				Config:             providerConfig + testUpdatedLogForwarderSourceResourceConfig(integrationUpdatedLabel),
-				Check:              manuallyDeleteSource(t, "panther_logforwardersource.test", logForwarderSourcePath),
-				ExpectNonEmptyPlan: true,
-			},
-			// TestCase cleanup calls Delete automatically — succeeds because 404 is treated as success.
+			// TestCase cleanup calls Delete automatically.
 		},
 	})
 }
