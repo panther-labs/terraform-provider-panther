@@ -212,6 +212,9 @@ func listToStringSlice(ctx context.Context, list types.List, diagnostics *diag.D
 }
 
 func stringSliceToList(ctx context.Context, slice []string, diagnostics *diag.Diagnostics) types.List {
+	if slice == nil {
+		slice = []string{}
+	}
 	result, d := types.ListValueFrom(ctx, types.StringType, slice)
 	diagnostics.Append(d...)
 	return result
