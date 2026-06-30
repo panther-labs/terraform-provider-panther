@@ -25,7 +25,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-
 // Acceptance tests for the panther_logforwardersource resource.
 //
 // These tests run against a LIVE Panther instance and perform real API calls:
@@ -33,7 +32,6 @@ import (
 //   - Read it back and verify all fields
 //   - Import the resource by ID
 //   - Update the integration (change label, log stream type, add options)
-//   - Drift detection: manually delete and verify Read detects 404
 //   - Delete the integration (automatic cleanup by the test framework)
 //
 // Required env vars: PANTHER_API_URL and PANTHER_API_TOKEN.
