@@ -67,6 +67,22 @@ resources:
         # runtime observability, not configuration — see the "Runtime state not exposed"
         # row in the PR description
         - state
+  logforwardersource:
+    create:
+      path: /log-sources/log-forwarder
+      method: POST
+    read:
+      path: /log-sources/log-forwarder/{id}
+      method: GET
+    update:
+      path: /log-sources/log-forwarder/{id}
+      method: PUT
+    delete:
+      path: /log-sources/log-forwarder/{id}
+      method: DELETE
+    schema:
+      ignores:
+        - integrationId
   aws_cloud_account:
     create:
       path: /cloud-accounts/aws

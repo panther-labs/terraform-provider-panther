@@ -376,6 +376,16 @@ func TestStringSliceToList(t *testing.T) {
 	assert.Equal(t, 1, len(list.Elements()))
 }
 
+func TestStringSliceToList_Nil(t *testing.T) {
+	ctx := context.Background()
+	diags := diag.Diagnostics{}
+
+	list := stringSliceToList(ctx, nil, &diags)
+	assert.False(t, diags.HasError())
+	assert.False(t, list.IsNull(), "nil slice should produce empty list, not null")
+	assert.Equal(t, 0, len(list.Elements()))
+}
+
 // Helpers that mutate a generated schema (setEmptyListDefault, addListElementValidator,
 // addNestedStringValidator) silently no-op on missing / wrong-type attributes. The
 // behavior matches applySchemaOverrides — a typo in an attribute name produces no
