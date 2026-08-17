@@ -55,6 +55,10 @@ func (r *roleResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 	resp.Schema.MarkdownDescription = "Represents a Role in Panther"
 	applySchemaOverrides(&resp.Schema, []SchemaOverride{
 		{Name: "id", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+		// logTypeAccessKind is server-defaulted and enum-validated, so a static ""
+		// default would conflict with the value the API returns on create; keep the
+		// server-chosen value instead.
+		{Name: "log_type_access_kind", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 	})
 	// The API omits logTypeAccess when logTypeAccessKind is ALLOW_ALL/DENY_ALL —
 	// default to an empty list so null-vs-[] is not a perpetual diff.
@@ -91,6 +95,7 @@ func (r *roleResource) Create(ctx context.Context, req resource.CreateRequest, r
 	data.Id = types.StringValue(role.Id)
 	// logTypeAccessKind is server-defaulted when omitted from the config
 	data.LogTypeAccessKind = types.StringValue(role.LogTypeAccessKind)
+	data.LogTypeAccess = stringSliceToList(ctx, role.LogTypeAccess, &resp.Diagnostics)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
@@ -139,6 +144,7 @@ func (r *roleResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		"id": data.Id.ValueString(),
 	})
 	data.LogTypeAccessKind = types.StringValue(role.LogTypeAccessKind)
+	data.LogTypeAccess = stringSliceToList(ctx, role.LogTypeAccess, &resp.Diagnostics)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
