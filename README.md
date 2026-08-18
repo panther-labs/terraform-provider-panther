@@ -114,6 +114,18 @@ make testacc
 
 In order to manually test the provider refer to the [Usage](#usage) section above.
 
+### Versioning
+
+This provider follows [Semantic Versioning](https://semver.org/), consistent with
+[HashiCorp's provider versioning guidance](https://developer.hashicorp.com/terraform/plugin/best-practices/versioning).
+When choosing the version for a release:
+
+- **MAJOR** — breaking changes that require user action (e.g. removing or renaming a resource/attribute, or changing how existing state is interpreted).
+- **MINOR** — new backwards-compatible functionality, **including adding a new resource or attribute**.
+- **PATCH** — backwards-compatible bug fixes.
+
+Record every release in [`CHANGELOG.md`](./CHANGELOG.md) before tagging.
+
 ### Releasing
 
 To release a new version, create and push a git tag matching the pattern `v*` (e.g., `v0.1.0`):
