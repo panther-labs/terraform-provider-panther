@@ -83,6 +83,25 @@ resources:
     schema:
       ignores:
         - integrationId
+  role:
+    create:
+      path: /roles
+      method: POST
+    read:
+      path: /roles/{id}
+      method: GET
+    update:
+      # the Roles API uses POST (not PUT) for updates
+      path: /roles/{id}
+      method: POST
+    delete:
+      path: /roles/{id}
+      method: DELETE
+    schema:
+      ignores:
+        # server-managed timestamps, not configuration
+        - createdAt
+        - updatedAt
   aws_cloud_account:
     create:
       path: /cloud-accounts/aws

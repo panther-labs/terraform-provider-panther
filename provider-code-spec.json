@@ -614,6 +614,65 @@
 					}
 				]
 			}
+		},
+		{
+			"name": "role",
+			"schema": {
+				"attributes": [
+					{
+						"name": "log_type_access",
+						"list": {
+							"computed_optional_required": "computed_optional",
+							"element_type": {
+								"string": {}
+							},
+							"description": "The log types that the role can or cannot access, according to the `logTypeAccessKind` field. This field should be omitted if `logTypeAccessKind` has a value of `ALLOW_ALL` or `DENY_ALL`"
+						}
+					},
+					{
+						"name": "log_type_access_kind",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Defines the role's access to log types. This field is required and has effect only if the datalake RBAC feature is enabled.",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.OneOf(\n\"ALLOW\",\n\"ALLOW_ALL\",\n\"DENY\",\n\"DENY_ALL\",\n)"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "name",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "The name of the role"
+						}
+					},
+					{
+						"name": "permissions",
+						"list": {
+							"computed_optional_required": "required",
+							"element_type": {
+								"string": {}
+							}
+						}
+					},
+					{
+						"name": "id",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "ID of the role"
+						}
+					}
+				]
+			}
 		}
 	],
 	"version": "0.1"
